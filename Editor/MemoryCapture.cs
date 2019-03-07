@@ -113,7 +113,7 @@ namespace Moobyte.MemoryProfiler
 		private static void OnSnapshotComplete(PackedMemorySnapshot snapshot)
 		{
 			MemorySnapshot.OnSnapshotReceived -= OnSnapshotComplete;
-			var spacedir = string.Format("{0}/../MemoryCaptrue", Application.dataPath);
+			var spacedir = string.Format("{0}/../MemoryCapture", Application.dataPath);
 			if (!Directory.Exists(spacedir))
 			{
 				Directory.CreateDirectory(spacedir);
