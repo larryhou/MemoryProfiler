@@ -1,27 +1,27 @@
-import sys
-from .core import *
 from .stream import MemoryStream
+from .core import *
 
 class MemorySnapshot(object):
-    def __init__(self):
+    def __init__(self, debug:bool = True):
         self.stream = MemoryStream()
+        self.debug = debug
 
-    def load(self, file_path:str):
+    def load(self, file_path): # type: (str)->PackedMemorySnapshot
         self.stream.open(file_path)
-        self.readObject(input=self.stream)
+        return self.readObject(input=self.stream)
 
     def readObject(self, input:MemoryStream):
         class_type = input.read_utfstring() # type: str
         class_name = class_type.split('.')[-1]
-        print('+ readObject offset={} class_type={}'.format(input.position, class_type))
+        if self.debug: print('+ readObject offset={} class_type={}'.format(input.position, class_type))
         data = globals().get(class_name)() # type: object
         assert data
         field_count = input.read_ubyte()
-        print(field_count, input.position)
+        if self.debug: print(field_count, input.position)
         for n in range(field_count):
             field_name = input.read_utfstring()
             field_type = input.read_utfstring()
-            print(field_name, field_type)
+            if self.debug: print(field_name, field_type)
             if field_type.endswith('[]'):
                 if field_type.endswith('Byte[]'):
                     field_data = input.read(size=input.read_uint32())
