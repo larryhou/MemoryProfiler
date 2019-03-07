@@ -190,6 +190,9 @@ class MemoryStream(object):
             shift += 7
         assert value <= UINT32_MAX_VALUE
         return value
+
+    def read_utfstring(self):
+        return self.read_string(size=self.read_uint32())
     
     def read_string(self, size = None, encoding = 'utf-8'): # type: (int, str)->str
         if size is None:
@@ -200,7 +203,7 @@ class MemoryStream(object):
                     break
                 string += char
         else:
-            string:bytes = struct.unpack('{}{}s'.format(self.endian, size), self.data.read(size))[0]
+            string:bytes = self.data.read(size)
         if encoding is None:
             return string
         else:

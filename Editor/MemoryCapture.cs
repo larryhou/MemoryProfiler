@@ -42,6 +42,11 @@ namespace Moobyte.MemoryProfiler
 			}
 		}
 		
+		public static void Write(this Stream stream, byte v)
+		{
+			stream.WriteByte(v);
+		}
+		
 		public static void Write(this Stream stream, ushort v)
 		{
 			int count = 2;
@@ -168,7 +173,7 @@ namespace Moobyte.MemoryProfiler
 					}
 					else if (type.IsEnum)
 					{
-						output.Write(value.ToString());
+						output.Write((int)value);
 					}
 					else if (type.IsValueType)
 					{
@@ -218,7 +223,7 @@ namespace Moobyte.MemoryProfiler
 				}
 				else if (type.IsEnum)
 				{
-					output.Write(value.ToString());
+					output.Write((int)value);
 				}
 				else if (type.IsClass)
 				{

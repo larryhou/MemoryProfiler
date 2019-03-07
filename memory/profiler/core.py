@@ -23,6 +23,9 @@ class MemoryObject(object):
     def dump(self, indent:str = ''):
         return indent
 
+    def __repr__(self):
+        return self.dump()
+
 class Connection(MemoryObject):
     def __init__(self):
         super(Connection, self).__init__()
