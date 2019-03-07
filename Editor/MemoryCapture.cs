@@ -195,10 +195,6 @@ namespace Moobyte.MemoryProfiler
 				{
 					output.Write((ulong)value);
 				}
-				else if (type == typeof(byte))
-				{
-					output.Write((byte)value);
-				}
 				else if (type == typeof(bool))
 				{
 					output.Write((bool)value);
