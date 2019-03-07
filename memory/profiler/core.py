@@ -74,7 +74,7 @@ class MemorySection(MemoryObject):
         self.bytes:bytes = None
 
     def dump(self, indent:str = ''):
-        return '{}[MemorySection] startAddress={:016X} bytes={}'.format(indent, self.startAddress, self.__format_bytes__(self.bytes))
+        return '{}[MemorySection] startAddress={:016x} bytes={}'.format(indent, self.startAddress, self.__format_bytes__(self.bytes))
 
 class PackedGCHandle(MemoryObject):
     def __init__(self):
@@ -82,7 +82,7 @@ class PackedGCHandle(MemoryObject):
         self.target:int = 0 # pointer
 
     def dump(self, indent:str = ''):
-        return '{}[PackedGCHandle] target={:016X}'.format(indent, self.target)
+        return '{}[PackedGCHandle] target={:016x}'.format(indent, self.target)
 
 class PackedNativeUnityEngineObject(MemoryObject):
     def __init__(self):
@@ -109,7 +109,7 @@ class PackedNativeUnityEngineObject(MemoryObject):
         return '|'.join([x.name for x in item_list])
 
     def dump(self, indent:str = ''):
-        return '{}[PackedNativeUnityEngineObject] hideFlags={:08b} instanceId={} isDontDestroyOnLoad={} isManager={} isPersistent={} name={} nativeObjectAddress={:016X} nativeTypeArrayIndex={} size={}'.format(
+        return '{}[PackedNativeUnityEngineObject] hideFlags={:08b} instanceId={} isDontDestroyOnLoad={} isManager={} isPersistent={} name={} nativeObjectAddress={:016x} nativeTypeArrayIndex={} size={}'.format(
             indent, self.hideFlags, self.instanceId, self.isDontDestroyOnLoad, self.isManager, self.isPersistent, self.name, self.nativeObjectAddress, self.nativeTypeArrayIndex, self.size
         )
 
