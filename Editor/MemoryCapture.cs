@@ -130,14 +130,14 @@ namespace Moobyte.MemoryProfiler
 		private static void EncodeObject(Stream output, object data)
 		{
 			var classType = data.GetType();
-			output.Write(classType.Name);
+			output.Write(classType.FullName);
 			var list = classType.GetProperties();
 			output.Write((byte)list.Length);
 			
 			foreach(var property in classType.GetProperties())
 			{
 				output.Write(property.Name);
-				output.Write(property.PropertyType.Name);
+				output.Write(property.PropertyType.FullName);
 				
 				var value = property.GetValue(data, null);
 				var type = property.PropertyType;
