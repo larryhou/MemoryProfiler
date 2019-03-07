@@ -20,6 +20,7 @@ class MemorySnapshotReader(object):
         if self.debug: print(field_count, input.position)
         for n in range(field_count):
             field_name = input.read_utfstring()
+            if field_name == 'from': field_name = 'from_'
             field_type = input.read_utfstring()
             if self.debug: print('    - {} {}'.format(field_name, field_type))
             if field_type.endswith('[]'):

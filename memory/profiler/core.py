@@ -5,14 +5,8 @@ from io import StringIO
 
 NEST_INDENT_STEP = 4
 
-class ObjectFlags(enum.Enum):
-    IsDontDestroyOnLoad, IsPersistent, IsManager = range(3)
-
-class TypeFlags(enum.Enum):
-    kValueType, kArray, kArrayRankMask = range(3)
-
 class HideFlags(enum.Enum):
-    None_,HideInHierarchy,HideInInspector,DontSaveInEditor,NotEditable,DontSaveInBuild,DontUnloadUnusedAsset,DontSave,HideAndDontSave = range(9)
+    Clear, HideInHierarchy, HideInInspector, DontSaveInEditor, NotEditable, DontSaveInBuild, DontUnloadUnusedAsset= range(7)
 
 class MemoryObject(object):
 
@@ -93,7 +87,7 @@ class PackedGCHandle(MemoryObject):
 class PackedNativeUnityEngineObject(MemoryObject):
     def __init__(self):
         super(PackedNativeUnityEngineObject, self).__init__()
-        self.hideFlags:HideFlags = HideFlags.None_
+        self.hideFlags:int = 0
         self.instanceId:int = -1
         self.isDontDestroyOnLoad:bool = False
         self.isManager:bool = False
@@ -103,8 +97,19 @@ class PackedNativeUnityEngineObject(MemoryObject):
         self.nativeTypeArrayIndex:int = -1
         self.size:int= -1
 
+    def __format_flags(self):
+        shift = 0
+        item_list = []
+        while shift < 8:
+            flag = self.hideFlags & (1 << shift)
+            if flag != 0:
+                item_list.append(HideFlags(shift + 1))
+            shift += 1
+        if not item_list: item_list.append(HideFlags.Clear)
+        return '|'.join([x.name for x in item_list])
+
     def dump(self, indent:str = ''):
-        return '{}[PackedNativeUnityEngineObject] hideFlags={} instanceId={} isDontDestroyOnLoad={} isManager={} isPersistent={} name={} nativeObjectAddress={:016X} nativeTypeArrayIndex={} size={}'.format(
+        return '{}[PackedNativeUnityEngineObject] hideFlags={:08b} instanceId={} isDontDestroyOnLoad={} isManager={} isPersistent={} name={} nativeObjectAddress={:016X} nativeTypeArrayIndex={} size={}'.format(
             indent, self.hideFlags, self.instanceId, self.isDontDestroyOnLoad, self.isManager, self.isPersistent, self.name, self.nativeObjectAddress, self.nativeTypeArrayIndex, self.size
         )
 
@@ -150,37 +155,37 @@ class PackedMemorySnapshot(MemoryObject):
         indent_1 = indent + ' '*NEST_INDENT_STEP
         indent_2 = indent_1 + ' '*NEST_INDENT_STEP
         if self.connections:
-            fp.write('{}connections=\n'.format(indent_1))
+            fp.write('{}connections=[Array]\n'.format(indent_1))
             iter_count = len(self.connections)
             for n in range(iter_count):
                 it = self.connections[n]
                 fp.write('{}\n'.format(it.dump(indent_2)))
         if self.gcHandles:
-            fp.write('{}gcHandles=\n'.format(indent_1))
+            fp.write('{}gcHandles=[Array]\n'.format(indent_1))
             iter_count = len(self.gcHandles)
             for n in range(iter_count):
                 it = self.gcHandles[n]
                 fp.write('{}\n'.format(it.dump(indent_2)))
         if self.managedHeapSections:
-            fp.write('{}managedHeapSections=\n'.format(indent_1))
+            fp.write('{}managedHeapSections=[Array]\n'.format(indent_1))
             iter_count = len(self.managedHeapSections)
             for n in range(iter_count):
                 it = self.managedHeapSections[n]
                 fp.write('{}\n'.format(it.dump(indent_2)))
         if self.nativeObjects:
-            fp.write('{}nativeObjects=\n'.format(indent_1))
+            fp.write('{}nativeObjects=[Array]\n'.format(indent_1))
             iter_count = len(self.nativeObjects)
             for n in range(iter_count):
                 it = self.nativeObjects[n]
                 fp.write('{}\n'.format(it.dump(indent_2)))
         if self.typeDescriptions:
-            fp.write('{}typeDescriptions=\n'.format(indent_1))
+            fp.write('{}typeDescriptions=[Array]\n'.format(indent_1))
             iter_count = len(self.typeDescriptions)
             for n in range(iter_count):
                 it = self.typeDescriptions[n]
                 fp.write('{}\n'.format(it.dump(indent_2)))
         if self.virtualMachineInformation:
-            fp.write('{}virtualMachineInformation=\n'.format(indent_1))
+            fp.write('{}virtualMachineInformation=[Object]\n'.format(indent_1))
             fp.write(self.virtualMachineInformation.dump(indent_2))
             fp.write('\n')
         fp.seek(0)
