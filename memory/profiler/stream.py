@@ -264,10 +264,10 @@ class MemoryStream(object):
         data = struct.pack('{}d'.format(self.endian), value)
         self.__extend_write(data)
 
-    def write_byte_tuple(self, value):
-        num = len(value) # type(value) = list or tuple
+    def write_byte_tuple(self, tuple):
+        num = len(tuple) # type(value) = list or tuple
         print('{}{}B'.format(self.endian, num))
-        data = struct.pack('{}{}B'.format(self.endian, num), *value)
+        data = struct.pack('{}{}B'.format(self.endian, num), *tuple)
         self.__extend_write(data)
 
     def write_hex(self, value):
