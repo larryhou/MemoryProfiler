@@ -146,7 +146,7 @@ class PackedMemorySnapshot(MemoryObject):
 
     def dump(self, indent:str = ''):
         fp = StringIO()
-        fp.write('{}[PackedMemorySnapshot]\n')
+        fp.write('{}[PackedMemorySnapshot]\n'.format(indent))
         indent_1 = indent + ' '*NEST_INDENT_STEP
         indent_2 = indent_1 + ' '*NEST_INDENT_STEP
         if self.connections:
