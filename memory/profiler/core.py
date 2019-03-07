@@ -17,7 +17,7 @@ class HideFlags(enum.Enum):
 class MemoryObject(object):
 
     def __format_bytes__(self, bytes:bytes):
-        return '{:,}B'.format(len(bytes) if bytes else 0)
+        return '{:,}'.format(len(bytes) if bytes else 0)
 
     def dump(self, indent:str = ''):
         return indent
@@ -160,7 +160,7 @@ class PackedMemorySnapshot(MemoryObject):
             iter_count = len(self.gcHandles)
             for n in range(iter_count):
                 it = self.gcHandles[n]
-                fp.write('{}\n'.format(n + 1, iter_count, it.dump(indent_2)))
+                fp.write('{}\n'.format(it.dump(indent_2)))
         if self.managedHeapSections:
             fp.write('{}managedHeapSections=\n'.format(indent_1))
             iter_count = len(self.managedHeapSections)

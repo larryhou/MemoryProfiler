@@ -1,12 +1,12 @@
 from .stream import MemoryStream
 from .core import *
 
-class MemorySnapshot(object):
+class MemorySnapshotReader(object):
     def __init__(self, debug:bool = True):
         self.stream = MemoryStream()
         self.debug = debug
 
-    def load(self, file_path): # type: (str)->PackedMemorySnapshot
+    def read(self, file_path): # type: (str)->PackedMemorySnapshot
         self.stream.open(file_path)
         return self.readObject(input=self.stream)
 
@@ -21,7 +21,7 @@ class MemorySnapshot(object):
         for n in range(field_count):
             field_name = input.read_utfstring()
             field_type = input.read_utfstring()
-            if self.debug: print(field_name, field_type)
+            if self.debug: print('    - {} {}'.format(field_name, field_type))
             if field_type.endswith('[]'):
                 if field_type.endswith('Byte[]'):
                     field_data = input.read(size=input.read_uint32())
