@@ -56,14 +56,15 @@ class TypeDescription(MemoryObject):
 
     def dump(self, indent:str = ''):
         fp = StringIO()
-        fp.write('{}[TypeDescription] arrayRank={} assembly={} baseOrElementTypeIndex={} isArray={} isValueType={} name={} size={} staticFieldBytes={} typeIndex={} typeInfoAddress={}\n'.format(
+        fp.write('{}[TypeDescription] arrayRank={} assembly={} baseOrElementTypeIndex={} isArray={} isValueType={} name={} size={} staticFieldBytes={} typeIndex={} typeInfoAddress={}'.format(
             indent, self.arrayRank, self.assembly, self.baseOrElementTypeIndex, self.isArray, self.isValueType, self.name, self.size, self.__format_bytes__(self.staticFieldBytes), self.typeIndex, self.typeInfoAddress
         ))
         nest_indent = indent + ' '*NEST_INDENT_STEP
         iter_count = len(self.fields)
         for n in range(iter_count):
             field = self.fields[n]
-            fp.write('{}\n'.format(field.dump(nest_indent)))
+            fp.write(field.dump(nest_indent))
+            if n + 1 < iter_count: fp.write('\n')
         fp.seek(0)
         return fp.read()
 
@@ -187,6 +188,5 @@ class PackedMemorySnapshot(MemoryObject):
         if self.virtualMachineInformation:
             fp.write('{}virtualMachineInformation=[Object]\n'.format(indent_1))
             fp.write(self.virtualMachineInformation.dump(indent_2))
-            fp.write('\n')
         fp.seek(0)
         return fp.read()
