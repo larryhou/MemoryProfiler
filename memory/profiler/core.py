@@ -61,10 +61,12 @@ class TypeDescription(MemoryObject):
         ))
         nest_indent = indent + ' '*NEST_INDENT_STEP
         iter_count = len(self.fields)
-        for n in range(iter_count):
-            field = self.fields[n]
-            fp.write(field.dump(nest_indent))
-            if n + 1 < iter_count: fp.write('\n')
+        if iter_count > 0:
+            fp.write('\n')
+            for n in range(iter_count):
+                field = self.fields[n]
+                fp.write(field.dump(nest_indent))
+                if n + 1 < iter_count: fp.write('\n')
         fp.seek(0)
         return fp.read()
 
