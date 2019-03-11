@@ -3,12 +3,15 @@ from .core import *
 
 class MemorySnapshotReader(object):
     def __init__(self, debug:bool = True):
-        self.stream = MemoryStream()
+        self.__stream = MemoryStream()
+        self.vm:VirtualMachineInformation = None
         self.debug = debug
 
     def read(self, file_path): # type: (str)->PackedMemorySnapshot
-        self.stream.open(file_path)
-        return self.__read_object(input=self.stream)
+        self.__stream.open(file_path)
+        self.vm = self.__read_object(input=self.__stream)
+        print(self.vm)
+        return self.__read_object(input=self.__stream)
 
     def __read_object(self, input:MemoryStream):
         class_type = input.read_utfstring() # type: str

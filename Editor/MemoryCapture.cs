@@ -109,6 +109,7 @@ namespace Moobyte.MemoryProfiler
 			
 			var filepath = string.Format("{0}/snapshot_{1:yyyyMMddHHmmss}.dat", spacedir, DateTime.Now);
 			Stream stream = new FileStream(filepath, FileMode.CreateNew);
+			EncodeObject(stream, snapshot.virtualMachineInformation);
 			EncodeObject(stream, snapshot);
 			stream.Flush();
 			Debug.LogFormat("+ {0}", filepath);
