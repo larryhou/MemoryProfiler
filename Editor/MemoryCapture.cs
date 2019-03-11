@@ -25,7 +25,6 @@ namespace Moobyte.MemoryProfiler
 			try
 			{
 				var size = System.Text.Encoding.UTF8.GetBytes(v, 0, charCount, buffer, 0);
-				
 				stream.Write(size);
 				if (size > 0)
 				{
@@ -45,22 +44,6 @@ namespace Moobyte.MemoryProfiler
 		public static void Write(this Stream stream, byte v)
 		{
 			stream.WriteByte(v);
-		}
-		
-		public static void Write(this Stream stream, ushort v)
-		{
-			int count = 2;
-			int shift = count * 8;
-			while (count-- > 0)
-			{
-				shift -= 8;
-				stream.WriteByte((byte) ((v >> shift) & 0xFF));
-			}
-		}
-		
-		public static void Write(this Stream stream, short v)
-		{
-			stream.Write((ushort)v);
 		}
 
 		public static void Write(this Stream stream, uint v)

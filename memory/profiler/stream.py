@@ -192,7 +192,7 @@ class MemoryStream(object):
         return value
 
     def read_utfstring(self):
-        return self.read_string(size=self.read_uint32())
+        return self.read_string(size=self.read_uint32(), encoding='utf-8')
     
     def read_string(self, size = None, encoding = 'utf-8'): # type: (int, str)->str
         if size is None:
@@ -204,10 +204,10 @@ class MemoryStream(object):
                 string += char
         else:
             string:bytes = self.data.read(size)
-        if encoding is None:
+        if not encoding:
             return string
         else:
-            if string is not None:
+            if string:
                 return string.decode(encoding=encoding)
             return None
 
