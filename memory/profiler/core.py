@@ -53,11 +53,14 @@ class TypeDescription(MemoryObject):
         self.staticFieldBytes:bytes = None
         self.typeIndex:int = -1
         self.typeInfoAddress:int = 0 # pointer
+        # extend fields
+        self.instanceCount: int = 0
+        self.instanceMemory: int = 0
 
     def dump(self, indent:str = ''):
         fp = StringIO()
-        fp.write('{}[TypeDescription] arrayRank={} assembly={} baseOrElementTypeIndex={} isArray={} isValueType={} name={} size={} staticFieldBytes={} typeIndex={} typeInfoAddress={}'.format(
-            indent, self.arrayRank, self.assembly, self.baseOrElementTypeIndex, self.isArray, self.isValueType, self.name, self.size, self.__format_bytes__(self.staticFieldBytes), self.typeIndex, self.typeInfoAddress
+        fp.write('{}[TypeDescription] arrayRank={} assembly={} baseOrElementTypeIndex={} isArray={} isValueType={} name={} size={} staticFieldBytes={} typeIndex={} typeInfoAddress={} instanceCount={} instanceMemory={}'.format(
+            indent, self.arrayRank, self.assembly, self.baseOrElementTypeIndex, self.isArray, self.isValueType, self.name, self.size, self.__format_bytes__(self.staticFieldBytes), self.typeIndex, self.typeInfoAddress, self.instanceCount, self.instanceMemory
         ))
         nest_indent = indent + ' '*NEST_INDENT_STEP
         iter_count = len(self.fields)
@@ -121,9 +124,15 @@ class PackedNativeType(MemoryObject):
         super(PackedNativeType, self).__init__()
         self.name:str = ''
         self.nativeBaseTypeArrayIndex:int = -1
+        # extend fields
+        self.typeIndex:int = -1
+        self.instanceCount:int = 0
+        self.instanceMemory:int = 0
 
     def dump(self, indent:str = ''):
-        return '{}[PackedNativeType] name={} nativeBaseTypeArrayIndex={}'.format(indent, self.name, self.nativeBaseTypeArrayIndex)
+        return '{}[PackedNativeType] name={} nativeBaseTypeArrayIndex={} typeIndex={} instanceCount={} instanceMemory={}'.format(
+            indent, self.name, self.nativeBaseTypeArrayIndex, self.typeIndex, self.instanceCount, self.instanceMemory
+        )
 
 class VirtualMachineInformation(MemoryObject):
     def __init__(self):

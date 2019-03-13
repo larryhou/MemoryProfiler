@@ -43,7 +43,7 @@ class MemoryStream(object):
     LITTLE_ENDIAN = '<'
     BIG_ENDIAN = '>'
     def __init__(self, endian = '>'):
-        self.endian = MemoryStream.BIG_ENDIAN if endian is None else endian
+        self.endian = MemoryStream.BIG_ENDIAN if not endian else endian
         self.data = io.BytesIO(bytearray())
         self.path = None
 
@@ -61,7 +61,7 @@ class MemoryStream(object):
         self.data = open(file_path, 'r+b')
 
     def save(self, output_path = None):
-        if output_path is not None:
+        if output_path:
             output_path = os.path.abspath(output_path)
             if output_path != self.path:
                 f = open(output_path, 'wb')
@@ -139,19 +139,17 @@ class MemoryStream(object):
     def read_double(self):
         return struct.unpack('{}d'.format(self.endian), self.data.read(8))[0]
     
-    def read_byte_tuple(self, size = None):
-        if size is not None:
+    def read_byte_tuple(self, size = -1):
+        if size >= 0:
             return list(struct.unpack('{}{}B'.format(self.endian, size), self.data.read(size)))
         else:
             string = self.data.read()
             return list(struct.unpack('{}{}B'.format(self.endian, len(string)), string))
 
-    def read(self, size = None):
-        if size is None:
-            return self.data.read()
-        return self.data.read(size)
+    def read(self, size = -1):
+        return self.data.read(size) if size >= 0 else self.data.read()
 
-    def read_hex(self, size = None):
+    def read_hex(self, size = -1):
         data = self.read(size)
         return binascii.hexlify(data).decode('ascii')
 
@@ -194,8 +192,8 @@ class MemoryStream(object):
     def read_utfstring(self):
         return self.read_string(size=self.read_uint32(), encoding='utf-8')
     
-    def read_string(self, size = None, encoding = 'utf-8'): # type: (int, str)->str
-        if size is None:
+    def read_string(self, size = -1, encoding = 'utf-8'): # type: (int, str)->str
+        if size <= -1:
             string:bytes = b''
             while True:
                 char = self.data.read(1)
