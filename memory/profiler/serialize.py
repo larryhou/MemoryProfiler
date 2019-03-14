@@ -50,6 +50,7 @@ class MemorySnapshotReader(object):
                 field_data = self.__read_object(input)
                 assert nest_class_name == field_data.__class__.__name__, '++ expect={} but={}'.format(nest_class_name, field_data.__class__.__name__)
             setattr(data, field_name, field_data)
+        setattr(data, 'vm', self.vm)
         return data
 
     def __read_array(self, input:MemoryStream):

@@ -6,12 +6,17 @@ from io import StringIO
 NEST_INDENT_STEP = 4
 
 class HideFlags(enum.Enum):
-    Clear, HideInHierarchy, HideInInspector, DontSaveInEditor, NotEditable, DontSaveInBuild, DontUnloadUnusedAsset= range(7)
+    Clear, HideInHierarchy, HideInInspector, DontSaveInEditor, NotEditable, DontSaveInBuild, DontUnloadUnusedAsset = range(7)
 
 class MemoryObject(object):
+    def __init__(self):
+        self.vm:VirtualMachineInformation = None
 
     def __format_bytes__(self, bytes:bytes):
         return '{:,}'.format(len(bytes) if bytes else 0)
+
+    def format_ptr(self, address:int):
+        return ('{:0%dx}' % self.vm.pointerSize).format(address)
 
     def dump(self, indent:str = ''):
         return indent
@@ -80,7 +85,7 @@ class MemorySection(MemoryObject):
         self.bytes:bytes = None
 
     def dump(self, indent:str = ''):
-        return '{}[MemorySection] startAddress={:016x} bytes={}'.format(indent, self.startAddress, self.__format_bytes__(self.bytes))
+        return '{}[MemorySection] startAddress={} bytes={}'.format(indent, self.format_ptr(self.startAddress), self.__format_bytes__(self.bytes))
 
 class PackedGCHandle(MemoryObject):
     def __init__(self):
@@ -88,7 +93,7 @@ class PackedGCHandle(MemoryObject):
         self.target:int = 0 # pointer
 
     def dump(self, indent:str = ''):
-        return '{}[PackedGCHandle] target={:016x}'.format(indent, self.target)
+        return '{}[PackedGCHandle] target={}'.format(indent, self.format_ptr(self.target))
 
 class PackedNativeUnityEngineObject(MemoryObject):
     def __init__(self):
@@ -101,7 +106,7 @@ class PackedNativeUnityEngineObject(MemoryObject):
         self.name:str = ''
         self.nativeObjectAddress:int = 0 # pointer
         self.nativeTypeArrayIndex:int = -1
-        self.size:int= -1
+        self.size:int = -1
 
     def __format_flags(self):
         shift = 0
@@ -115,8 +120,8 @@ class PackedNativeUnityEngineObject(MemoryObject):
         return '|'.join([x.name for x in item_list])
 
     def dump(self, indent:str = ''):
-        return '{}[PackedNativeUnityEngineObject] hideFlags={:08b} instanceId={} isDontDestroyOnLoad={} isManager={} isPersistent={} name={} nativeObjectAddress={:016x} nativeTypeArrayIndex={} size={}'.format(
-            indent, self.hideFlags, self.instanceId, self.isDontDestroyOnLoad, self.isManager, self.isPersistent, self.name, self.nativeObjectAddress, self.nativeTypeArrayIndex, self.size
+        return '{}[PackedNativeUnityEngineObject] hideFlags={:08b} instanceId={} isDontDestroyOnLoad={} isManager={} isPersistent={} name={} nativeObjectAddress={} nativeTypeArrayIndex={} size={}'.format(
+            indent, self.hideFlags, self.instanceId, self.isDontDestroyOnLoad, self.isManager, self.isPersistent, self.name, self.format_ptr(self.nativeObjectAddress), self.nativeTypeArrayIndex, self.size
         )
 
 class PackedNativeType(MemoryObject):
