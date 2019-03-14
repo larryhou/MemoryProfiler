@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-#encoding:utf-8
 
 import io, os, struct, binascii
 
 UINT32_MAX_VALUE = 0xFFFFFFFF
+
 
 class TestCase(object):
     def run_test_suit(self):
@@ -35,14 +35,17 @@ class TestCase(object):
         for n in range(len(value_list)):
             assert stream.read_compact_sint32() == value_list[n]
         assert stream.position == stream.length
-    
+
+
 def run_test():
     TestCase().run_test_suit()
+
 
 class MemoryStream(object):
     LITTLE_ENDIAN = '<'
     BIG_ENDIAN = '>'
-    def __init__(self, endian = '>'):
+
+    def __init__(self, endian='>'):
         self.endian = MemoryStream.BIG_ENDIAN if not endian else endian
         self.data = io.BytesIO(bytearray())
         self.path = None
@@ -50,17 +53,18 @@ class MemoryStream(object):
     @property
     def data(self):
         return self.__data
+
     @data.setter
     def data(self, data):
         self.__data = data
         if hasattr(data, 'name'):
             self.path = os.path.abspath(self.data.name)
         self.position = 0
-    
+
     def open(self, file_path):
         self.data = open(file_path, 'r+b')
 
-    def save(self, output_path = None):
+    def save(self, output_path=None):
         if output_path:
             output_path = os.path.abspath(output_path)
             if output_path != self.path:
@@ -79,14 +83,15 @@ class MemoryStream(object):
     @property
     def bytes_available(self):
         return self.length - self.position
-    
+
     @property
     def position(self):
         return self.data.tell()
+
     @position.setter
     def position(self, position):
         self.data.seek(position, os.SEEK_SET)
-    
+
     @property
     def length(self):
         position = self.position
@@ -94,16 +99,17 @@ class MemoryStream(object):
         length = self.data.tell()
         self.data.seek(position, os.SEEK_SET)
         return length
+
     @length.setter
     def length(self, length):
         position = self.position
-        self.data.truncate(length) # r+b
+        self.data.truncate(length)  # r+b
         if length < position:
             self.data.seek(length, os.SEEK_SET)
 
-    def align(self, pad = 4, offset = 0):
+    def align(self, pad=4, offset=0):
         position = self.data.tell() + offset
-        new_position = (position + pad - 1) // pad * pad # integer division
+        new_position = (position + pad - 1) // pad * pad  # integer division
         if position != new_position:
             self.data.seek(new_position - offset, os.SEEK_SET)
 
@@ -116,40 +122,45 @@ class MemoryStream(object):
 
     def read_sbyte(self):
         return struct.unpack('b', self.data.read(1))[0]
+
     def read_ubyte(self):
         return struct.unpack('B', self.data.read(1))[0]
 
     def read_sint16(self):
         return struct.unpack('{}h'.format(self.endian), self.data.read(2))[0]
+
     def read_uint16(self):
         return struct.unpack('{}H'.format(self.endian), self.data.read(2))[0]
 
     def read_sint32(self):
         return struct.unpack('{}i'.format(self.endian), self.data.read(4))[0]
+
     def read_uint32(self):
         return struct.unpack('{}I'.format(self.endian), self.data.read(4))[0]
 
     def read_sint64(self):
         return struct.unpack('{}q'.format(self.endian), self.data.read(8))[0]
+
     def read_uint64(self):
         return struct.unpack('{}Q'.format(self.endian), self.data.read(8))[0]
 
     def read_float(self):
         return struct.unpack('{}f'.format(self.endian), self.data.read(4))[0]
+
     def read_double(self):
         return struct.unpack('{}d'.format(self.endian), self.data.read(8))[0]
-    
-    def read_byte_tuple(self, size = -1):
+
+    def read_byte_tuple(self, size=-1):
         if size >= 0:
             return list(struct.unpack('{}{}B'.format(self.endian, size), self.data.read(size)))
         else:
             string = self.data.read()
             return list(struct.unpack('{}{}B'.format(self.endian, len(string)), string))
 
-    def read(self, size = -1):
+    def read(self, size=-1):
         return self.data.read(size) if size >= 0 else self.data.read()
 
-    def read_hex(self, size = -1):
+    def read_hex(self, size=-1):
         data = self.read(size)
         return binascii.hexlify(data).decode('ascii')
 
@@ -191,33 +202,34 @@ class MemoryStream(object):
 
     def read_utfstring(self):
         return self.read_string(size=self.read_uint32(), encoding='utf-8')
-    
-    def read_string(self, size = -1, encoding = 'utf-8'): # type: (int, str)->str
+
+    def read_string(self, size=-1, encoding='utf-8'):  # type: (int, str)->str
         if size <= -1:
-            string:bytes = b''
+            string: bytes = b''
             while True:
                 char = self.data.read(1)
                 if char == b'\x00':
                     break
                 string += char
         else:
-            string:bytes = self.data.read(size)
+            string: bytes = self.data.read(size)
         if not encoding:
             return string
         else:
             if string:
                 return string.decode(encoding=encoding)
-            return None
+            return ''
 
-    def write_string(self, string, encoding = 'utf-8'): # type: (str, str)->None
-        bytes = string.encode(encoding = encoding)
+    def write_string(self, string, encoding='utf-8'):  # type: (str, str)->None
+        bytes = string.encode(encoding=encoding)
         self.__extend_write(bytes)
         self.__extend_write(b'\x00')
 
     # write
-    def write(self, bytes): # type: (bytes)->None
+    def write(self, bytes):  # type: (bytes)->None
         self.__extend_write(bytes)
-    def __extend_write(self, bytes): # type: (bytes)->None
+
+    def __extend_write(self, bytes):  # type: (bytes)->None
         capacity = self.length - self.position
         if capacity < len(bytes):
             self.length += len(bytes) - capacity
@@ -233,6 +245,7 @@ class MemoryStream(object):
     def write_sbyte(self, value):
         data = struct.pack('b', value)
         self.__extend_write(data)
+
     def write_ubyte(self, value):
         data = struct.pack('B', value)
         self.__extend_write(data)
@@ -240,6 +253,7 @@ class MemoryStream(object):
     def write_sint16(self, value):
         data = struct.pack('{}h'.format(self.endian), value)
         self.__extend_write(data)
+
     def write_uint16(self, value):
         data = struct.pack('{}H'.format(self.endian), value)
         self.__extend_write(data)
@@ -247,6 +261,7 @@ class MemoryStream(object):
     def write_sint32(self, value):
         data = struct.pack('{}i'.format(self.endian), value)
         self.__extend_write(data)
+
     def write_uint32(self, value):
         data = struct.pack('{}I'.format(self.endian), value)
         self.__extend_write(data)
@@ -254,6 +269,7 @@ class MemoryStream(object):
     def write_sint64(self, value):
         data = struct.pack('{}q'.format(self.endian), value)
         self.__extend_write(data)
+
     def write_uint64(self, value):
         data = struct.pack('{}Q'.format(self.endian), value)
         self.__extend_write(data)
@@ -261,12 +277,13 @@ class MemoryStream(object):
     def write_float(self, value):
         data = struct.pack('{}f'.format(self.endian), value)
         self.__extend_write(data)
+
     def write_double(self, value):
         data = struct.pack('{}d'.format(self.endian), value)
         self.__extend_write(data)
 
     def write_byte_tuple(self, tuple):
-        num = len(tuple) # type(value) = list or tuple
+        num = len(tuple)  # type(value) = list or tuple
         print('{}{}B'.format(self.endian, num))
         data = struct.pack('{}{}B'.format(self.endian, num), *tuple)
         self.__extend_write(data)
@@ -293,13 +310,13 @@ class MemoryStream(object):
             return
         if value <= 16777215:
             self.write_ubyte(250)
-            self.write_ubyte(value >>  0 & 0xFF)
-            self.write_ubyte(value >>  8 & 0xFF)
+            self.write_ubyte(value >> 0 & 0xFF)
+            self.write_ubyte(value >> 8 & 0xFF)
             self.write_ubyte(value >> 16 & 0xFF)
             return
         self.write_ubyte(251)
-        self.write_ubyte(value >>  0 & 0xFF)
-        self.write_ubyte(value >>  8 & 0xFF)
+        self.write_ubyte(value >> 0 & 0xFF)
+        self.write_ubyte(value >> 8 & 0xFF)
         self.write_ubyte(value >> 16 & 0xFF)
         self.write_ubyte(value >> 24 & 0xFF)
 
