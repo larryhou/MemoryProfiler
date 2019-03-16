@@ -49,7 +49,7 @@ class HeepReader(object):
         if self.start_address <= address < self.stop_address:
             return address - self.start_address
 
-        heap_index = self.find_heep_of_address(address=address)
+        heap_index = self.find_heap_of_address(address=address)
         if heap_index == -1: return -1
 
         heap = self.heep_sections[heap_index]
@@ -213,7 +213,7 @@ class HeepReader(object):
             return HeapSegment(b'', 0, 0)
         return HeapSegment(self.memory, offset, size)
 
-    def find_heep_of_address(self, address)->int:
+    def find_heap_of_address(self, address)->int:
         idx_min, idx_max = 0, len(self.heep_sections) - 1
         while idx_min <= idx_max:
             idx_mid = (idx_max + idx_min) >> 1
