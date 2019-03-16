@@ -37,8 +37,8 @@ class HeapSegment(object):
 class HeepReader(object):
     def __init__(self, snapshot:PackedMemorySnapshot):
         self.snapshot = snapshot
-        self.heep_sections = snapshot.managedHeapSections
-        self.heep_sections.sort(key=operator.attrgetter('startAddress'))
+        self.heap_sections = snapshot.managedHeapSections
+        self.heap_sections.sort(key=operator.attrgetter('startAddress'))
 
         self.memory:bytes = bytes()
         self.start_address:int = -1
@@ -52,7 +52,7 @@ class HeepReader(object):
         heap_index = self.find_heap_of_address(address=address)
         if heap_index == -1: return -1
 
-        heap = self.heep_sections[heap_index]
+        heap = self.heap_sections[heap_index]
         self.start_address = heap.startAddress
         self.stop_address = self.start_address + (len(heap.bytes) if heap.bytes else 0)
         self.memory = heap.bytes
@@ -214,16 +214,16 @@ class HeepReader(object):
         return HeapSegment(self.memory, offset, size)
 
     def find_heap_of_address(self, address)->int:
-        idx_min, idx_max = 0, len(self.heep_sections) - 1
-        while idx_min <= idx_max:
-            idx_mid = (idx_max + idx_min) >> 1
-            heep = self.heep_sections[idx_mid]
+        _min, _max = 0, len(self.heap_sections) - 1
+        while _min <= _max:
+            _mid = (_max + _min) >> 1
+            heep = self.heap_sections[_mid]
             if heep.startAddress > address:
-                idx_max = idx_mid - 1
+                _max = _mid - 1
             elif heep.startAddress + len(heep.bytes) < address:
-                idx_min = idx_mid + 1
+                _min = _mid + 1
             else:
-                return idx_mid
+                return _mid
         return -1
 
 class StaticHeapReader(HeepReader):
