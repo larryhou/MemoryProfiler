@@ -42,11 +42,11 @@ class HeepReader(object):
 
         self.memory:bytes = bytes()
         self.start_address:int = -1
-        self.end_address:int = -1
+        self.stop_address:int = -1
 
     def try_begin_read(self, address:int)->int:
         if address == 0: return -1
-        if self.start_address <= address < self.end_address:
+        if self.start_address <= address < self.stop_address:
             return address - self.start_address
 
         heap_index = self.find_heep_of_address(address=address)
@@ -54,7 +54,7 @@ class HeepReader(object):
 
         heap = self.heep_sections[heap_index]
         self.start_address = heap.startAddress
-        self.end_address = self.start_address + (len(heap.bytes) if heap.bytes else 0)
+        self.stop_address = self.start_address + (len(heap.bytes) if heap.bytes else 0)
         self.memory = heap.bytes
         return address - self.start_address
 
@@ -235,7 +235,7 @@ class StaticHeapReader(HeepReader):
     def load_memory(self, memory:bytes):
         self.memory = memory
         self.start_address = 0
-        self.end_address = len(memory)
+        self.stop_address = len(memory)
 
     def try_begin_read(self, address:int):
         if address == 0 \
