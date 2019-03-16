@@ -58,12 +58,12 @@ class HeepReader(object):
         self.memory = heap.bytes
         return address - self.start_address
 
-    def read_sbyte(self, address:int):
+    def read_sbyte(self, address:int)->int:
         offset = self.try_begin_read(address)
         if offset == -1: return 0
         return unpack('b', self.memory[offset:offset+1])[0]
 
-    def read_ubyte(self, address:int):
+    def read_ubyte(self, address:int)->int:
         offset = self.try_begin_read(address)
         if offset == -1: return 0
         return self.memory[offset]
@@ -76,53 +76,53 @@ class HeepReader(object):
     def read_boolean(self, address:int)->bool:
         return self.read_ubyte(address) != 0
 
-    def read_uint8(self, address:int):
+    def read_uint8(self, address:int)->int:
         return self.read_ubyte(address)
 
-    def read_sint8(self, address:int):
+    def read_sint8(self, address:int)->int:
         return self.read_sbyte(address)
 
-    def read_uint16(self, address:int):
+    def read_uint16(self, address:int)->int:
         offset = self.try_begin_read(address)
         if offset == -1: return 0
         return unpack('>H', self.memory[offset:offset+2])[0]
 
-    def read_sint16(self, address:int):
+    def read_sint16(self, address:int)->int:
         offset = self.try_begin_read(address)
         if offset == -1: return 0
         return unpack('>h', self.memory[offset:offset+2])[0]
 
-    def read_uint32(self, address:int):
+    def read_uint32(self, address:int)->int:
         offset = self.try_begin_read(address)
         if offset == -1: return 0
         return unpack('>I', self.memory[offset:offset+4])[0]
 
-    def read_sint32(self, address:int):
+    def read_sint32(self, address:int)->int:
         offset = self.try_begin_read(address)
         if offset == -1: return 0
         return unpack('>i', self.memory[offset:offset+4])[0]
 
-    def read_uint64(self, address:int):
+    def read_uint64(self, address:int)->int:
         offset = self.try_begin_read(address)
         if offset == -1: return 0
         return unpack('>Q', self.memory[offset:offset+8])[0]
 
-    def read_sint64(self, address:int):
+    def read_sint64(self, address:int)->int:
         offset = self.try_begin_read(address)
         if offset == -1: return 0
         return unpack('>q', self.memory[offset:offset+8])[0]
 
-    def read_single(self, address:int):
+    def read_single(self, address:int)->int:
         offset = self.try_begin_read(address)
         if offset == -1: return 0.0
         return unpack('>f', self.memory[offset:offset+4])[0]
 
-    def read_double(self, address:int):
+    def read_double(self, address:int)->int:
         offset = self.try_begin_read(address)
         if offset == -1: return 0.0
         return unpack('>d', self.memory[offset:offset+8])[0]
 
-    def read_decimal(self, address:int):
+    def read_decimal(self, address:int)->int:
         offset = self.try_begin_read(address)
         if offset == -1: return Decimal()
         return Decimal(
@@ -132,7 +132,7 @@ class HeepReader(object):
             mid=self.read_uint32(address + 12),
         )
 
-    def read_quaternion(self, address:int):
+    def read_quaternion(self, address:int)->Quaternion:
         offset = self.try_begin_read(address)
         if offset == -1: return Quaternion()
         type_size = 4
@@ -148,7 +148,7 @@ class HeepReader(object):
         if offset == -1: return (0,)*16
         return tuple([self.read_single(address + 4 * n) for n in range(16)])
 
-    def read_pointer(self, address:int):
+    def read_pointer(self, address:int)->int:
         return self.read_uint64(address) if self.snapshot.vm.pointerSize == 8 else self.read_uint32(address)
 
     def read_string(self, address:int)->str:
@@ -161,13 +161,13 @@ class HeepReader(object):
         length *= 2 # wide char
         return self.memory[offset:offset+length].decode(encoding='utf-16') # unicode encoding
 
-    def read_string_length(self, address:int):
+    def read_string_length(self, address:int)->int:
         offset = self.try_begin_read(address)
         if offset == -1: return 0
         length = self.read_sint32(address)
         return length if length > 0 else 0
 
-    def read_array_length(self, address:int, array_type:TypeDescription):
+    def read_array_length(self, address:int, array_type:TypeDescription)->int:
         vm = self.snapshot.vm
         bounds = self.read_pointer(address + vm.arrayBoundsOffsetInHeader)
         if bounds == 0:
@@ -177,7 +177,7 @@ class HeepReader(object):
             length *= self.read_pointer(bounds + n * vm.pointerSize)
         return length
 
-    def read_array_length_of_dimension(self, address:int, array_type:TypeDescription, dimension:int):
+    def read_array_length_of_dimension(self, address:int, array_type:TypeDescription, dimension:int)->int:
         if dimension >= array_type.arrayRank: return 0
         vm = self.snapshot.vm
         bounds = self.read_pointer(address + vm.arrayBoundsOffsetInHeader)
@@ -213,7 +213,7 @@ class HeepReader(object):
             return HeapSegment(b'', 0, 0)
         return HeapSegment(self.memory, offset, size)
 
-    def find_heep_of_address(self, address):
+    def find_heep_of_address(self, address)->int:
         idx_min, idx_max = 0, len(self.heep_sections) - 1
         while idx_min <= idx_max:
             idx_mid = (idx_max + idx_min) >> 1
