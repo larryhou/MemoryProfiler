@@ -6,12 +6,16 @@ class MemorySnapshotReader(object):
         self.__stream = MemoryStream()
         self.vm:VirtualMachineInformation = None
         self.debug = debug
+        self.cached_ptr:FieldDescription = None
 
     def read(self, file_path): # type: (str)->PackedMemorySnapshot
         self.__stream.open(file_path)
         self.vm = self.__read_object(input=self.__stream)
         print(self.vm)
-        return self.__read_object(input=self.__stream)
+        snapshot = self.__read_object(input=self.__stream) # type: PackedMemorySnapshot
+        snapshot.cached_ptr = self.cached_ptr
+        assert snapshot.cached_ptr
+        return snapshot
 
     def __read_object(self, input:MemoryStream):
         class_type = input.read_utfstring() # type: str
@@ -21,6 +25,7 @@ class MemorySnapshotReader(object):
         assert data
         field_count = input.read_ubyte()
         if self.debug: print(field_count, input.position)
+        is_cached_ptr = False
         for n in range(field_count):
             field_name = input.read_utfstring()
             if field_name == 'from': field_name = 'from_'
@@ -41,6 +46,7 @@ class MemorySnapshotReader(object):
                 field_data = input.read_uint64()
             elif field_type.endswith('String'):
                 field_data = input.read_utfstring()
+                if field_data == 'm_CachedPtr': is_cached_ptr = True
             elif field_type.endswith('Boolean'):
                 field_data = input.read_ubyte() != 0
             elif field_type.endswith('Flags'):
@@ -50,6 +56,8 @@ class MemorySnapshotReader(object):
                 field_data = self.__read_object(input)
                 assert nest_class_name == field_data.__class__.__name__, '++ expect={} but={}'.format(nest_class_name, field_data.__class__.__name__)
             setattr(data, field_name, field_data)
+        if is_cached_ptr:
+            self.cached_ptr = data # type: TypeDescription
         setattr(data, 'vm', self.vm)
         return data
 

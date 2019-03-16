@@ -165,6 +165,7 @@ class PackedMemorySnapshot(MemoryObject):
         self.nativeTypes:List[PackedNativeType] = []
         self.typeDescriptions:List[TypeDescription] = []
         self.virtualMachineInformation:VirtualMachineInformation = None
+        self.cached_ptr:TypeDescription = None
 
     def dump(self, indent:str = ''):
         fp = StringIO()

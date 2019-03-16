@@ -34,7 +34,7 @@ class HeapSegment(object):
             len(self.memory), self.offset, self.length, self.qualified
         )
 
-class HeepReader(object):
+class HeapReader(object):
     def __init__(self, snapshot:PackedMemorySnapshot):
         self.snapshot = snapshot
         self.heap_sections = snapshot.managedHeapSections
@@ -226,7 +226,7 @@ class HeepReader(object):
                 return _mid
         return -1
 
-class StaticHeapReader(HeepReader):
+class StaticHeapReader(HeapReader):
 
     def __init__(self, snapshot: PackedMemorySnapshot, memory: bytes):
         super().__init__(snapshot)
