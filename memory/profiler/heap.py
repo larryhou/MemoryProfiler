@@ -217,10 +217,10 @@ class HeepReader(object):
         _min, _max = 0, len(self.heap_sections) - 1
         while _min <= _max:
             _mid = (_max + _min) >> 1
-            heep = self.heap_sections[_mid]
-            if heep.startAddress > address:
+            heap = self.heap_sections[_mid]
+            if heap.startAddress > address:
                 _max = _mid - 1
-            elif heep.startAddress + len(heep.bytes) < address:
+            elif heap.startAddress + len(heap.bytes) < address:
                 _min = _mid + 1
             else:
                 return _mid
