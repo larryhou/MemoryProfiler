@@ -64,7 +64,7 @@ class TypeDescription(MemoryObject):
 
     def dump(self, indent:str = ''):
         fp = StringIO()
-        fp.write('{}[TypeDescription] arrayRank={} assembly={} baseOrElementTypeIndex={} isArray={} isValueType={} name={!r} size={} staticFieldBytes={} typeIndex={} typeInfoAddress={} instanceCount={} instanceMemory={}'.format(
+        fp.write('{}[TypeDescription] arrayRank={} assembly={!r} baseOrElementTypeIndex={} isArray={} isValueType={} name={!r} size={} staticFieldBytes={} typeIndex={} typeInfoAddress={} instanceCount={} instanceMemory={}'.format(
             indent, self.arrayRank, self.assembly, self.baseOrElementTypeIndex, self.isArray, self.isValueType, self.name, self.size, self.__format_bytes__(self.staticFieldBytes), self.typeIndex, self.typeInfoAddress, self.instanceCount, self.instanceMemory
         ))
         nest_indent = indent + ' '*NEST_INDENT_STEP
