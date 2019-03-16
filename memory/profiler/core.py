@@ -42,7 +42,7 @@ class FieldDescription(MemoryObject):
         self.typeIndex:int = -1
 
     def dump(self, indent:str = ''):
-        return '{}[FieldDescription] isStatic={} name={} offset={} typeIndex={}'.format(indent, self.isStatic, self.name, self.offset, self.typeIndex)
+        return '{}[FieldDescription] isStatic={} name={!r} offset={} typeIndex={}'.format(indent, self.isStatic, self.name, self.offset, self.typeIndex)
 
 class TypeDescription(MemoryObject):
     def __init__(self):
@@ -64,7 +64,7 @@ class TypeDescription(MemoryObject):
 
     def dump(self, indent:str = ''):
         fp = StringIO()
-        fp.write('{}[TypeDescription] arrayRank={} assembly={} baseOrElementTypeIndex={} isArray={} isValueType={} name={} size={} staticFieldBytes={} typeIndex={} typeInfoAddress={} instanceCount={} instanceMemory={}'.format(
+        fp.write('{}[TypeDescription] arrayRank={} assembly={} baseOrElementTypeIndex={} isArray={} isValueType={} name={!r} size={} staticFieldBytes={} typeIndex={} typeInfoAddress={} instanceCount={} instanceMemory={}'.format(
             indent, self.arrayRank, self.assembly, self.baseOrElementTypeIndex, self.isArray, self.isValueType, self.name, self.size, self.__format_bytes__(self.staticFieldBytes), self.typeIndex, self.typeInfoAddress, self.instanceCount, self.instanceMemory
         ))
         nest_indent = indent + ' '*NEST_INDENT_STEP
@@ -120,7 +120,7 @@ class PackedNativeUnityEngineObject(MemoryObject):
         return '|'.join([x.name for x in item_list])
 
     def dump(self, indent:str = ''):
-        return '{}[PackedNativeUnityEngineObject] hideFlags={:08b} instanceId={} isDontDestroyOnLoad={} isManager={} isPersistent={} name={} nativeObjectAddress={} nativeTypeArrayIndex={} size={}'.format(
+        return '{}[PackedNativeUnityEngineObject] hideFlags={:08b} instanceId={} isDontDestroyOnLoad={} isManager={} isPersistent={} name={!r} nativeObjectAddress={} nativeTypeArrayIndex={} size={}'.format(
             indent, self.hideFlags, self.instanceId, self.isDontDestroyOnLoad, self.isManager, self.isPersistent, self.name, self.format_ptr(self.nativeObjectAddress), self.nativeTypeArrayIndex, self.size
         )
 
@@ -135,7 +135,7 @@ class PackedNativeType(MemoryObject):
         self.instanceMemory:int = 0
 
     def dump(self, indent:str = ''):
-        return '{}[PackedNativeType] name={} nativeBaseTypeArrayIndex={} typeIndex={} instanceCount={} instanceMemory={}'.format(
+        return '{}[PackedNativeType] name={!r} nativeBaseTypeArrayIndex={} typeIndex={} instanceCount={} instanceMemory={}'.format(
             indent, self.name, self.nativeBaseTypeArrayIndex, self.typeIndex, self.instanceCount, self.instanceMemory
         )
 
