@@ -9,6 +9,7 @@ def main():
     options = arguments.parse_args(sys.argv[1:])
     reader = MemorySnapshotReader(debug=options.debug)
     data = reader.read(file_path=options.file_path)
+    # data.generate_type_module()
     assert reader.cached_ptr
     print(reader.cached_ptr.dump())
     print(data.dump())

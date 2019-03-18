@@ -61,6 +61,8 @@ class TypeDescription(MemoryObject):
         # extend fields
         self.instanceCount: int = 0
         self.instanceMemory: int = 0
+        self.isUnityEngineObjectType: bool = False
+        self.nativeTypeArrayIndex:int = -1
 
     def dump(self, indent:str = ''):
         fp = StringIO()
@@ -108,6 +110,9 @@ class PackedNativeUnityEngineObject(MemoryObject):
         self.nativeTypeArrayIndex:int = -1
         self.size:int = -1
 
+        # extend fields
+        self.managedObjectArrayIndex:int = -1
+
     def __format_flags(self):
         shift = 0
         item_list = []
@@ -133,6 +138,7 @@ class PackedNativeType(MemoryObject):
         self.typeIndex:int = -1
         self.instanceCount:int = 0
         self.instanceMemory:int = 0
+        self.managedTypeArrayIndex: int = -1
 
     def dump(self, indent:str = ''):
         return '{}[PackedNativeType] name={!r} nativeBaseTypeArrayIndex={} typeIndex={} instanceCount={} instanceMemory={}'.format(
@@ -165,7 +171,10 @@ class PackedMemorySnapshot(MemoryObject):
         self.nativeTypes:List[PackedNativeType] = []
         self.typeDescriptions:List[TypeDescription] = []
         self.virtualMachineInformation:VirtualMachineInformation = None
-        self.cached_ptr:TypeDescription = None
+        self.cached_ptr:FieldDescription = None
+
+        self.managedTypeIndex = ManagedTypeIndex()
+        self.nativeTypeIndex = NativeTypeIndex()
 
     def preprocess(self):
         import operator
@@ -173,30 +182,33 @@ class PackedMemorySnapshot(MemoryObject):
         for n in range(len(self.nativeTypes)):
             nt = self.nativeTypes[n]
             nt.typeIndex = n
-            if hasattr(NativeTypeIndex, nt.name):
-                setattr(NativeTypeIndex, nt.name, nt.typeIndex)
-
+            if hasattr(self.nativeTypeIndex, nt.name):
+                setattr(self.nativeTypeIndex, nt.name, nt.typeIndex)
         for n in range(len(self.typeDescriptions)):
             mt = self.typeDescriptions[n]
             assert mt.typeIndex == n
-            index_name = self.get_type_index_name(mt)
-            if index_name and hasattr(ManagedTypeIndex, index_name):
-                setattr(ManagedTypeIndex, index_name, mt.typeIndex)
+            index_name = self.__get_type_index_name(mt)
+            if index_name and hasattr(self.managedTypeIndex, index_name):
+                setattr(self.managedTypeIndex, index_name, mt.typeIndex)
 
     def generate_type_module(self):
         import os.path as p
         module_path = p.join(p.dirname(p.abspath(__file__)), 'index.py')
         fp = open(module_path, 'w+')
         # native type index
+        indent_1 = ' '*4
+        indent_2 = indent_1*2
         fp.write('class NativeTypeIndex(object):\n')
+        fp.write('{}def __init__(self):\n'.format(indent_1))
         for name, index in self.__generate_native_type_map().items():
-            fp.write('    {}:int = {}\n'.format(name, index))
+            fp.write('{}self.{}:int = {}\n'.format(indent_2, name, index))
         fp.write('\n')
 
         # managed type index
         fp.write('class ManagedTypeIndex(object):\n')
+        fp.write('{}def __init__(self):\n'.format(indent_1))
         for name, index in self.__generate_managed_type_map().items():
-            fp.write('    {}:int = {}\n'.format(name, index))
+            fp.write('{}self.{}:int = {}\n'.format(indent_2, name, index))
         fp.write('\n')
         fp.close()
 
@@ -207,7 +219,7 @@ class PackedMemorySnapshot(MemoryObject):
             type_map[nt.name] = nt.typeIndex
         return type_map
 
-    def get_type_index_name(self, managed_type:TypeDescription):
+    def __get_type_index_name(self, managed_type:TypeDescription):
         if managed_type.isArray or managed_type.name[-1] in '*>': return
         components = managed_type.name.split('.')
         if components[-1][0] in '_': return
@@ -226,7 +238,7 @@ class PackedMemorySnapshot(MemoryObject):
         type_map = {}  # type: dict[str, int]
         for n in range(len(self.typeDescriptions)):
             mt = self.typeDescriptions[n]
-            field_name = self.get_type_index_name(mt)
+            field_name = self.__get_type_index_name(mt)
             if not field_name: continue
             type_map[field_name] = mt.typeIndex
         return type_map

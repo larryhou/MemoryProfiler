@@ -13,7 +13,6 @@ class MemorySnapshotReader(object):
         self.vm = self.__read_object(input=self.__stream)
         print(self.vm)
         snapshot = self.__read_object(input=self.__stream) # type: PackedMemorySnapshot
-        snapshot.preprocess()
         snapshot.cached_ptr = self.cached_ptr
         assert snapshot.cached_ptr
         return snapshot
