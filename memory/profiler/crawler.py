@@ -7,6 +7,12 @@ import enum
 class ConnectionKind(enum.Enum):
     none, handle, native, managed, static = range(5)
 
+class ManagedStaticField(object):
+    def __init__(self, type_index:int = -1, field_type_index:int = -1, type_field_index:int = -1, static_field_index:int = -1):
+        self.type_index:int = type_index
+        self.type_field_index:int = type_field_index
+        self.static_field_index:int = static_field_index
+        self.field_type_index:int = field_type_index
 
 class ManagedConnection(object):
     def __init__(self, from_ = 0, from_kind = ConnectionKind.none, to = 0, to_kind = ConnectionKind.none):
@@ -14,7 +20,6 @@ class ManagedConnection(object):
         self.to: int = to
         self.from_kind: ConnectionKind = from_kind
         self.to_kind: ConnectionKind = to_kind
-
 
 class ManagedObject(object):
     def __init__(self):
@@ -25,13 +30,6 @@ class ManagedObject(object):
         self.manage_object_index: int = -1
         self.handle_index: int = -1
         self.size: int = 0
-
-
-class ManagedStaticField(object):
-    def __init__(self):
-        self.object_type_index: int = -1
-        self.field_index: int = -1
-        self.static_object_index = -1
 
 
 class MemorySnapshotCrawler(object):
@@ -230,6 +228,17 @@ class MemorySnapshotCrawler(object):
             type = self.snapshot.typeDescriptions[type.baseOrElementTypeIndex]
         return False
 
+    def contains_reference(self, type_index:int):
+        mt = self.snapshot.typeDescriptions[type_index]
+        if not mt.isValueType: return True
+        managed_types = self.snapshot.typeDescriptions
+        type_count = len(managed_types)
+        for field in mt.fields:
+            if field.typeIndex < 0 or field.typeIndex >= type_count: continue
+            field_type = managed_types[field.typeIndex]
+            if not field_type.isValueType: return True
+        return False
+
     def try_connect_with_native_object(self, managed_object: ManagedObject):
         if managed_object.native_object_index >= 0: return
         mt = self.snapshot.typeDescriptions[managed_object.type_index]
@@ -281,7 +290,27 @@ class MemorySnapshotCrawler(object):
                                 to_kind=ConnectionKind.managed, to=managed_object_index)
 
     def crawl_static(self):
-        pass
+        managed_types = self.snapshot.typeDescriptions
+        static_list = []
+        for mt in managed_types:
+            if not mt.staticFieldBytes: continue
+            for n in range(len(mt.fields)):
+                field = mt.fields[n]
+                if not field.isStatic: continue
+                item = ManagedStaticField(type_index=mt.typeIndex, field_type_index=field.typeIndex, type_field_index=n,
+                                          static_field_index=len(self.static_fields))
+                self.static_fields.append(item)
+                static_list.append(item.static_field_index)
+        static_reader = StaticHeapReader(snapshot=self.snapshot, memory=b'')
+        for n in range(len(static_list)):
+            static_index = static_list[n]
+            static_field = self.static_fields[static_index]
+            field_type = managed_types[static_field.field_type_index]
+            static_reader.load(memory=field_type.staticFieldBytes)
+            if field_type.isValueType:
+                pass
+
+
 
     def crawl_managed_objects(self):
         pass

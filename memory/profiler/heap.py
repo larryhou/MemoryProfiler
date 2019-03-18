@@ -229,9 +229,9 @@ class StaticHeapReader(HeapReader):
 
     def __init__(self, snapshot: PackedMemorySnapshot, memory: bytes):
         super().__init__(snapshot)
-        self.load_memory(memory)
+        self.load(memory)
 
-    def load_memory(self, memory:bytes):
+    def load(self, memory:bytes):
         self.memory = memory
         self.start_address = 0
         self.stop_address = len(memory)
