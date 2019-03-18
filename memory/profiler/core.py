@@ -167,6 +167,18 @@ class PackedMemorySnapshot(MemoryObject):
         self.virtualMachineInformation:VirtualMachineInformation = None
         self.cached_ptr:TypeDescription = None
 
+    def preprocess(self):
+        import operator
+        self.managedHeapSections.sort(key=operator.attrgetter('startAddress'))
+        for n in range(len(self.nativeTypes)):
+            self.nativeTypes[n].typeIndex = n
+
+    def generate_native_types(self):
+        pass
+
+    def generate_managed_types(self):
+        pass
+
     def dump(self, indent:str = ''):
         fp = StringIO()
         fp.write('{}[PackedMemorySnapshot]\n'.format(indent))
@@ -195,6 +207,12 @@ class PackedMemorySnapshot(MemoryObject):
             iter_count = len(self.nativeObjects)
             for n in range(iter_count):
                 it = self.nativeObjects[n]
+                fp.write('{}\n'.format(it.dump(indent_2)))
+        if self.nativeTypes:
+            fp.write('{}nativeTypes=[Array]\n'.format(indent_1))
+            iter_count = len(self.nativeTypes)
+            for n in range(iter_count):
+                it = self.nativeTypes[n]
                 fp.write('{}\n'.format(it.dump(indent_2)))
         if self.typeDescriptions:
             fp.write('{}typeDescriptions=[Array]\n'.format(indent_1))

@@ -38,7 +38,6 @@ class HeapReader(object):
     def __init__(self, snapshot:PackedMemorySnapshot):
         self.snapshot = snapshot
         self.heap_sections = snapshot.managedHeapSections
-        self.heap_sections.sort(key=operator.attrgetter('startAddress'))
 
         self.memory:bytes = bytes()
         self.start_address:int = -1

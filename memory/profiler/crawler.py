@@ -53,8 +53,8 @@ class MemorySnapshotCrawler(object):
 
         self.type_address_map: Dict[int, int] = {}
         self.native_object_address_map: Dict[int, int] = {}
-        self.manage_object_address_map: Dict[int, int] = {}
-        self.manage_native_address_map: Dict[int, int] = {}
+        self.managed_object_address_map: Dict[int, int] = {}
+        self.managed_native_address_map: Dict[int, int] = {}
         self.handle_address_map: Dict[int, int] = {}
 
     def crawl(self):
@@ -84,20 +84,20 @@ class MemorySnapshotCrawler(object):
         self.managed_connections = managed_connections
 
     def add_connection(self, from_: int, from_kind: ConnectionKind, to: int, to_kind: ConnectionKind):
-        mc = ManagedConnection(from_=from_, from_kind=from_kind, to=to, to_kind=to_kind)
-        if mc.from_kind != ConnectionKind.none and mc.from_ != -1:
-            key = self.hash_connection(kind=mc.from_kind, index=mc.from_)
+        connection = ManagedConnection(from_=from_, from_kind=from_kind, to=to, to_kind=to_kind)
+        if connection.from_kind != ConnectionKind.none and connection.from_ != -1:
+            key = self.get_connection_key(kind=connection.from_kind, index=connection.from_)
             if key not in self.connections_from:
                 self.connections_from[key] = []
-            self.connections_from[key].append(mc)
-        if mc.to_kind != ConnectionKind.none and mc.to != -1:
-            if mc.to < 0: mc.to = -mc.to
-            key = self.hash_connection(kind=mc.to_kind, index=mc.to)
+            self.connections_from[key].append(connection)
+        if connection.to_kind != ConnectionKind.none and connection.to != -1:
+            if connection.to < 0: connection.to = -connection.to
+            key = self.get_connection_key(kind=connection.to_kind, index=connection.to)
             if key not in self.connections_to:
                 self.connections_to[key] = []
-            self.connections_to[key].append(mc)
+            self.connections_to[key].append(connection)
 
-    def hash_connection(self, kind: ConnectionKind, index: int):
+    def get_connection_key(self, kind: ConnectionKind, index: int):
         return kind.value << 50 + index
 
     def find_type_of_address(self, address: int) -> int:
@@ -121,24 +121,24 @@ class MemorySnapshotCrawler(object):
         type_index = self.type_address_map.get(type_info_address)
         return -1 if type_index is None else type_index
 
-    def find_manage_object_of_native_object(self, native_address:int):
+    def find_managed_object_of_native_object(self, native_address:int):
         if native_address == 0: return -1
-        if not self.manage_native_address_map:
+        if not self.managed_native_address_map:
             for n in range(len(self.managed_objects)):
                 mo = self.managed_objects[n]
                 if mo.native_object_index >= 0:
                     no = self.snapshot.nativeObjects[mo.native_object_index]
-                    self.manage_native_address_map[no.nativeObjectAddress] = n
-        manage_index = self.manage_native_address_map.get(native_address)
+                    self.managed_native_address_map[no.nativeObjectAddress] = n
+        manage_index = self.managed_native_address_map.get(native_address)
         return -1 if manage_index is None else manage_index
 
-    def find_manage_object_at_address(self, address: int) -> int:
+    def find_managed_object_at_address(self, address: int) -> int:
         if address == 0: return -1
-        if not self.manage_object_address_map:
+        if not self.managed_object_address_map:
             for n in range(len(self.managed_objects)):
                 mo = self.managed_objects[n]
-                self.manage_object_address_map[mo.address] = n
-        object_index = self.manage_object_address_map.get(address)
+                self.managed_object_address_map[mo.address] = n
+        object_index = self.managed_object_address_map.get(address)
         return -1 if object_index is None else object_index
 
     def find_native_object_at_address(self, address: int):
@@ -160,12 +160,12 @@ class MemorySnapshotCrawler(object):
         return -1 if handle_index is None else handle_index
 
     def get_connections_of(self, kind:ConnectionKind, index:int)->List[ManagedConnection]:
-        key = self.hash_connection(kind=kind, index=index)
+        key = self.get_connection_key(kind=kind, index=index)
         references = self.connections_from.get(key)
         return references if references else []
 
     def get_connections_referenced_by(self, kind:ConnectionKind, index:int)->List[ManagedConnection]:
-        key = self.hash_connection(kind=kind, index=index)
+        key = self.get_connection_key(kind=kind, index=index)
         references = self.connections_to.get(key)
         return references if references else []
 
@@ -181,15 +181,15 @@ class MemorySnapshotCrawler(object):
         return references
 
     def find_mono_script_type(self, native_index: int)->Tuple[str, int]:
-        key = self.hash_connection(kind=ConnectionKind.native, index=native_index)
-        mc_list = self.connections_from.get(key)
-        if mc_list:
-            for mc in mc_list:
-                type_index = self.snapshot.nativeObjects[mc.to].nativeTypeArrayIndex
+        key = self.get_connection_key(kind=ConnectionKind.native, index=native_index)
+        reference_list = self.connections_from.get(key)
+        if reference_list:
+            for refer in reference_list:
+                type_index = self.snapshot.nativeObjects[refer.to].nativeTypeArrayIndex
 
-                if mc.to_kind == ConnectionKind.native \
+                if refer.to_kind == ConnectionKind.native \
                         and self.snapshot.typeDescriptions[type_index].name == 'UnityEditor.MonoScript':
-                    script_name = self.snapshot.nativeObjects[mc.to].name
+                    script_name = self.snapshot.nativeObjects[refer.to].name
                     return script_name, type_index
         return '', -1
 
@@ -210,7 +210,7 @@ class MemorySnapshotCrawler(object):
             type = self.snapshot.nativeTypes[type.nativeBaseTypeArrayIndex]
         return False
 
-    def is_subclass_of_manage_type(self, type: TypeDescription, base_type_index: int):
+    def is_subclass_of_managed_type(self, type: TypeDescription, base_type_index: int):
         if type.typeIndex == base_type_index:
             return True
         if type.typeIndex < 0 or base_type_index < 0:
