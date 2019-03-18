@@ -93,6 +93,9 @@ class PackedGCHandle(MemoryObject):
     def __init__(self):
         super(PackedGCHandle, self).__init__()
         self.target:int = 0 # pointer
+        # extend fields
+        self.gcHandleArrayIndex:int = -1
+        self.managedObjectArrayIndex:int = -1
 
     def dump(self, indent:str = ''):
         return '{}[PackedGCHandle] target={}'.format(indent, self.format_ptr(self.target))
@@ -190,6 +193,8 @@ class PackedMemorySnapshot(MemoryObject):
             index_name = self.__get_type_index_name(mt)
             if index_name and hasattr(self.managedTypeIndex, index_name):
                 setattr(self.managedTypeIndex, index_name, mt.typeIndex)
+        for n in range(len(self.gcHandles)):
+            self.gcHandles[n].gcHandleArrayIndex = n
 
     def generate_type_module(self):
         import os.path as p

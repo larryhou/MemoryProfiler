@@ -254,8 +254,7 @@ class MemorySnapshotCrawler(object):
 
     def try_create_managed_object(self, address: int) -> int:
         type_index = self.find_type_of_address(address)
-        if type_index == -1:
-            return -1
+        if type_index == -1: return -1
         mo = ManagedObject()
         mo.address = address
         mo.type_index = type_index
@@ -272,6 +271,14 @@ class MemorySnapshotCrawler(object):
         for n in range(len(handle_list)):
             item = handle_list[n]
             if item.target == 0: continue
+            managed_object_index = self.try_create_managed_object(address=item.target)
+            if managed_object_index == -1: continue
+            # connect gcHandle and managed object
+            item.managedObjectArrayIndex = managed_object_index
+            mo = self.managed_objects[managed_object_index]
+            mo.handle_index = item.gcHandleArrayIndex
+            self.add_connection(from_kind=ConnectionKind.handle, from_=item.gcHandleArrayIndex,
+                                to_kind=ConnectionKind.managed, to=managed_object_index)
 
     def crawl_static(self):
         pass
