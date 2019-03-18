@@ -1,4 +1,4 @@
-
+from .index import NativeTypeIndex, ManagedTypeIndex
 import enum
 from typing import List
 from io import StringIO
@@ -171,13 +171,65 @@ class PackedMemorySnapshot(MemoryObject):
         import operator
         self.managedHeapSections.sort(key=operator.attrgetter('startAddress'))
         for n in range(len(self.nativeTypes)):
-            self.nativeTypes[n].typeIndex = n
+            nt = self.nativeTypes[n]
+            nt.typeIndex = n
+            if hasattr(NativeTypeIndex, nt.name):
+                setattr(NativeTypeIndex, nt.name, nt.typeIndex)
 
-    def generate_native_types(self):
-        pass
+        for n in range(len(self.typeDescriptions)):
+            mt = self.typeDescriptions[n]
+            assert mt.typeIndex == n
+            index_name = self.get_type_index_name(mt)
+            if index_name and hasattr(ManagedTypeIndex, index_name):
+                setattr(ManagedTypeIndex, index_name, mt.typeIndex)
 
-    def generate_managed_types(self):
-        pass
+    def generate_type_module(self):
+        import os.path as p
+        module_path = p.join(p.dirname(p.abspath(__file__)), 'index.py')
+        fp = open(module_path, 'w+')
+        # native type index
+        fp.write('class NativeTypeIndex(object):\n')
+        for name, index in self.__generate_native_type_map().items():
+            fp.write('    {}:int = {}\n'.format(name, index))
+        fp.write('\n')
+
+        # managed type index
+        fp.write('class ManagedTypeIndex(object):\n')
+        for name, index in self.__generate_managed_type_map().items():
+            fp.write('    {}:int = {}\n'.format(name, index))
+        fp.write('\n')
+        fp.close()
+
+    def __generate_native_type_map(self):
+        type_map = {} # type: dict[str, int]
+        for n in range(len(self.nativeTypes)):
+            nt = self.nativeTypes[n]
+            type_map[nt.name] = nt.typeIndex
+        return type_map
+
+    def get_type_index_name(self, managed_type:TypeDescription):
+        if managed_type.isArray or managed_type.name[-1] in '*>': return
+        components = managed_type.name.split('.')
+        if components[-1][0] in '_': return
+        if len(components) >= 2:
+            if components[0] == 'UnityEngine':
+                if len(components) > 2 and components[1] != 'UI': return
+            elif components[0] != 'System': return
+            else:
+                if len(components) > 2: return
+            if len(components) > 3: return
+        else: return ''
+        if components[-2] == 'Generic': return
+        return '_'.join([x.lower() for x in components[:-1]] + [components[-1]])
+
+    def __generate_managed_type_map(self):
+        type_map = {}  # type: dict[str, int]
+        for n in range(len(self.typeDescriptions)):
+            mt = self.typeDescriptions[n]
+            field_name = self.get_type_index_name(mt)
+            if not field_name: continue
+            type_map[field_name] = mt.typeIndex
+        return type_map
 
     def dump(self, indent:str = ''):
         fp = StringIO()
