@@ -67,8 +67,8 @@ class MemorySnapshotCrawler(object):
         # connections
         self.managed_connections: List[JointConnection] = []
         self.mono_script_connections: List[JointConnection] = []
-        self.connections_from: Dict[int, List[JointConnection]] = []
-        self.connections_to: Dict[int, List[JointConnection]] = []
+        self.connections_from: Dict[int, List[JointConnection]] = {}
+        self.connections_to: Dict[int, List[JointConnection]] = {}
 
         self.type_address_map: Dict[int, int] = {}
         self.native_object_address_map: Dict[int, int] = {}
