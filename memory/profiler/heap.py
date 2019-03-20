@@ -170,13 +170,13 @@ class HeapReader(object):
         length = self.read_sint32(address)
         return length if length > 0 else 0
 
-    def read_array_length(self, address: int, array_type: TypeDescription) -> int:
+    def read_array_length(self, address: int, type: TypeDescription) -> int:
         vm = self.snapshot.vm
         bounds = self.read_pointer(address + vm.arrayBoundsOffsetInHeader)
         if bounds == 0:
             return self.read_pointer(address + vm.arraySizeOffsetInHeader)
         length = 1
-        for n in range(array_type.arrayRank):
+        for n in range(type.arrayRank):
             length *= self.read_pointer(bounds + n * vm.pointerSize)
         return length
 
@@ -195,7 +195,7 @@ class HeapReader(object):
             if type.baseOrElementTypeIndex < 0 or type.baseOrElementTypeIndex >= len(self.snapshot.typeDescriptions):
                 print('[ERR] not invalid baseOrElementTypeIndex={0}'.format(type.baseOrElementTypeIndex))
                 return 0
-            array_length = self.read_array_length(address, array_type=type)
+            array_length = self.read_array_length(address, type=type)
             element_type = self.snapshot.typeDescriptions[type.baseOrElementTypeIndex]
             element_size = element_type.size if element_type.isValueType else self.snapshot.vm.pointerSize
             return self.snapshot.vm.arrayHeaderSize + element_size * array_length
@@ -230,7 +230,7 @@ class HeapReader(object):
         return -1
 
 
-class StaticHeapReader(HeapReader):
+class StaticFieldReader(HeapReader):
 
     def __init__(self, snapshot: PackedMemorySnapshot, memory: bytes = b''):
         super().__init__(snapshot)

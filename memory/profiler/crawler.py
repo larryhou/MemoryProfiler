@@ -7,6 +7,29 @@ import enum
 class ConnectionKind(enum.Enum):
     none, handle, native, managed, static = range(5)
 
+class KeepAliveJoint(object):
+    def __init__(self, type_index:int = -1, object_index:int = -1, field_type_index:int = -1, field_index:int = -1, array_index:int = -1, handle_index:int = -1, is_static:bool = false):
+        # gcHandle joint
+        self.handle_index:int = handle_index
+        # managed object joint
+        self.type_index: int = type_index
+        self.object_index: int = object_index
+        # reference point
+        self.field_type_index:int = field_type_index
+        self.field_index:int = field_index
+        self.array_index:int = array_index
+        self.is_static = is_static
+
+    def clone(self, field_type_index:int = -1, field_index = -1, array_index:int = -1)-> 'KeepAliveJoint':
+        rj = KeepAliveJoint()
+        rj.handle_index = self.handle_index
+        rj.type_index = self.type_index
+        rj.object_index = self.object_index
+        rj.field_type_index = field_type_index if field_type_index >= 0 else self.field_type_index
+        rj.field_index = field_index if field_index >= 0 else self.field_index
+        rj.array_index = array_index if array_index >= 0 else self.array_index
+        rj.is_static = self.is_static
+        return rj
 
 class ManagedStaticField(object):
     def __init__(self, type_index: int = -1, field_type_index: int = -1, type_field_index: int = -1,
@@ -39,9 +62,6 @@ class ManagedObject(object):
 class MemorySnapshotCrawler(object):
     def __init__(self, snapshot: PackedMemorySnapshot):
         self.managed_objects: List[ManagedObject] = []
-
-        self.crawled_objects: List[ManagedObject] = []
-        self.static_fields: List[ManagedStaticField] = []
         self.visit: Dict[int, int] = {}
         self.snapshot: PackedMemorySnapshot = snapshot
         self.snapshot.preprocess()
@@ -70,9 +90,8 @@ class MemorySnapshotCrawler(object):
         self.init_managed_connections()
         self.init_mono_script_connections()
         self.init_managed_fields()
-        self.crawl_hanles()
+        self.crawl_handles()
         self.crawl_static()
-        self.crawl_managed_objects()
 
     def init_managed_fields(self):
         managed_types = self.snapshot.typeDescriptions
@@ -251,7 +270,7 @@ class MemorySnapshotCrawler(object):
             type = self.snapshot.typeDescriptions[type.baseOrElementTypeIndex]
         return False
 
-    def contains_reference(self, type_index: int):
+    def contain_references(self, type_index: int):
         mt = self.snapshot.typeDescriptions[type_index]
         if not mt.isValueType: return True
         managed_types = self.snapshot.typeDescriptions
@@ -284,9 +303,7 @@ class MemorySnapshotCrawler(object):
                 address=managed_object.address, type=type
             )
 
-    def try_create_managed_object(self, address: int) -> int:
-        type_index = self.find_type_of_address(address)
-        if type_index == -1: return -1
+    def create_managed_object(self, address:int, type_index:int)->ManagedObject:
         mo = ManagedObject()
         mo.address = address
         mo.type_index = type_index
@@ -295,93 +312,80 @@ class MemorySnapshotCrawler(object):
         self.set_object_size(managed_object=mo, type=self.snapshot.typeDescriptions[type_index])
         self.visit[mo.address] = mo.managed_object_index
         self.managed_objects.append(mo)
-        self.crawled_objects.append(mo)
-        return mo.managed_object_index
+        return mo
 
-    def crawl_hanles(self):
-        handle_list = self.snapshot.gcHandles
-        for n in range(len(handle_list)):
-            item = handle_list[n]
-            if item.target == 0: continue
-            managed_object_index = self.try_create_managed_object(address=item.target)
-            if managed_object_index == -1: continue
-            # connect gcHandle and managed object
-            item.managedObjectArrayIndex = managed_object_index
-            mo = self.managed_objects[managed_object_index]
-            mo.handle_index = item.gcHandleArrayIndex
-            self.add_connection(from_kind=ConnectionKind.handle, from_=item.gcHandleArrayIndex,
-                                to_kind=ConnectionKind.managed, to=managed_object_index)
+    def is_crawlable(self, type:TypeDescription)->bool:
+        return not type.isValueType or type.size >= self.vm.pointerSize + self.vm.objectHeaderSize
+
+    def crawl_managed_array_address(self, address:int, type:TypeDescription, memory_reader:HeapReader, joint:KeepAliveJoint):
+        if address <= 0 or address in self.visit: return
+        element_type = self.snapshot.typeDescriptions[type.baseOrElementTypeIndex]
+        if self.is_crawlable(type=element_type): return
+        element_count = memory_reader.read_array_length(address=address, type=type)
+        for n in range(element_count):
+            if element_type.isValueType:
+                element_address = memory_reader.read_pointer(address=address + n * element_type.size + self.vm.arrayHeaderSize - self.vm.objectHeaderSize)
+            else:
+                element_address = memory_reader.read_pointer(address=address + n * self.vm.pointerSize + self.vm.arrayHeaderSize)
+            self.crawl_managed_entry_address(address=element_address, type=element_type, memory_reader=memory_reader,
+                                             joint=joint.clone(array_index=n))
+
+    def crawl_managed_entry_address(self, address:int, type:TypeDescription, memory_reader:HeapReader, joint:KeepAliveJoint = None):
+        if address <= 0 or address in self.visit: return
+        if not type:
+            type_index = self.find_type_of_address(address=address)
+            if type_index == -1: return
+            entry_type = self.snapshot.typeDescriptions[type_index]
+        else:
+            entry_type = type
+            type_index = entry_type.typeIndex
+
+        if not entry_type.isValueType: # crawl reference
+            mo = self.create_managed_object(address=address, type_index=type_index)
+            assert mo and mo.managed_object_index >= 0
+            self.visit[mo.address] = mo.managed_object_index
+            if joint.handle_index >= 0:
+                self.add_connection(from_kind=ConnectionKind.handle, from_=joint.object_index,
+                                    to_kind=ConnectionKind.managed, to=mo.managed_object_index)
+            else:
+                if joint.is_static:
+                    self.add_connection(from_kind=ConnectionKind.static, from_=-1,
+                                        to_kind=ConnectionKind.managed, to=mo.managed_object_index)
+                else:
+                    self.add_connection(from_kind=ConnectionKind.managed, from_=joint.object_index,
+                                        to_kind=ConnectionKind.managed, to=mo.managed_object_index)
+            if entry_type.isArray: # crawl array
+                self.crawl_managed_array_address(address=address, type=entry_type, memory_reader=memory_reader, joint=joint)
+                return
+        for field in entry_type.fields: # crawl fields
+            field_type = self.snapshot.typeDescriptions[field.typeIndex]
+            if not self.is_crawlable(type=field_type): continue
+            if field_type.isValueType:
+                field_address = address + field.offset - self.vm.objectHeaderSize
+            elif isinstance(memory_reader, StaticFieldReader):
+                field_address = address + field.offset - self.vm.objectHeaderSize
+            else:
+                field_address = address + field.offset
+            self.crawl_managed_entry_address(address=field_address, type=field_type, memory_reader=memory_reader,
+                                             joint=joint.clone(field_type_index=field_type.typeIndex, field_index=field.slotIndex))
+
+    def crawl_handles(self):
+        for item in self.snapshot.gcHandles:
+            self.crawl_managed_entry_address(address=item.target, joint=KeepAliveJoint(handle_index=item.gcHandleArrayIndex),
+                                             memory_reader=self.heap_reader, type=None)
 
     def crawl_static(self):
         managed_types = self.snapshot.typeDescriptions
-        static_list = []
+        static_reader = StaticFieldReader(snapshot=self.snapshot)
         for mt in managed_types:
             if not mt.staticFieldBytes: continue
             for n in range(len(mt.fields)):
                 field = mt.fields[n]
                 if not field.isStatic: continue
-                item = ManagedStaticField(type_index=mt.typeIndex, field_type_index=field.typeIndex, type_field_index=n,
-                                          static_field_index=len(self.static_fields))
-                self.static_fields.append(item)
-                static_list.append(item.static_field_index)
-        static_reader = StaticHeapReader(snapshot=self.snapshot)
-        for n in range(len(static_list)):
-            static_index = static_list[n]
-            static_field = self.static_fields[static_index]
-            static_class = managed_types[static_field.type_index]
-            field = static_class.fields[static_field.type_field_index]
-            field_type = managed_types[static_field.field_type_index]
+                static_reader.load(memory=mt.staticFieldBytes)
+                self.crawl_managed_entry_address(address=field.offset, type=managed_types[field.typeIndex], memory_reader=static_reader,
+                                                 joint=KeepAliveJoint(type_index=mt.typeIndex, field_index=field.typeIndex, field_type_index=field.slotIndex, is_static=True))
 
-            if not static_class.staticFieldBytes: continue
-            static_reader.load(memory=static_class.staticFieldBytes)
-            if field_type.isValueType:
-                mo = ManagedObject()
-                mo.address = field.offset
-                mo.managed_object_index = -static_field.static_field_index
-                mo.type_index = field_type.typeIndex
-                mo.static_bytes = static_class.staticFieldBytes
-                self.set_object_size(managed_object=mo, type=field_type)
-                self.crawled_objects.append(mo)
-                continue
-
-            address = static_reader.read_pointer(address=field.offset)
-            if address not in self.visit:
-                mo = ManagedObject()
-                mo.address = address
-                mo.managed_object_index = len(self.managed_objects)
-                mo.type_index = self.find_type_of_address(address)
-                if mo.type_index == -1:
-                    mo.type_index = field_type.typeIndex
-                # crawl gcHandle
-                handle_index = self.find_handle_with_target_address(address)
-                if handle_index != -1:
-                    mo.handle_index = handle_index
-                    self.snapshot.gcHandles[handle_index].managedObjectArrayIndex = mo.managed_object_index
-                    self.add_connection(from_kind=ConnectionKind.handle, from_=handle_index,
-                                        to_kind=ConnectionKind.managed, to=mo.managed_object_index)
-                self.set_object_size(managed_object=mo, type=field_type)
-                self.try_connect_with_native_object(managed_object=mo)
-                self.managed_objects.append(mo)
-                self.visit[address] = mo.managed_object_index
-                self.crawled_objects.append(mo)
-                self.add_connection(from_kind=ConnectionKind.static, from_=static_field.static_field_index,
-                                    to_kind=ConnectionKind.managed, to=mo.managed_object_index)
-
-    def crawl_managed_objects(self):
-        managed_types = self.snapshot.typeDescriptions
-        managed_count = len(managed_types)
-        for mo in self.crawled_objects:
-            type_index = mo.type_index
-            while type_index != -1:
-                reader = self.heap_reader
-                if mo.static_bytes:
-                    reader = StaticHeapReader(snapshot=self.snapshot, memory=mo.static_bytes)
-                mt = managed_types[mo.type_index]
-                if mt.isArray:
-                    if mt.baseOrElementTypeIndex < 0 or mt.baseOrElementTypeIndex >= managed_count:
-                        break
-                    element_type = managed_types[mt.baseOrElementTypeIndex]
-                    # if element_type.isValueType
 
 
 

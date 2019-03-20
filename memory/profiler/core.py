@@ -40,6 +40,9 @@ class FieldDescription(MemoryObject):
         self.name:str = ''
         self.offset:int = -1
         self.typeIndex:int = -1
+        # extend fields
+        self.hostTypeIndex:int = -1
+        self.slotIndex:int = -1
 
     def dump(self, indent:str = ''):
         return '{}[FieldDescription] isStatic={} name={!r} offset={} typeIndex={}'.format(indent, self.isStatic, self.name, self.offset, self.typeIndex)
@@ -193,6 +196,10 @@ class PackedMemorySnapshot(MemoryObject):
             index_name = self.__get_type_index_name(mt)
             if index_name and hasattr(self.managedTypeIndex, index_name):
                 setattr(self.managedTypeIndex, index_name, mt.typeIndex)
+            for k in range(len(mt.fields)):
+                field = mt.fields[k]
+                field.hostTypeIndex = mt.typeIndex
+                field.slotIndex = k
         for n in range(len(self.gcHandles)):
             self.gcHandles[n].gcHandleArrayIndex = n
 
