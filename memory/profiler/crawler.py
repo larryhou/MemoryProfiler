@@ -123,10 +123,10 @@ class MemorySnapshotCrawler(object):
                 connection.dst_kind = ConnectionKind.native
             if exclude_native and connection.src_kind == ConnectionKind.native: continue
             managed_connections.append(connection)
-            self.add_connection(connection=connection)
+            self.accept_connection(connection=connection)
         self.managed_connections = managed_connections
 
-    def add_connection(self, connection:JointConnection):
+    def accept_connection(self, connection:JointConnection):
         if connection.src_kind != ConnectionKind.none and connection.src != -1:
             key = self.get_connection_key(kind=connection.src_kind, index=connection.src)
             if key not in self.connections_from:
@@ -344,7 +344,7 @@ class MemorySnapshotCrawler(object):
                 else:
                     connection = JointConnection(src_kind=ConnectionKind.managed, src=joint.object_index,
                                                  dst_kind=ConnectionKind.managed, dst=mo.managed_object_index, joint=joint)
-            self.add_connection(connection=connection)
+            self.accept_connection(connection=connection)
             if entry_type.isArray: # crawl array
                 self.crawl_managed_array_address(address=address, type=entry_type, memory_reader=memory_reader, joint=joint)
                 return
