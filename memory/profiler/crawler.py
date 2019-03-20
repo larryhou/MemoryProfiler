@@ -53,16 +53,18 @@ class ManagedObject(object):
 class MemorySnapshotCrawler(object):
     def __init__(self, snapshot: PackedMemorySnapshot):
         self.managed_objects: List[ManagedObject] = []
-        self.visit: Dict[int, int] = {}
         self.snapshot: PackedMemorySnapshot = snapshot
         self.snapshot.preprocess()
-        self.heap_reader: HeapReader = HeapReader(snapshot=snapshot)
-        self.cached_ptr: FieldDescription = snapshot.cached_ptr
         self.vm = snapshot.virtualMachineInformation
 
+        # record crawling footprint
+        self.__visit: Dict[int, int] = {}
+        self.__heap_reader: HeapReader = HeapReader(snapshot=snapshot)
+        self.__cached_ptr: FieldDescription = snapshot.cached_ptr
+
         # type index utils
-        self.nt_index = self.snapshot.nativeTypeIndex
-        self.mt_index = self.snapshot.managedTypeIndex
+        self.__nt_index = self.snapshot.nativeTypeIndex
+        self.__mt_index = self.snapshot.managedTypeIndex
 
         # connections
         self.managed_connections: List[JointConnection] = []
@@ -70,11 +72,11 @@ class MemorySnapshotCrawler(object):
         self.connections_from: Dict[int, List[JointConnection]] = {}
         self.connections_to: Dict[int, List[JointConnection]] = {}
 
-        self.type_address_map: Dict[int, int] = {}
-        self.native_object_address_map: Dict[int, int] = {}
-        self.managed_object_address_map: Dict[int, int] = {}
-        self.managed_native_address_map: Dict[int, int] = {}
-        self.handle_address_map: Dict[int, int] = {}
+        self.__type_address_map: Dict[int, int] = {}
+        self.__native_object_address_map: Dict[int, int] = {}
+        self.__managed_object_address_map: Dict[int, int] = {}
+        self.__managed_native_address_map: Dict[int, int] = {}
+        self.__handle_address_map: Dict[int, int] = {}
 
     def crawl(self):
         self.init_managed_types()
@@ -96,14 +98,14 @@ class MemorySnapshotCrawler(object):
         for n in range(len(self.managed_connections)):
             connection = self.managed_connections[n]
             if connection.dst_kind == ConnectionKind.native \
-                    and self.snapshot.nativeObjects[connection.dst].nativeTypeArrayIndex == self.nt_index.MonoScript:
+                    and self.snapshot.nativeObjects[connection.dst].nativeTypeArrayIndex == self.__nt_index.MonoScript:
                 self.mono_script_connections.append(connection)
 
     def init_managed_types(self):
         managed_types = self.snapshot.typeDescriptions
         for n in range(len(managed_types)):
             mt = managed_types[n]
-            mt.isUnityEngineObjectType = self.is_subclass_of_managed_type(mt, self.mt_index.unityengine_Object)
+            mt.isUnityEngineObjectType = self.is_subclass_of_managed_type(mt, self.__mt_index.unityengine_Object)
 
     def init_managed_connections(self, exclude_native: bool = False):
         managed_start = 0
@@ -146,59 +148,59 @@ class MemorySnapshotCrawler(object):
         type_index = self.find_type_at_type_info_address(type_info_address=address)
         if type_index != -1: return type_index
 
-        vtable_ptr = self.heap_reader.read_pointer(address)
+        vtable_ptr = self.__heap_reader.read_pointer(address)
         if vtable_ptr == 0: return -1
 
-        class_ptr = self.heap_reader.read_pointer(vtable_ptr)
+        class_ptr = self.__heap_reader.read_pointer(vtable_ptr)
         if class_ptr == 0:
             return self.find_type_at_type_info_address(vtable_ptr)
         return self.find_type_at_type_info_address(class_ptr)
 
     def find_type_at_type_info_address(self, type_info_address: int) -> int:
         if type_info_address == 0: return -1
-        if not self.type_address_map:
+        if not self.__type_address_map:
             managed_types = self.snapshot.typeDescriptions
             for t in managed_types:
-                self.type_address_map[t.typeInfoAddress] = t.typeIndex
-        type_index = self.type_address_map.get(type_info_address)
+                self.__type_address_map[t.typeInfoAddress] = t.typeIndex
+        type_index = self.__type_address_map.get(type_info_address)
         return -1 if type_index is None else type_index
 
     def find_managed_object_of_native_object(self, native_address: int):
         if native_address == 0: return -1
-        if not self.managed_native_address_map:
+        if not self.__managed_native_address_map:
             for n in range(len(self.managed_objects)):
                 mo = self.managed_objects[n]
                 if mo.native_object_index >= 0:
                     no = self.snapshot.nativeObjects[mo.native_object_index]
-                    self.managed_native_address_map[no.nativeObjectAddress] = n
-        manage_index = self.managed_native_address_map.get(native_address)
+                    self.__managed_native_address_map[no.nativeObjectAddress] = n
+        manage_index = self.__managed_native_address_map.get(native_address)
         return -1 if manage_index is None else manage_index
 
     def find_managed_object_at_address(self, address: int) -> int:
         if address == 0: return -1
-        if not self.managed_object_address_map:
+        if not self.__managed_object_address_map:
             for n in range(len(self.managed_objects)):
                 mo = self.managed_objects[n]
-                self.managed_object_address_map[mo.address] = n
-        object_index = self.managed_object_address_map.get(address)
+                self.__managed_object_address_map[mo.address] = n
+        object_index = self.__managed_object_address_map.get(address)
         return -1 if object_index is None else object_index
 
     def find_native_object_at_address(self, address: int):
         if address == 0: return -1
-        if not self.native_object_address_map:
+        if not self.__native_object_address_map:
             for n in range(len(self.snapshot.nativeObjects)):
                 no = self.snapshot.nativeObjects[n]
-                self.native_object_address_map[no.nativeObjectAddress] = n
-        object_index = self.native_object_address_map.get(address)
+                self.__native_object_address_map[no.nativeObjectAddress] = n
+        object_index = self.__native_object_address_map.get(address)
         return -1 if object_index is None else object_index
 
     def find_handle_with_target_address(self, address: int):
         if address == 0: return -1
-        if not self.handle_address_map:
+        if not self.__handle_address_map:
             for n in range(len(self.snapshot.gcHandles)):
                 handle = self.snapshot.gcHandles[n]
-                self.handle_address_map[handle.target] = n
-        handle_index = self.handle_address_map.get(address)
+                self.__handle_address_map[handle.target] = n
+        handle_index = self.__handle_address_map.get(address)
         return -1 if handle_index is None else handle_index
 
     def get_connections_of(self, kind: ConnectionKind, index: int) -> List[JointConnection]:
@@ -228,7 +230,7 @@ class MemorySnapshotCrawler(object):
         if reference_list:
             for refer in reference_list:
                 type_index = self.snapshot.nativeObjects[refer.dst].nativeTypeArrayIndex
-                if refer.dst_kind == ConnectionKind.native and type_index == self.nt_index.MonoScript:
+                if refer.dst_kind == ConnectionKind.native and type_index == self.__nt_index.MonoScript:
                     script_name = self.snapshot.nativeObjects[refer.dst].name
                     return script_name, type_index
         return '', -1
@@ -236,7 +238,7 @@ class MemorySnapshotCrawler(object):
     def is_enum(self, type: TypeDescription):
         if not type.isValueType: return False
         if type.baseOrElementTypeIndex == -1: return False
-        return type.baseOrElementTypeIndex == self.mt_index.system_Enum
+        return type.baseOrElementTypeIndex == self.__mt_index.system_Enum
 
     def is_subclass_of_native_type(self, type: PackedNativeType, base_type_index: int):
         if type.typeIndex == base_type_index:
@@ -275,7 +277,7 @@ class MemorySnapshotCrawler(object):
         if managed_object.native_object_index >= 0: return
         mt = self.snapshot.typeDescriptions[managed_object.type_index]
         if mt.isValueType or mt.isArray or not mt.isUnityEngineObjectType: return
-        native_address = self.heap_reader.read_pointer(managed_object.address + self.cached_ptr.offset)
+        native_address = self.__heap_reader.read_pointer(managed_object.address + self.__cached_ptr.offset)
         if native_address == 0: return
         native_object_index = self.find_native_object_at_address(address=native_address)
         if native_object_index == -1: return
@@ -289,7 +291,7 @@ class MemorySnapshotCrawler(object):
 
     def set_object_size(self, managed_object: ManagedObject, type: TypeDescription):
         if managed_object.size == 0:
-            managed_object.size = self.heap_reader.read_object_size(
+            managed_object.size = self.__heap_reader.read_object_size(
                 address=managed_object.address, type=type
             )
 
@@ -300,7 +302,7 @@ class MemorySnapshotCrawler(object):
         mo.managed_object_index = len(self.managed_objects)
         self.try_connect_with_native_object(managed_object=mo)
         self.set_object_size(managed_object=mo, type=self.snapshot.typeDescriptions[type_index])
-        self.visit[mo.address] = mo.managed_object_index
+        self.__visit[mo.address] = mo.managed_object_index
         self.managed_objects.append(mo)
         return mo
 
@@ -308,7 +310,7 @@ class MemorySnapshotCrawler(object):
         return not type.isValueType or type.size >= self.vm.pointerSize + self.vm.objectHeaderSize
 
     def crawl_managed_array_address(self, address:int, type:TypeDescription, memory_reader:HeapReader, joint:KeepAliveJoint):
-        if address <= 0 or address in self.visit: return
+        if address <= 0 or address in self.__visit: return
         element_type = self.snapshot.typeDescriptions[type.baseOrElementTypeIndex]
         if self.is_crawlable(type=element_type): return
         element_count = memory_reader.read_array_length(address=address, type=type)
@@ -321,7 +323,7 @@ class MemorySnapshotCrawler(object):
                                              joint=joint.clone(array_index=n))
 
     def crawl_managed_entry_address(self, address:int, type:TypeDescription, memory_reader:HeapReader, joint:KeepAliveJoint = None):
-        if address <= 0 or address in self.visit: return
+        if address <= 0 or address in self.__visit: return
         if not type:
             type_index = self.find_type_of_address(address=address)
             if type_index == -1: return
@@ -333,7 +335,7 @@ class MemorySnapshotCrawler(object):
         if not entry_type.isValueType: # crawl reference
             mo = self.create_managed_object(address=address, type_index=type_index)
             assert mo and mo.managed_object_index >= 0
-            self.visit[mo.address] = mo.managed_object_index
+            self.__visit[mo.address] = mo.managed_object_index
             if joint.handle_index >= 0:
                 connection = JointConnection(src_kind=ConnectionKind.handle, src=joint.object_index,
                                              dst_kind=ConnectionKind.managed, dst=mo.managed_object_index, joint=joint)
@@ -363,7 +365,7 @@ class MemorySnapshotCrawler(object):
     def crawl_handles(self):
         for item in self.snapshot.gcHandles:
             self.crawl_managed_entry_address(address=item.target, joint=KeepAliveJoint(handle_index=item.gcHandleArrayIndex),
-                                             memory_reader=self.heap_reader, type=None)
+                                             memory_reader=self.__heap_reader, type=None)
             sys.exit()
 
     def crawl_static(self):
