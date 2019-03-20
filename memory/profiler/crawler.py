@@ -1,7 +1,7 @@
 from .core import *
 from .heap import *
 from typing import List, Dict, Tuple
-import enum
+import enum, sys
 
 
 class ConnectionKind(enum.Enum):
@@ -364,6 +364,7 @@ class MemorySnapshotCrawler(object):
         for item in self.snapshot.gcHandles:
             self.crawl_managed_entry_address(address=item.target, joint=KeepAliveJoint(handle_index=item.gcHandleArrayIndex),
                                              memory_reader=self.heap_reader, type=None)
+            sys.exit()
 
     def crawl_static(self):
         managed_types = self.snapshot.typeDescriptions

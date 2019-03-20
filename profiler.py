@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from memory.profiler.serialize import MemorySnapshotReader
+from memory.profiler.crawler import MemorySnapshotCrawler
 
 def main():
     import argparse,sys
@@ -13,6 +14,8 @@ def main():
     assert reader.cached_ptr
     print(reader.cached_ptr.dump())
     print(data.dump())
+    crawler = MemorySnapshotCrawler(snapshot=data)
+    crawler.crawl()
 
 if __name__ == '__main__':
     main()
