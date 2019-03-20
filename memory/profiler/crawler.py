@@ -31,7 +31,7 @@ class KeepAliveJoint(object):
         rj.is_static = self.is_static
         return rj
 
-class ManagedConnection(object):
+class JointConnection(object):
     def __init__(self, src=0, src_kind=ConnectionKind.none, dst=0, dst_kind=ConnectionKind.none, joint:KeepAliveJoint = None):
         self.src: int = src
         self.dst: int = dst
@@ -65,10 +65,10 @@ class MemorySnapshotCrawler(object):
         self.mt_index = self.snapshot.managedTypeIndex
 
         # connections
-        self.managed_connections: List[ManagedConnection] = []
-        self.mono_script_connections: List[ManagedConnection] = []
-        self.connections_from: Dict[int, List[ManagedConnection]] = []
-        self.connections_to: Dict[int, List[ManagedConnection]] = []
+        self.managed_connections: List[JointConnection] = []
+        self.mono_script_connections: List[JointConnection] = []
+        self.connections_from: Dict[int, List[JointConnection]] = []
+        self.connections_to: Dict[int, List[JointConnection]] = []
 
         self.type_address_map: Dict[int, int] = {}
         self.native_object_address_map: Dict[int, int] = {}
@@ -94,10 +94,10 @@ class MemorySnapshotCrawler(object):
 
     def init_mono_script_connections(self):
         for n in range(len(self.managed_connections)):
-            mc = self.managed_connections[n]
-            if mc.dst_kind == ConnectionKind.native \
-                    and self.snapshot.nativeObjects[mc.dst].nativeTypeArrayIndex == self.nt_index.MonoScript:
-                self.mono_script_connections.append(mc)
+            connection = self.managed_connections[n]
+            if connection.dst_kind == ConnectionKind.native \
+                    and self.snapshot.nativeObjects[connection.dst].nativeTypeArrayIndex == self.nt_index.MonoScript:
+                self.mono_script_connections.append(connection)
 
     def init_managed_types(self):
         managed_types = self.snapshot.typeDescriptions
@@ -112,7 +112,7 @@ class MemorySnapshotCrawler(object):
         native_stop = native_start + len(self.snapshot.nativeObjects)
         managed_connections = []
         for it in self.snapshot.connections:
-            connection = ManagedConnection(src=it.from_, dst=it.to)
+            connection = JointConnection(src=it.from_, dst=it.to)
             connection.src_kind = ConnectionKind.handle
             if native_start <= connection.src < native_stop:
                 connection.src -= native_start
@@ -126,7 +126,7 @@ class MemorySnapshotCrawler(object):
             self.add_connection(connection=connection)
         self.managed_connections = managed_connections
 
-    def add_connection(self, connection:ManagedConnection):
+    def add_connection(self, connection:JointConnection):
         if connection.src_kind != ConnectionKind.none and connection.src != -1:
             key = self.get_connection_key(kind=connection.src_kind, index=connection.src)
             if key not in self.connections_from:
@@ -201,17 +201,17 @@ class MemorySnapshotCrawler(object):
         handle_index = self.handle_address_map.get(address)
         return -1 if handle_index is None else handle_index
 
-    def get_connections_of(self, kind: ConnectionKind, index: int) -> List[ManagedConnection]:
+    def get_connections_of(self, kind: ConnectionKind, index: int) -> List[JointConnection]:
         key = self.get_connection_key(kind=kind, index=index)
         references = self.connections_from.get(key)
         return references if references else []
 
-    def get_connections_referenced_by(self, kind: ConnectionKind, index: int) -> List[ManagedConnection]:
+    def get_connections_referenced_by(self, kind: ConnectionKind, index: int) -> List[JointConnection]:
         key = self.get_connection_key(kind=kind, index=index)
         references = self.connections_to.get(key)
         return references if references else []
 
-    def get_connections_in_heap_section(self, section: MemorySection) -> List[ManagedConnection]:
+    def get_connections_in_heap_section(self, section: MemorySection) -> List[JointConnection]:
         if not section.bytes: return []
         start_address = section.startAddress
         stop_address = start_address + len(section.bytes)
@@ -219,7 +219,7 @@ class MemorySnapshotCrawler(object):
         for n in range(len(self.managed_objects)):
             mo = self.managed_objects[n]
             if start_address <= mo.address < stop_address:
-                references.append(ManagedConnection(dst=n, dst_kind=ConnectionKind.managed))
+                references.append(JointConnection(dst=n, dst_kind=ConnectionKind.managed))
         return references
 
     def find_mono_script_type(self, native_index: int) -> Tuple[str, int]:
@@ -335,15 +335,15 @@ class MemorySnapshotCrawler(object):
             assert mo and mo.managed_object_index >= 0
             self.visit[mo.address] = mo.managed_object_index
             if joint.handle_index >= 0:
-                connection = ManagedConnection(src_kind=ConnectionKind.handle, src=joint.object_index,
-                                               dst_kind=ConnectionKind.managed, dst=mo.managed_object_index, joint=joint)
+                connection = JointConnection(src_kind=ConnectionKind.handle, src=joint.object_index,
+                                             dst_kind=ConnectionKind.managed, dst=mo.managed_object_index, joint=joint)
             else:
                 if joint.is_static:
-                    connection = ManagedConnection(src_kind=ConnectionKind.static, src=-1,
-                                                   dst_kind=ConnectionKind.managed, dst=mo.managed_object_index, joint=joint)
+                    connection = JointConnection(src_kind=ConnectionKind.static, src=-1,
+                                                 dst_kind=ConnectionKind.managed, dst=mo.managed_object_index, joint=joint)
                 else:
-                    connection = ManagedConnection(src_kind=ConnectionKind.managed, src=joint.object_index,
-                                                   dst_kind=ConnectionKind.managed, dst=mo.managed_object_index, joint=joint)
+                    connection = JointConnection(src_kind=ConnectionKind.managed, src=joint.object_index,
+                                                 dst_kind=ConnectionKind.managed, dst=mo.managed_object_index, joint=joint)
             self.add_connection(connection=connection)
             if entry_type.isArray: # crawl array
                 self.crawl_managed_array_address(address=address, type=entry_type, memory_reader=memory_reader, joint=joint)
