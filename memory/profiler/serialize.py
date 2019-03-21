@@ -56,7 +56,7 @@ class MemorySnapshotReader(object):
                 field_data = self.__read_object(input)
                 assert nest_class_name == field_data.__class__.__name__, '++ expect={} but={}'.format(nest_class_name, field_data.__class__.__name__)
             setattr(data, field_name, field_data)
-        if is_cached_ptr:
+        if is_cached_ptr and not self.cached_ptr:
             self.cached_ptr = data # type: TypeDescription
         setattr(data, 'vm', self.vm)
         return data

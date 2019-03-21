@@ -98,6 +98,11 @@ namespace Moobyte.MemoryProfiler
 			MemorySnapshot.RequestNewSnapshot();
 		}
 
+		public static void AcceptMemorySnapshot(PackedMemorySnapshot snapshot)
+		{
+			OnSnapshotComplete(snapshot);
+		}
+
 		private static void OnSnapshotComplete(PackedMemorySnapshot snapshot)
 		{
 			MemorySnapshot.OnSnapshotReceived -= OnSnapshotComplete;

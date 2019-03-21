@@ -88,9 +88,12 @@ class MemorySection(MemoryObject):
         super(MemorySection, self).__init__()
         self.startAddress:int = 0 # pointer
         self.bytes:bytes = None
+        self.heepArrayIndex:int = -1
 
     def dump(self, indent:str = ''):
-        return '{}[MemorySection] startAddress={} bytes={}'.format(indent, self.format_ptr(self.startAddress), self.__format_bytes__(self.bytes))
+        return '{}[MemorySection] startAddress={} bytes={} heepArrayIndex={}'.format(
+            indent, self.format_ptr(self.startAddress), self.__format_bytes__(self.bytes), self.heepArrayIndex
+        )
 
 class PackedGCHandle(MemoryObject):
     def __init__(self):
@@ -202,6 +205,8 @@ class PackedMemorySnapshot(MemoryObject):
                 field.slotIndex = k
         for n in range(len(self.gcHandles)):
             self.gcHandles[n].gcHandleArrayIndex = n
+        for n in range(len(self.managedHeapSections)):
+            self.managedHeapSections[n].heepArrayIndex = n
 
     def generate_type_module(self):
         import os.path as p

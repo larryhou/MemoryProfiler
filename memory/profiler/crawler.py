@@ -20,11 +20,11 @@ class KeepAliveJoint(object):
         self.array_index:int = array_index
         self.is_static = is_static
 
-    def clone(self, field_type_index:int = -1, field_index = -1, array_index:int = -1)-> 'KeepAliveJoint':
+    def clone(self, type_index:int = -1, object_index:int = -1, field_type_index:int = -1, field_index:int = -1, array_index:int = -1, handle_index:int = -1)-> 'KeepAliveJoint':
         rj = KeepAliveJoint()
-        rj.handle_index = self.handle_index
-        rj.type_index = self.type_index
-        rj.object_index = self.object_index
+        rj.handle_index = handle_index if handle_index >= 0 else self.handle_index
+        rj.type_index = type_index if type_index >= 0 else self.type_index
+        rj.object_index = object_index if object_index >= 0 else self.object_index
         rj.field_type_index = field_type_index if field_type_index >= 0 else self.field_type_index
         rj.field_index = field_index if field_index >= 0 else self.field_index
         rj.array_index = array_index if array_index >= 0 else self.array_index
@@ -42,13 +42,16 @@ class JointConnection(object):
 class ManagedObject(object):
     def __init__(self):
         self.address: int = -1
-        self.memory: bytes = None
         self.type_index: int = -1
         self.native_object_index: int = -1
         self.managed_object_index: int = -1
         self.handle_index: int = -1
         self.size: int = 0
-        self.static_bytes:bytes = b''
+
+    def __repr__(self):
+        return '[ManagedObject] address={:08x} type_index={} native_object_index={} managed_object_index={} handle_index={} size={}'.format(
+            self.address, self.type_index, self.native_object_index, self.managed_object_index, self.handle_index, self.size
+        )
 
 class MemorySnapshotCrawler(object):
     def __init__(self, snapshot: PackedMemorySnapshot):
@@ -147,14 +150,14 @@ class MemorySnapshotCrawler(object):
     def find_type_of_address(self, address: int) -> int:
         type_index = self.find_type_at_type_info_address(type_info_address=address)
         if type_index != -1: return type_index
-
-        vtable_ptr = self.__heap_reader.read_pointer(address)
-        if vtable_ptr == 0: return -1
-
-        class_ptr = self.__heap_reader.read_pointer(vtable_ptr)
-        if class_ptr == 0:
-            return self.find_type_at_type_info_address(vtable_ptr)
-        return self.find_type_at_type_info_address(class_ptr)
+        heap_ptr = self.__heap_reader.read_pointer(address)
+        if heap_ptr == 0: return -1
+        type_index = self.find_type_at_type_info_address(heap_ptr)
+        if type_index == -1:
+            vtable_ptr = self.__heap_reader.read_pointer(heap_ptr)
+            if vtable_ptr != 0:
+                type_index = self.find_type_at_type_info_address(vtable_ptr)
+        return type_index
 
     def find_type_at_type_info_address(self, type_info_address: int) -> int:
         if type_info_address == 0: return -1
@@ -309,21 +312,23 @@ class MemorySnapshotCrawler(object):
     def is_crawlable(self, type:TypeDescription)->bool:
         return not type.isValueType or type.size >= self.vm.pointerSize + self.vm.objectHeaderSize
 
-    def crawl_managed_array_address(self, address:int, type:TypeDescription, memory_reader:HeapReader, joint:KeepAliveJoint):
+    def crawl_managed_array_address(self, address:int, type:TypeDescription, memory_reader:HeapReader, joint:KeepAliveJoint, depth:int):
         if address <= 0 or address in self.__visit: return
         element_type = self.snapshot.typeDescriptions[type.baseOrElementTypeIndex]
         if self.is_crawlable(type=element_type): return
         element_count = memory_reader.read_array_length(address=address, type=type)
+        cursor = address + self.vm.arrayHeaderSize
         for n in range(element_count):
+            element_address = memory_reader.read_pointer(address=cursor)
             if element_type.isValueType:
-                element_address = memory_reader.read_pointer(address=address + n * element_type.size + self.vm.arrayHeaderSize - self.vm.objectHeaderSize)
+                cursor += element_type.size
             else:
-                element_address = memory_reader.read_pointer(address=address + n * self.vm.pointerSize + self.vm.arrayHeaderSize)
+                cursor += self.vm.pointerSize
             self.crawl_managed_entry_address(address=element_address, type=element_type, memory_reader=memory_reader,
-                                             joint=joint.clone(array_index=n))
+                                             joint=joint.clone(array_index=n), depth=depth+1)
 
-    def crawl_managed_entry_address(self, address:int, type:TypeDescription, memory_reader:HeapReader, joint:KeepAliveJoint = None):
-        if address <= 0 or address in self.__visit: return
+    def crawl_managed_entry_address(self, address:int, type:TypeDescription, memory_reader:HeapReader, joint:KeepAliveJoint = None, depth = 0):
+        if address <= 0 or address in self.__visit or depth >= 128: return
         if not type:
             type_index = self.find_type_of_address(address=address)
             if type_index == -1: return
@@ -331,42 +336,42 @@ class MemorySnapshotCrawler(object):
         else:
             entry_type = type
             type_index = entry_type.typeIndex
-
-        if not entry_type.isValueType: # crawl reference
-            mo = self.create_managed_object(address=address, type_index=type_index)
-            assert mo and mo.managed_object_index >= 0
-            self.__visit[mo.address] = mo.managed_object_index
-            if joint.handle_index >= 0:
-                connection = JointConnection(src_kind=ConnectionKind.handle, src=joint.object_index,
+        mo = self.create_managed_object(address=address, type_index=type_index)
+        mo.handle_index = joint.handle_index
+        assert mo and mo.managed_object_index >= 0, mo
+        print(mo)
+        self.__visit[mo.address] = mo.managed_object_index
+        if joint.handle_index >= 0:
+            connection = JointConnection(src_kind=ConnectionKind.handle, src=joint.object_index,
+                                         dst_kind=ConnectionKind.managed, dst=mo.managed_object_index, joint=joint)
+        else:
+            if joint.is_static:
+                connection = JointConnection(src_kind=ConnectionKind.static, src=-1,
                                              dst_kind=ConnectionKind.managed, dst=mo.managed_object_index, joint=joint)
             else:
-                if joint.is_static:
-                    connection = JointConnection(src_kind=ConnectionKind.static, src=-1,
-                                                 dst_kind=ConnectionKind.managed, dst=mo.managed_object_index, joint=joint)
-                else:
-                    connection = JointConnection(src_kind=ConnectionKind.managed, src=joint.object_index,
-                                                 dst_kind=ConnectionKind.managed, dst=mo.managed_object_index, joint=joint)
-            self.accept_connection(connection=connection)
-            if entry_type.isArray: # crawl array
-                self.crawl_managed_array_address(address=address, type=entry_type, memory_reader=memory_reader, joint=joint)
-                return
+                connection = JointConnection(src_kind=ConnectionKind.managed, src=joint.object_index,
+                                             dst_kind=ConnectionKind.managed, dst=mo.managed_object_index, joint=joint)
+        self.accept_connection(connection=connection)
+        if entry_type.isArray: # crawl array
+            self.crawl_managed_array_address(address=address, type=entry_type, memory_reader=memory_reader, joint=joint, depth=depth+1)
+            return
+        member_joint=KeepAliveJoint(type_index=type_index, object_index=mo.managed_object_index)
         for field in entry_type.fields: # crawl fields
             field_type = self.snapshot.typeDescriptions[field.typeIndex]
             if not self.is_crawlable(type=field_type): continue
-            if field_type.isValueType:
-                field_address = address + field.offset - self.vm.objectHeaderSize
-            elif isinstance(memory_reader, StaticFieldReader):
-                field_address = address + field.offset - self.vm.objectHeaderSize
-            else:
+            if field.isStatic: continue
+            if isinstance(memory_reader, StaticFieldReader):
                 field_address = address + field.offset
+            else:
+                field_address = address + field.offset - self.vm.objectHeaderSize
             self.crawl_managed_entry_address(address=field_address, type=field_type, memory_reader=memory_reader,
-                                             joint=joint.clone(field_type_index=field_type.typeIndex, field_index=field.slotIndex))
+                                             joint=member_joint.clone(field_type_index=field_type.typeIndex, field_index=field.slotIndex), depth=depth+1)
 
     def crawl_handles(self):
         for item in self.snapshot.gcHandles:
             self.crawl_managed_entry_address(address=item.target, joint=KeepAliveJoint(handle_index=item.gcHandleArrayIndex),
                                              memory_reader=self.__heap_reader, type=None)
-            sys.exit()
+        sys.exit()
 
     def crawl_static(self):
         managed_types = self.snapshot.typeDescriptions
