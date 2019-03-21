@@ -185,7 +185,7 @@ class HeapReader(object):
         cursor = bounds
         for n in range(type.arrayRank):
             length *= self.read_pointer(cursor)
-            cursor += 8 if vm.pointerSize == 4 else 16
+            cursor += vm.pointerSize
         return length
 
     def read_array_length_of_dimension(self, address: int, array_type: TypeDescription, dimension: int) -> int:
