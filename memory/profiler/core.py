@@ -134,8 +134,8 @@ class PackedNativeUnityEngineObject(MemoryObject):
         return '|'.join([x.name for x in item_list])
 
     def dump(self, indent:str = ''):
-        return '{}[PackedNativeUnityEngineObject] hideFlags={:08b} instanceId={} isDontDestroyOnLoad={} isManager={} isPersistent={} name={!r} nativeObjectAddress={} nativeTypeArrayIndex={} size={}'.format(
-            indent, self.hideFlags, self.instanceId, self.isDontDestroyOnLoad, self.isManager, self.isPersistent, self.name, self.format_ptr(self.nativeObjectAddress), self.nativeTypeArrayIndex, self.size
+        return '{}[PackedNativeUnityEngineObject] hideFlags={:08b} instanceId={} isDontDestroyOnLoad={} isManager={} isPersistent={} name={!r} nativeObjectAddress={} nativeTypeArrayIndex={} managedObjectArrayIndex={} size={}'.format(
+            indent, self.hideFlags, self.instanceId, self.isDontDestroyOnLoad, self.isManager, self.isPersistent, self.name, self.format_ptr(self.nativeObjectAddress), self.nativeTypeArrayIndex, self.managedObjectArrayIndex, self.size
         )
 
 class PackedNativeType(MemoryObject):
@@ -185,7 +185,7 @@ class PackedMemorySnapshot(MemoryObject):
         self.managedTypeIndex = ManagedTypeIndex()
         self.nativeTypeIndex = NativeTypeIndex()
 
-    def preprocess(self):
+    def initialize(self):
         import operator
         self.managedHeapSections.sort(key=operator.attrgetter('startAddress'))
         for n in range(len(self.nativeTypes)):
@@ -199,14 +199,20 @@ class PackedMemorySnapshot(MemoryObject):
             index_name = self.__get_type_index_name(mt)
             if index_name and hasattr(self.managedTypeIndex, index_name):
                 setattr(self.managedTypeIndex, index_name, mt.typeIndex)
+            is_object = mt.name == 'UnityEngine.Object'
             for k in range(len(mt.fields)):
                 field = mt.fields[k]
                 field.hostTypeIndex = mt.typeIndex
                 field.slotIndex = k
+                if is_object and field.name == 'm_CachedPtr':
+                    self.cached_ptr = field
+        assert self.cached_ptr
         for n in range(len(self.gcHandles)):
             self.gcHandles[n].gcHandleArrayIndex = n
         for n in range(len(self.managedHeapSections)):
             self.managedHeapSections[n].heepArrayIndex = n
+        for n in range(len(self.nativeObjects)):
+            self.nativeObjects[n].managedObjectArrayIndex = n
 
     def generate_type_module(self):
         import os.path as p

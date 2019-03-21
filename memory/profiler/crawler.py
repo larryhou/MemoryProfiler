@@ -57,7 +57,7 @@ class MemorySnapshotCrawler(object):
     def __init__(self, snapshot: PackedMemorySnapshot):
         self.managed_objects: List[ManagedObject] = []
         self.snapshot: PackedMemorySnapshot = snapshot
-        self.snapshot.preprocess()
+        self.snapshot.initialize()
         self.vm = snapshot.virtualMachineInformation
 
         # record crawling footprint
