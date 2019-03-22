@@ -283,9 +283,9 @@ class MemorySnapshotCrawler(object):
         self.snapshot.typeDescriptions[managed_object.type_index].nativeTypeArrayIndex = native_type_index
         self.snapshot.nativeTypes[native_type_index].managedTypeArrayIndex = managed_object.type_index
 
-    def set_object_size(self, managed_object: UnityManagedObject, type: TypeDescription):
+    def set_object_size(self, managed_object: UnityManagedObject, type: TypeDescription, memory_reader:HeapReader):
         if managed_object.size == 0:
-            managed_object.size = self.__heap_reader.read_object_size(
+            managed_object.size = memory_reader.read_object_size(
                 address=managed_object.address, type=type
             )
 
@@ -295,7 +295,6 @@ class MemorySnapshotCrawler(object):
         mo.type_index = type_index
         mo.managed_object_index = len(self.managed_objects)
         self.try_connect_with_native_object(managed_object=mo)
-        self.set_object_size(managed_object=mo, type=self.snapshot.typeDescriptions[type_index])
         self.__visit[mo.address] = mo.managed_object_index
         self.managed_objects.append(mo)
         return mo
@@ -330,6 +329,7 @@ class MemorySnapshotCrawler(object):
         mo = self.create_managed_object(address=address, type_index=type_index)
         mo.handle_index = joint.handle_index
         assert mo and mo.managed_object_index >= 0, mo
+        self.set_object_size(managed_object=mo, type=self.snapshot.typeDescriptions[type_index], memory_reader=memory_reader)
         print(mo)
         self.__visit[mo.address] = mo.managed_object_index
         if joint.handle_index >= 0:
@@ -369,7 +369,6 @@ class MemorySnapshotCrawler(object):
         for item in self.snapshot.gcHandles:
             self.crawl_managed_entry_address(address=item.target, joint=KeepAliveJoint(handle_index=item.gcHandleArrayIndex),
                                              memory_reader=self.__heap_reader, type=None)
-        sys.exit()
 
     def crawl_static(self):
         managed_types = self.snapshot.typeDescriptions
@@ -380,7 +379,9 @@ class MemorySnapshotCrawler(object):
                 field = mt.fields[n]
                 if not field.isStatic: continue
                 static_reader.load(memory=mt.staticFieldBytes)
-                self.crawl_managed_entry_address(address=field.offset, type=managed_types[field.typeIndex], memory_reader=static_reader,
+                field_type = managed_types[field.typeIndex]
+                if not field_type.isValueType: field_type = None
+                self.crawl_managed_entry_address(address=field.offset, type=field_type, memory_reader=static_reader,
                                                  joint=KeepAliveJoint(type_index=mt.typeIndex, field_index=field.typeIndex, field_type_index=field.slotIndex, is_static=True))
 
 
