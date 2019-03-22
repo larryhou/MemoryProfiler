@@ -353,7 +353,6 @@ class MemorySnapshotCrawler(object):
                 field_type = self.snapshot.typeDescriptions[field.typeIndex]
 
                 if field.isStatic: continue
-                if field_type.isValueType and field_type.typeIndex == entry_type.typeIndex: continue
                 if not self.is_crawlable(type=field_type): continue
 
                 if field_type.isValueType:
