@@ -141,11 +141,11 @@ class MemorySnapshotCrawler(object):
     def find_type_of_address(self, address: int) -> int:
         type_index = self.find_type_at_type_info_address(type_info_address=address)
         if type_index != -1: return type_index
-        heap_ptr = self.__heap_reader.read_pointer(address)
-        if heap_ptr == 0: return -1
-        type_index = self.find_type_at_type_info_address(heap_ptr)
+        type_ptr = self.__heap_reader.read_pointer(address)
+        if type_ptr == 0: return -1
+        type_index = self.find_type_at_type_info_address(type_ptr)
         if type_index == -1:
-            vtable_ptr = self.__heap_reader.read_pointer(heap_ptr)
+            vtable_ptr = self.__heap_reader.read_pointer(type_ptr)
             if vtable_ptr != 0:
                 type_index = self.find_type_at_type_info_address(vtable_ptr)
         return type_index
