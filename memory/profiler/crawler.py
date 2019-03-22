@@ -310,7 +310,7 @@ class MemorySnapshotCrawler(object):
         return mo
 
     def is_crawlable(self, type:TypeDescription)->bool:
-        return not type.isValueType or type.size >= self.vm.pointerSize + self.vm.objectHeaderSize
+        return not type.isValueType or type.size > self.vm.pointerSize
 
     def crawl_managed_array_address(self, address:int, type:TypeDescription, memory_reader:HeapReader, joint:KeepAliveJoint, depth:int):
         if address <= 0 or address in self.__visit: return
@@ -358,12 +358,20 @@ class MemorySnapshotCrawler(object):
         member_joint=KeepAliveJoint(type_index=type_index, object_index=mo.managed_object_index)
         for field in entry_type.fields: # crawl fields
             field_type = self.snapshot.typeDescriptions[field.typeIndex]
+
+            if field_type.isValueType and field_type.typeIndex == entry_type.typeIndex: continue
             if not self.is_crawlable(type=field_type): continue
+
             if field.isStatic: continue
-            if isinstance(memory_reader, StaticFieldReader):
+            if field_type.isValueType:
+                field_address = address + field.offset - self.vm.objectHeaderSize
+            elif isinstance(memory_reader, StaticFieldReader):
                 field_address = address + field.offset
             else:
                 field_address = address + field.offset - self.vm.objectHeaderSize
+            # if field.typeIndex == self.__mt_index.system_String:
+            #     str_content = self.__heap_reader.read_string(address=field_address)
+            #     print('##', str_content)
             self.crawl_managed_entry_address(address=field_address, type=field_type, memory_reader=memory_reader,
                                              joint=member_joint.clone(field_type_index=field_type.typeIndex, field_index=field.slotIndex), depth=depth+1)
 

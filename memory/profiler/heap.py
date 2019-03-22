@@ -1,6 +1,6 @@
 from .core import PackedMemorySnapshot, TypeDescription
 from struct import unpack
-import operator
+import binascii
 
 
 class Quaternion(object):
@@ -165,10 +165,14 @@ class HeapReader(object):
         if offset == -1: return ''
         length = self.read_sint32(address)
         if length <= 0:
-            return 'length[{}] less then 0'.format(length) if length < 0 else ''
+            return '[STR]length[{}] less then 0'.format(length) if length < 0 else ''
         offset += 4  # string length
         length *= 2  # wide char
-        return self.memory[offset:offset + length].decode(encoding='utf-16')  # unicode encoding
+        try:
+            return self.memory[offset:offset + length].decode(encoding='utf-16')  # unicode encoding
+        except:
+            # print(binascii.hexlify(self.memory[offset:offset+length]))
+            return '[STR] address={:08x} offset={} length={} total_memory_length={}'.format(address, offset, length, len(self.memory))
 
     def read_string_length(self, address: int) -> int:
         offset = self.try_begin_read(address)
