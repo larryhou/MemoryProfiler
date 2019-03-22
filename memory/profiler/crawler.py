@@ -43,8 +43,8 @@ class UnityManagedObject(object):
     def __init__(self):
         self.address: int = -1
         self.type_index: int = -1
-        self.native_object_index: int = -1
         self.managed_object_index: int = -1
+        self.native_object_index: int = -1
         self.handle_index: int = -1
         self.size: int = 0
 
