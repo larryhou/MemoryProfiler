@@ -356,24 +356,24 @@ class MemorySnapshotCrawler(object):
             self.crawl_managed_array_address(address=address, type=entry_type, memory_reader=memory_reader, joint=joint, depth=depth+1)
             return
         member_joint=KeepAliveJoint(type_index=type_index, object_index=mo.managed_object_index)
-        for field in entry_type.fields: # crawl fields
-            field_type = self.snapshot.typeDescriptions[field.typeIndex]
+        dive_type = entry_type
+        while dive_type:
+            for field in dive_type.fields: # crawl fields
+                field_type = self.snapshot.typeDescriptions[field.typeIndex]
 
-            if field_type.isValueType and field_type.typeIndex == entry_type.typeIndex: continue
-            if not self.is_crawlable(type=field_type): continue
+                if field_type.isValueType and field_type.typeIndex == entry_type.typeIndex: continue
+                if not self.is_crawlable(type=field_type): continue
 
-            if field.isStatic: continue
-            if field_type.isValueType:
-                field_address = address + field.offset - self.vm.objectHeaderSize
-            elif isinstance(memory_reader, StaticFieldReader):
-                field_address = address + field.offset
-            else:
-                field_address = address + field.offset - self.vm.objectHeaderSize
-            # if field.typeIndex == self.__mt_index.system_String:
-            #     str_content = self.__heap_reader.read_string(address=field_address)
-            #     print('##', str_content)
-            self.crawl_managed_entry_address(address=field_address, type=field_type, memory_reader=memory_reader,
-                                             joint=member_joint.clone(field_type_index=field_type.typeIndex, field_index=field.slotIndex), depth=depth+1)
+                if field.isStatic: continue
+                if field_type.isValueType:
+                    field_address = address + field.offset - self.vm.objectHeaderSize
+                elif isinstance(memory_reader, StaticFieldReader):
+                    field_address = address + field.offset - self.vm.objectHeaderSize
+                else:
+                    field_address = address + field.offset
+                self.crawl_managed_entry_address(address=field_address, type=None, memory_reader=memory_reader,
+                                                 joint=member_joint.clone(field_type_index=field_type.typeIndex, field_index=field.slotIndex), depth=depth+1)
+            dive_type = self.snapshot.typeDescriptions[dive_type.baseOrElementTypeIndex] if dive_type.baseOrElementTypeIndex >= 0 else None
 
     def crawl_handles(self):
         for item in self.snapshot.gcHandles:
