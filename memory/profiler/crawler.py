@@ -197,13 +197,13 @@ class MemorySnapshotCrawler(object):
         handle_index = self.__handle_address_map.get(address)
         return -1 if handle_index is None else handle_index
 
-    def get_connections_of(self, kind: ConnectionKind, index: int) -> List[JointConnection]:
-        key = self.get_connection_key(kind=kind, index=index)
+    def get_connections_of(self, kind: ConnectionKind, managed_object_index: int) -> List[JointConnection]:
+        key = self.get_connection_key(kind=kind, index=managed_object_index)
         references = self.connections_from.get(key)
         return references if references else []
 
-    def get_connections_referenced_by(self, kind: ConnectionKind, index: int) -> List[JointConnection]:
-        key = self.get_connection_key(kind=kind, index=index)
+    def get_connections_referenced_by(self, kind: ConnectionKind, managed_object_index: int) -> List[JointConnection]:
+        key = self.get_connection_key(kind=kind, index=managed_object_index)
         references = self.connections_to.get(key)
         return references if references else []
 
