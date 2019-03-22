@@ -300,20 +300,19 @@ class MemorySnapshotCrawler(object):
         return mo
 
     def is_crawlable(self, type:TypeDescription)->bool:
-        return not type.isValueType or type.size > self.vm.pointerSize
+        return not type.isValueType or type.size > 4 #self.vm.pointerSize
 
     def crawl_managed_array_address(self, address:int, type:TypeDescription, memory_reader:HeapReader, joint:KeepAliveJoint, depth:int):
         if address <= 0 or address in self.__visit: return
         element_type = self.snapshot.typeDescriptions[type.baseOrElementTypeIndex]
         if self.is_crawlable(type=element_type): return
         element_count = memory_reader.read_array_length(address=address, type=type)
-        cursor = address + self.vm.arrayHeaderSize
         for n in range(element_count):
-            element_address = memory_reader.read_pointer(address=cursor)
             if element_type.isValueType:
-                cursor += element_type.size
+                address_ptr = address + self.vm.arrayHeaderSize + n * element_type.size - self.vm.objectHeaderSize
             else:
-                cursor += self.vm.pointerSize
+                address_ptr = address + self.vm.arrayHeaderSize + n * self.vm.pointerSize
+            element_address = memory_reader.read_pointer(address=address_ptr)
             self.crawl_managed_entry_address(address=element_address, type=element_type, memory_reader=memory_reader,
                                              joint=joint.clone(array_index=n), depth=depth+1)
 
@@ -370,6 +369,7 @@ class MemorySnapshotCrawler(object):
         for item in self.snapshot.gcHandles:
             self.crawl_managed_entry_address(address=item.target, joint=KeepAliveJoint(handle_index=item.gcHandleArrayIndex),
                                              memory_reader=self.__heap_reader, type=None)
+        sys.exit()
 
     def crawl_static(self):
         managed_types = self.snapshot.typeDescriptions
