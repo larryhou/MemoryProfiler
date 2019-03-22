@@ -8,11 +8,11 @@ class ConnectionKind(enum.Enum):
     none, handle, native, managed, static = range(5)
 
 class KeepAliveJoint(object):
-    def __init__(self, type_index:int = -1, object_index:int = -1, field_type_index:int = -1, field_index:int = -1, array_index:int = -1, handle_index:int = -1, is_static:bool = False):
+    def __init__(self, object_type_index:int = -1, object_index:int = -1, field_type_index:int = -1, field_index:int = -1, array_index:int = -1, handle_index:int = -1, is_static:bool = False):
         # gcHandle joint
         self.handle_index:int = handle_index
         # managed object joint
-        self.type_index: int = type_index
+        self.object_type_index: int = object_type_index
         self.object_index: int = object_index
         # reference point
         self.field_type_index:int = field_type_index
@@ -20,10 +20,10 @@ class KeepAliveJoint(object):
         self.array_index:int = array_index
         self.is_static = is_static
 
-    def clone(self, type_index:int = -1, object_index:int = -1, field_type_index:int = -1, field_index:int = -1, array_index:int = -1, handle_index:int = -1)-> 'KeepAliveJoint':
+    def clone(self, object_type_index:int = -1, object_index:int = -1, field_type_index:int = -1, field_index:int = -1, array_index:int = -1, handle_index:int = -1)-> 'KeepAliveJoint':
         rj = KeepAliveJoint()
         rj.handle_index = handle_index if handle_index >= 0 else self.handle_index
-        rj.type_index = type_index if type_index >= 0 else self.type_index
+        rj.object_type_index = object_type_index if object_type_index >= 0 else self.object_type_index
         rj.object_index = object_index if object_index >= 0 else self.object_index
         rj.field_type_index = field_type_index if field_type_index >= 0 else self.field_type_index
         rj.field_index = field_index if field_index >= 0 else self.field_index
@@ -346,7 +346,7 @@ class MemorySnapshotCrawler(object):
         if entry_type.isArray: # crawl array
             self.crawl_managed_array_address(address=address, type=entry_type, memory_reader=memory_reader, joint=joint, depth=depth+1)
             return
-        member_joint=KeepAliveJoint(type_index=type_index, object_index=mo.managed_object_index)
+        member_joint=KeepAliveJoint(object_type_index=type_index, object_index=mo.managed_object_index)
         dive_type = entry_type
         while dive_type:
             for field in dive_type.fields: # crawl fields
@@ -382,7 +382,7 @@ class MemorySnapshotCrawler(object):
                 field_type = managed_types[field.typeIndex]
                 if not field_type.isValueType: field_type = None
                 self.crawl_managed_entry_address(address=field.offset, type=field_type, memory_reader=static_reader,
-                                                 joint=KeepAliveJoint(type_index=mt.typeIndex, field_index=field.typeIndex, field_type_index=field.slotIndex, is_static=True))
+                                                 joint=KeepAliveJoint(object_type_index=mt.typeIndex, field_index=field.typeIndex, field_type_index=field.slotIndex, is_static=True))
 
 
 
