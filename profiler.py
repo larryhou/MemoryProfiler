@@ -11,7 +11,7 @@ def main():
     reader = MemorySnapshotReader(debug=options.debug)
 
     data = reader.read(file_path=options.file_path)
-    data.generate_type_module()
+    # data.generate_type_module()
     assert reader.cached_ptr
     print(reader.cached_ptr.dump())
     crawler = MemorySnapshotCrawler(snapshot=data)
