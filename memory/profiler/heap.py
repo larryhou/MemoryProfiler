@@ -61,9 +61,6 @@ class HeapReader(object):
         self.start_address = heap.startAddress
         self.stop_address = self.start_address + (len(heap.bytes) if heap.bytes else 0)
         self.memory = heap.bytes
-        # if address == 0x143a78c08 + 16:
-        #     print(heap.dump(), address - self.start_address)
-        #     self.debug()
         return address - self.start_address
 
     def read_sbyte(self, address: int) -> int:
@@ -161,7 +158,6 @@ class HeapReader(object):
             fp.write(self.memory)
 
     def read_pointer(self, address: int) -> int:
-        if address == 0x1a5068778: self.debug()
         return self.read_uint64(address) if self.snapshot.vm.pointerSize == 8 else self.read_uint32(address)
 
     def read_string(self, address: int) -> str:

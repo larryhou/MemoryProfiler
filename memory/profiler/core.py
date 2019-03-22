@@ -206,6 +206,9 @@ class PackedMemorySnapshot(MemoryObject):
                 field.slotIndex = k
                 if is_object and field.name == 'm_CachedPtr':
                     self.cached_ptr = field
+                offset = field.name.rfind('>k__BackingField')
+                if offset >= 0:
+                    field.name = field.name[1:offset]
         assert self.cached_ptr
         for n in range(len(self.gcHandles)):
             self.gcHandles[n].gcHandleArrayIndex = n

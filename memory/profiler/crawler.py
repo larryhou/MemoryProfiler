@@ -39,7 +39,7 @@ class JointConnection(object):
         self.dst_kind: ConnectionKind = dst_kind
         self.joint:KeepAliveJoint = joint
 
-class ManagedObject(object):
+class UnityManagedObject(object):
     def __init__(self):
         self.address: int = -1
         self.type_index: int = -1
@@ -55,7 +55,7 @@ class ManagedObject(object):
 
 class MemorySnapshotCrawler(object):
     def __init__(self, snapshot: PackedMemorySnapshot):
-        self.managed_objects: List[ManagedObject] = []
+        self.managed_objects: List[UnityManagedObject] = []
         self.snapshot: PackedMemorySnapshot = snapshot
         self.snapshot.initialize()
         self.vm = snapshot.virtualMachineInformation
@@ -85,17 +85,8 @@ class MemorySnapshotCrawler(object):
         self.init_managed_types()
         self.init_managed_connections()
         self.init_mono_script_connections()
-        self.init_managed_fields()
         self.crawl_handles()
         self.crawl_static()
-
-    def init_managed_fields(self):
-        managed_types = self.snapshot.typeDescriptions
-        for mt in managed_types:
-            for field in mt.fields:
-                offset = field.name.rfind('>k__BackingField')
-                if offset >= 0:
-                    field.name = field.name[1:offset]
 
     def init_mono_script_connections(self):
         for n in range(len(self.managed_connections)):
@@ -276,7 +267,7 @@ class MemorySnapshotCrawler(object):
             if not field_type.isValueType: return True
         return False
 
-    def try_connect_with_native_object(self, managed_object: ManagedObject):
+    def try_connect_with_native_object(self, managed_object: UnityManagedObject):
         if managed_object.native_object_index >= 0: return
         mt = self.snapshot.typeDescriptions[managed_object.type_index]
         if mt.isValueType or mt.isArray or not mt.isUnityEngineObjectType: return
@@ -292,14 +283,14 @@ class MemorySnapshotCrawler(object):
         self.snapshot.typeDescriptions[managed_object.type_index].nativeTypeArrayIndex = native_type_index
         self.snapshot.nativeTypes[native_type_index].managedTypeArrayIndex = managed_object.type_index
 
-    def set_object_size(self, managed_object: ManagedObject, type: TypeDescription):
+    def set_object_size(self, managed_object: UnityManagedObject, type: TypeDescription):
         if managed_object.size == 0:
             managed_object.size = self.__heap_reader.read_object_size(
                 address=managed_object.address, type=type
             )
 
-    def create_managed_object(self, address:int, type_index:int)->ManagedObject:
-        mo = ManagedObject()
+    def create_managed_object(self, address:int, type_index:int)->UnityManagedObject:
+        mo = UnityManagedObject()
         mo.address = address
         mo.type_index = type_index
         mo.managed_object_index = len(self.managed_objects)
