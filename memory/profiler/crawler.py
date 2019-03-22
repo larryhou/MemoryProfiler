@@ -361,7 +361,8 @@ class MemorySnapshotCrawler(object):
                     field_address = address + field.offset - self.vm.objectHeaderSize
                 else:
                     field_address = address + field.offset
-                self.crawl_managed_entry_address(address=field_address, type=None, memory_reader=memory_reader,
+                pass_field_type = field_type if field_type.isValueType else None
+                self.crawl_managed_entry_address(address=field_address, type=pass_field_type, memory_reader=memory_reader,
                                                  joint=member_joint.clone(field_type_index=field_type.typeIndex, field_index=field.slotIndex), depth=depth+1)
             dive_type = self.snapshot.typeDescriptions[dive_type.baseOrElementTypeIndex] if dive_type.baseOrElementTypeIndex >= 0 else None
 
@@ -380,8 +381,8 @@ class MemorySnapshotCrawler(object):
                 if not field.isStatic: continue
                 static_reader.load(memory=mt.staticFieldBytes)
                 field_type = managed_types[field.typeIndex]
-                if not field_type.isValueType: field_type = None
-                self.crawl_managed_entry_address(address=field.offset, type=field_type, memory_reader=static_reader,
+                pass_field_type = field_type if field_type.isValueType else None
+                self.crawl_managed_entry_address(address=field.offset, type=pass_field_type, memory_reader=static_reader,
                                                  joint=KeepAliveJoint(object_type_index=mt.typeIndex, field_index=field.typeIndex, field_type_index=field.slotIndex, is_static=True))
 
 
