@@ -38,6 +38,7 @@ def main():
     arguments = argparse.ArgumentParser()
     arguments.add_argument('--file-path', '-f', required=True)
     arguments.add_argument('--debug', '-d', action='store_true')
+
     options = arguments.parse_args(sys.argv[1:])
     reader = MemorySnapshotReader(debug=options.debug)
 
@@ -49,7 +50,8 @@ def main():
     print(data.dump())
     crawler.crawl()
 
-    compare_address_map(crawler=crawler)
+    if options.debug:
+        compare_address_map(crawler=crawler)
 
 if __name__ == '__main__':
     main()
