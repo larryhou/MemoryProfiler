@@ -27,7 +27,7 @@ def compare_address_map(crawler:MemorySnapshotCrawler):
 
     import math
     digit_count = math.ceil(math.log(missing_count, 10))
-    print_format = '[{:0%d}/{}]'%digit_count
+    print_format = '[{:%d}/{}]'%digit_count
 
     for n in range(len(missing_list)):
         addr = missing_list[n]
