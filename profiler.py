@@ -3,7 +3,7 @@ from memory.profiler.serialize import MemorySnapshotReader
 from memory.profiler.crawler import MemorySnapshotCrawler
 import os, struct
 
-def compare_address_map(crawler:MemorySnapshotCrawler):
+def dump_missing_manged_objects(crawler:MemorySnapshotCrawler):
     address_map = {}
     address_list = []
     with open('address.map', 'rb') as fp:
@@ -51,7 +51,7 @@ def main():
     crawler.crawl()
 
     if options.debug:
-        compare_address_map(crawler=crawler)
+        dump_missing_manged_objects(crawler=crawler)
 
 if __name__ == '__main__':
     main()
