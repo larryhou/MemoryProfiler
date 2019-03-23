@@ -355,7 +355,7 @@ class MemorySnapshotCrawler(object):
             for field in dive_type.fields: # crawl fields
                 field_type = self.snapshot.typeDescriptions[field.typeIndex]
                 if is_static_crawling:
-                    if field_type.isValueType and field.typeIndex == entry_type.typeIndex: continue
+                    if field_type.isValueType and field.typeIndex == dive_type.typeIndex: continue
                 else:
                     if field.isStatic: continue
                 if not self.is_crawlable(type=field_type): continue
