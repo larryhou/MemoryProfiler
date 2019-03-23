@@ -254,7 +254,7 @@ class StaticFieldReader(HeapReader):
         self.stop_address = len(memory)
 
     def try_begin_read(self, address: int):
-        if address == 0 \
+        if address < 0 \
                 or len(self.memory) == 0 or address >= len(self.memory):
             return -1
         return address

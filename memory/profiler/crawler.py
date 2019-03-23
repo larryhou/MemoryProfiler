@@ -313,8 +313,8 @@ class MemorySnapshotCrawler(object):
             else:
                 address_ptr = address + self.vm.arrayHeaderSize + n * self.vm.pointerSize
                 element_address = memory_reader.read_pointer(address=address_ptr)
-            if address == 0x174d74330:
-                print('{:x} {}'.format(element_address, element_type))
+            # if address == 0x174d74330:
+            #     print('{:x} {}'.format(element_address, element_type))
             self.crawl_managed_entry_address(address=element_address, type=element_type, memory_reader=memory_reader,
                                              joint=joint.clone(array_index=n), depth=depth+1)
 
@@ -353,8 +353,8 @@ class MemorySnapshotCrawler(object):
             return
         member_joint = KeepAliveJoint(object_type_index=type_index, object_index=mo.managed_object_index)
         dive_type = entry_type
-        if address == 0x174D7D0E0:
-            print('## {}', entry_type)
+        # if address == 0x174D7D0E0:
+        #     print('## {}', entry_type)
         while dive_type:
             for field in dive_type.fields: # crawl fields
                 field_type = self.snapshot.typeDescriptions[field.typeIndex]
@@ -373,8 +373,8 @@ class MemorySnapshotCrawler(object):
                     try:
                         field_address = memory_reader.read_pointer(address=address_ptr)
                     except: continue
-                if field.offset == 32:
-                    print('{} {:x} {:x}'.format(field, address, field_address))
+                # if field.offset == 32:
+                #     print('{} {:x} {:x}'.format(field, address, field_address))
 
                 pass_field_type = field_type if field_type.isValueType else None
                 pass_memory_reader = memory_reader if field_type.isValueType else self.__heap_reader
@@ -406,6 +406,9 @@ class MemorySnapshotCrawler(object):
                         field_address = static_reader.read_pointer(address=address_ptr)
                     except: continue
                     memory_reader = self.__heap_reader
+                # if mt.typeIndex == 18521 and field.offset == 0:
+                #     memory_reader.debug()
+                #     print('##', field, field_address)
                 self.crawl_managed_entry_address(address=field_address, type=field_type, memory_reader=memory_reader,
                                                  joint=KeepAliveJoint(object_type_index=mt.typeIndex, field_index=field.typeIndex, field_type_index=field.slotIndex, is_static=True))
 
