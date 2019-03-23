@@ -303,9 +303,10 @@ class MemorySnapshotCrawler(object):
         return not type.isValueType or type.size > self.vm.pointerSize
 
     def crawl_managed_array_address(self, address:int, type:TypeDescription, memory_reader:HeapReader, joint:KeepAliveJoint, depth:int):
-        if address <= 0 or address in self.__visit: return
+        is_static_crawling = isinstance(memory_reader, StaticFieldReader)
+        if address < 0 or not is_static_crawling and address == 0: return
         element_type = self.snapshot.typeDescriptions[type.baseOrElementTypeIndex]
-        if self.is_crawlable(type=element_type): return
+        if not self.is_crawlable(type=element_type): return
         element_count = memory_reader.read_array_length(address=address, type=type)
         for n in range(element_count):
             if element_type.isValueType:
@@ -313,8 +314,8 @@ class MemorySnapshotCrawler(object):
             else:
                 address_ptr = address + self.vm.arrayHeaderSize + n * self.vm.pointerSize
                 element_address = memory_reader.read_pointer(address=address_ptr)
-            # if address == 0x174d74330:
-            #     print('{:x} {}'.format(element_address, element_type))
+            # if address == 0x174d24330:
+            #     print('## {:x} {}'.format(element_address, element_type))
             self.crawl_managed_entry_address(address=element_address, type=element_type, memory_reader=memory_reader,
                                              joint=joint.clone(array_index=n), depth=depth+1)
 
@@ -353,8 +354,8 @@ class MemorySnapshotCrawler(object):
             return
         member_joint = KeepAliveJoint(object_type_index=type_index, object_index=mo.managed_object_index)
         dive_type = entry_type
-        # if address == 0x174D7D0E0:
-        #     print('## {}', entry_type)
+        if address == 0x174d8f460:
+            print('## {}', entry_type)
         while dive_type:
             for field in dive_type.fields: # crawl fields
                 field_type = self.snapshot.typeDescriptions[field.typeIndex]
@@ -373,8 +374,8 @@ class MemorySnapshotCrawler(object):
                     try:
                         field_address = memory_reader.read_pointer(address=address_ptr)
                     except: continue
-                # if field.offset == 32:
-                #     print('{} {:x} {:x}'.format(field, address, field_address))
+                if address == 0x174d8f460 and field.offset == 32:
+                    print('{} {:x} {:x}'.format(field, address, field_address))
 
                 pass_field_type = field_type if field_type.isValueType else None
                 pass_memory_reader = memory_reader if field_type.isValueType else self.__heap_reader
@@ -406,7 +407,7 @@ class MemorySnapshotCrawler(object):
                         field_address = static_reader.read_pointer(address=address_ptr)
                     except: continue
                     memory_reader = self.__heap_reader
-                # if mt.typeIndex == 18521 and field.offset == 0:
+                # if mt.typeIndex == 440 and field.offset == 8:
                 #     memory_reader.debug()
                 #     print('##', field, field_address)
                 self.crawl_managed_entry_address(address=field_address, type=field_type, memory_reader=memory_reader,
