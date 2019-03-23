@@ -19,9 +19,19 @@ def compare_address_map(crawler:MemorySnapshotCrawler):
     object_map = {}
     for mo in crawler.managed_objects:
         object_map[mo.address] = mo
+    missing_list = []
     for addr in address_list:
         if addr not in object_map:
-            print('* 0x{:x} {!r}'.format(addr, address_map.get(addr)))
+            missing_list.append(addr)
+    missing_count = len(missing_list)
+
+    import math
+    digit_count = math.ceil(math.log(missing_count, 10))
+    print_format = '[{:0%d}/{}]'%digit_count
+
+    for n in range(len(missing_list)):
+        addr = missing_list[n]
+        print('* {} 0x{:x} {!r}'.format(print_format.format(n+1, missing_count), addr, address_map.get(addr)))
 
 def main():
     import argparse,sys
