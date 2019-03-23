@@ -350,7 +350,7 @@ class MemorySnapshotCrawler(object):
         while dive_type:
             for field in dive_type.fields: # crawl fields
                 field_type = self.snapshot.typeDescriptions[field.typeIndex]
-                if field.isStatic: continue
+                if not isinstance(memory_reader, StaticFieldReader) and field.isStatic: continue
                 if not self.is_crawlable(type=field_type): continue
                 if field_type.isValueType:
                     field_address = address + field.offset - self.vm.objectHeaderSize
@@ -359,10 +359,13 @@ class MemorySnapshotCrawler(object):
                         address_ptr = address + field.offset - self.vm.objectHeaderSize
                     else:
                         address_ptr = address + field.offset
-                    field_address = memory_reader.read_pointer(address=address_ptr)
+                    try:
+                        field_address = memory_reader.read_pointer(address=address_ptr)
+                    except: continue
 
                 pass_field_type = field_type if field_type.isValueType else None
-                self.crawl_managed_entry_address(address=field_address, type=pass_field_type, memory_reader=memory_reader,
+                pass_memory_reader = memory_reader if field_type.isValueType else self.__heap_reader
+                self.crawl_managed_entry_address(address=field_address, type=pass_field_type, memory_reader=pass_memory_reader,
                                                  joint=member_joint.clone(field_type_index=field_type.typeIndex, field_index=field.slotIndex), depth=depth+1)
             dive_type = self.snapshot.typeDescriptions[dive_type.baseOrElementTypeIndex] if dive_type.baseOrElementTypeIndex >= 0 else None
 
@@ -370,7 +373,6 @@ class MemorySnapshotCrawler(object):
         for item in self.snapshot.gcHandles:
             self.crawl_managed_entry_address(address=item.target, joint=KeepAliveJoint(handle_index=item.gcHandleArrayIndex),
                                              memory_reader=self.__heap_reader, type=None)
-        # sys.exit()
 
     def crawl_static(self):
         managed_types = self.snapshot.typeDescriptions
@@ -382,9 +384,18 @@ class MemorySnapshotCrawler(object):
                 if not field.isStatic: continue
                 static_reader.load(memory=mt.staticFieldBytes)
                 field_type = managed_types[field.typeIndex]
-                pass_field_type = field_type if field_type.isValueType else None
-                self.crawl_managed_entry_address(address=field.offset, type=pass_field_type, memory_reader=static_reader,
+                if field_type.isValueType:
+                    field_address = field.offset - self.vm.objectHeaderSize
+                    memory_reader = static_reader
+                else:
+                    address_ptr = field.offset
+                    try:
+                        field_address = static_reader.read_pointer(address=address_ptr)
+                    except: continue
+                    memory_reader = self.__heap_reader
+                self.crawl_managed_entry_address(address=field_address, type=field_type, memory_reader=memory_reader,
                                                  joint=KeepAliveJoint(object_type_index=mt.typeIndex, field_index=field.typeIndex, field_type_index=field.slotIndex, is_static=True))
+
 
 
 

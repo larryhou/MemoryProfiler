@@ -248,11 +248,11 @@ class PackedMemorySnapshot(MemoryObject):
     def __get_type_index_name(self, managed_type:TypeDescription):
         if managed_type.isArray or managed_type.name[-1] in '*>': return
         components = managed_type.name.split('.')
-        if components[-1][0] in '_': return
+        if components[-1][0] in '_<$': return
         if len(components) >= 2:
             if components[0] == 'UnityEngine':
                 if len(components) > 2 and components[1] != 'UI': return
-            elif components[0] != 'System': return
+            elif not components[0] in ('System', 'UnityEditor'): return
             else:
                 if len(components) > 2: return
             if len(components) > 3: return
