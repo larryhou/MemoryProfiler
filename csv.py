@@ -9,7 +9,7 @@ def main():
     import os.path as p
     for address_csv in options.address_csv:
         address_csv = p.abspath(address_csv)
-        output_path = open(p.join(p.dirname(address_csv), 'address.map'), 'wb')
+        output_path = open(p.join(p.dirname(p.abspath(__file__)), 'address.map'), 'wb')
         with open(address_csv, 'r') as fp:
             line_number = 0
             for line in fp.readlines():
