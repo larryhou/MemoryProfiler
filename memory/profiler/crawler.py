@@ -354,8 +354,8 @@ class MemorySnapshotCrawler(object):
             return
         member_joint = KeepAliveJoint(object_type_index=type_index, object_index=mo.managed_object_index)
         dive_type = entry_type
-        if address == 0x174d8f460:
-            print('## {}', entry_type)
+        # if address == 0x174d8f460:
+        #     print('## {}', entry_type)
         while dive_type:
             for field in dive_type.fields: # crawl fields
                 field_type = self.snapshot.typeDescriptions[field.typeIndex]
@@ -374,8 +374,8 @@ class MemorySnapshotCrawler(object):
                     try:
                         field_address = memory_reader.read_pointer(address=address_ptr)
                     except: continue
-                if address == 0x174d8f460 and field.offset == 32:
-                    print('{} {:x} {:x}'.format(field, address, field_address))
+                # if address == 0x174d8f460 and field.offset == 32:
+                #     print('{} {:x} {:x}'.format(field, address, field_address))
 
                 pass_field_type = field_type if field_type.isValueType else None
                 pass_memory_reader = memory_reader if field_type.isValueType else self.__heap_reader
