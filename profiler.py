@@ -24,7 +24,7 @@ def dump_missing_manged_objects(crawler:MemorySnapshotCrawler):
         if addr not in object_map:
             missing_list.append(addr)
     missing_count = len(missing_list)
-
+    if missing_count == 0: return
     import math
     digit_count = math.ceil(math.log(missing_count, 10))
     print_format = '[{:%d}/{}]'%digit_count
