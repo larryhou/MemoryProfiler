@@ -49,7 +49,7 @@ class UnityManagedObject(object):
         self.size: int = 0
 
     def __repr__(self):
-        return '[ManagedObject] address={:08x} type_index={} native_object_index={} managed_object_index={} handle_index={} size={}'.format(
+        return '[UnityManagedObject] address={:08x} type_index={} native_object_index={} managed_object_index={} handle_index={} size={}'.format(
             self.address, self.type_index, self.native_object_index, self.managed_object_index, self.handle_index, self.size
         )
 
@@ -333,7 +333,8 @@ class MemorySnapshotCrawler(object):
         assert mo and mo.managed_object_index >= 0, mo
         self.set_object_size(managed_object=mo, type=self.snapshot.typeDescriptions[type_index], memory_reader=memory_reader)
         print(mo)
-        self.__visit[mo.address] = mo.managed_object_index
+        if not entry_type.isValueType:
+            self.__visit[mo.address] = mo.managed_object_index
         if joint.handle_index >= 0:
             connection = JointConnection(src_kind=ConnectionKind.handle, src=joint.object_index,
                                          dst_kind=ConnectionKind.managed, dst=mo.managed_object_index, joint=joint)
@@ -350,8 +351,8 @@ class MemorySnapshotCrawler(object):
             return
         member_joint = KeepAliveJoint(object_type_index=type_index, object_index=mo.managed_object_index)
         dive_type = entry_type
-        # if address == 0x1410ac2a0:
-        #     print('## {:x} {}', self.find_type_of_address(address=0x1410ac2a0), entry_type)
+        if address == 0x13f052a48:
+            print('## {:x} {}'.format(self.find_type_of_address(address=0x1410ac2a0), entry_type))
         while dive_type:
             for field in dive_type.fields: # crawl fields
                 field_type = self.snapshot.typeDescriptions[field.typeIndex]
@@ -370,8 +371,8 @@ class MemorySnapshotCrawler(object):
                     try:
                         field_address = memory_reader.read_pointer(address=address_ptr)
                     except: continue
-                # if address == 0x1410ac2a0 and field.offset == 16:
-                #     print('{} {:x} {:x}'.format(field, address, field_address))
+                if address == 0x13f052a48 and field.offset == 16:
+                    print('{} {:x} {:x}'.format(field, address, field_address))
                 pass_field_type = field_type if field_type.isValueType else None
                 pass_memory_reader = memory_reader if field_type.isValueType else self.__heap_reader
                 self.crawl_managed_entry_address(address=field_address, type=pass_field_type, memory_reader=pass_memory_reader,
