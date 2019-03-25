@@ -44,7 +44,7 @@ namespace Moobyte.MemoryProfiler
 
 		public static void Write(this Stream stream, DateTime timestamp)
 		{
-			var refer = new DateTime(1970, 1, 1, 0, 0, 0, timestamp.Kind);
+			var refer = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 			stream.Write((long) ((timestamp - refer).TotalSeconds * 1e6));
 		}
 

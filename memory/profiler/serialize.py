@@ -57,7 +57,7 @@ class MemorySnapshotReader(object):
     def __read_timestamp(self, input:MemoryStream):
         time_scale = 10**6
         time_value = input.read_uint64()
-        seconds = float(time_value) / time_scale
+        seconds = float(time_value) / time_scale + time.timezone
         fraction = time_value % time_scale
         return time.strftime('%Y-%m-%dT%H:%M:%S.{:06d}'.format(fraction), time.localtime(seconds))
 
