@@ -99,6 +99,11 @@ namespace Moobyte.MemoryProfiler
 		{
 			stream.WriteByte(0x00);
 		}
+
+		public static void Write(this Stream stream, byte[] v)
+		{
+			stream.Write(v, 0, v.Length);
+		}
 	}
 
 	public static class MemoryCapture
@@ -143,7 +148,7 @@ namespace Moobyte.MemoryProfiler
 			}
 
 			var filepath = string.Format("{0}/snapshot_{1:yyyyMMddHHmmss}.pms", spacedir, DateTime.Now);
-			Stream stream = new FileStream(filepath, FileMode.CreateNew);
+			FileStream stream = new FileStream(filepath, FileMode.CreateNew);
 			
 			// Write snapshot header
 			long offset = 0;
@@ -153,6 +158,7 @@ namespace Moobyte.MemoryProfiler
 			stream.Write("GENERATED THROUGH MEMORYPROFILER DEVELOPED BY LARRYHOU");
 			stream.Write(Application.unityVersion);
 			stream.Write(SystemInfo.operatingSystem);
+			stream.Write(Guid.NewGuid().ToByteArray());
 			offset = stream.Position;
 			stream.Write((uint) 0);
 			stream.Write(DateTime.Now);

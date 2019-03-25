@@ -1,6 +1,6 @@
 from .stream import MemoryStream
 from .core import *
-import time, math
+import time, uuid
 
 class NativeMemoryRef(object):
     def __init__(self, address:int, stream:MemoryStream, offset:int, length:int):
@@ -35,6 +35,7 @@ class MemorySnapshotReader(object):
         self.operating_system_version:str = ''
         self.create_time:str = ''
         self.total_size:int = 0
+        self.uuid:str = ''
 
         self.native_memory_map = {}  # type: dict[int, NativeMemoryRef]
 
@@ -43,10 +44,11 @@ class MemorySnapshotReader(object):
         self.description = input.read_utfstring()
         self.unity_version = input.read_utfstring()
         self.operating_system_version = input.read_utfstring()
+        self.uuid = uuid.UUID(bytes=input.read(16))
         self.total_size = input.read_uint32()
         self.create_time = self.__read_timestamp(input=input)
-        print('[MemorySnapshotReader] mime={!r} unity_version={!r} operating_system_version={!r} create_time={!r} total_size={:,}'.format(
-            self.mime, self.unity_version, self.operating_system_version, self.create_time, self.total_size
+        print('[MemorySnapshotReader] mime={!r} unity_version={!r} operating_system_version={!r} create_time={!r} total_size={:,} uuid={!r}'.format(
+            self.mime, self.unity_version, self.operating_system_version, self.create_time, self.total_size, str(self.uuid)
         ))
 
     def __read_timestamp(self, input:MemoryStream):
