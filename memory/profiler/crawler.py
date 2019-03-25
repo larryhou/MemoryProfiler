@@ -46,6 +46,7 @@ class UnityManagedObject(object):
         self.managed_object_index: int = -1
         self.native_object_index: int = -1
         self.handle_index: int = -1
+        self.is_value_type: bool = False
         self.size: int = 0
 
     def __repr__(self):
@@ -268,6 +269,7 @@ class MemorySnapshotCrawler(object):
     def try_connect_with_native_object(self, managed_object: UnityManagedObject):
         if managed_object.native_object_index >= 0: return
         mt = self.snapshot.typeDescriptions[managed_object.type_index]
+        managed_object.is_value_type = mt.isValueType
         if mt.isValueType or mt.isArray or not mt.isUnityEngineObjectType: return
         native_address = self.__heap_reader.read_pointer(managed_object.address + self.__cached_ptr.offset)
         if native_address == 0: return
