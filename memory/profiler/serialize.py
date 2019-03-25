@@ -32,7 +32,7 @@ class MemorySnapshotReader(object):
         self.mime:str = 'PMS'
         self.unity_version:str = ''
         self.description:str = ''
-        self.operating_system_version:str = ''
+        self.system_version:str = ''
         self.create_time:str = ''
         self.total_size:int = 0
         self.uuid:str = ''
@@ -43,12 +43,12 @@ class MemorySnapshotReader(object):
         self.mime = input.read(size=3).decode('ascii')
         self.description = input.read_utfstring()
         self.unity_version = input.read_utfstring()
-        self.operating_system_version = input.read_utfstring()
+        self.system_version = input.read_utfstring()
         self.uuid = uuid.UUID(bytes=input.read(16))
         self.total_size = input.read_uint32()
         self.create_time = self.__read_timestamp(input=input)
         print('[MemorySnapshotReader] mime={!r} unity_version={!r} system_version={!r} create_time={!r} total_size={:,} uuid={!r}'.format(
-            self.mime, self.unity_version, self.operating_system_version, self.create_time, self.total_size, str(self.uuid)
+            self.mime, self.unity_version, self.system_version, self.create_time, self.total_size, str(self.uuid)
         ))
 
     def __read_timestamp(self, input:MemoryStream):
