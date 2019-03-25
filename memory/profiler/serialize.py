@@ -1,5 +1,26 @@
 from .stream import MemoryStream
 from .core import *
+import time, math
+
+class NativeMemoryRef(object):
+    def __init__(self, address:int, stream:MemoryStream, offset:int, length:int):
+        self.__stream = stream
+        self.__offset = offset
+        self.__length = length
+        self.__address = address
+
+    @property
+    def address(self): return self.address
+
+    def read(self)->bytes:
+        position = self.__stream.position
+        self.__stream.position = self.__offset
+        memory = self.__stream.read(self.__length)
+        self.__stream.position = position
+        return memory
+
+    def __repr__(self):
+        return '[NativeMemoryRef] address={:x} offset={} length={}'.format(self.__address, self.__offset, self.__length)
 
 class MemorySnapshotReader(object):
     def __init__(self, debug:bool = True):
@@ -8,14 +29,74 @@ class MemorySnapshotReader(object):
         self.debug = debug
         self.cached_ptr:FieldDescription = None
 
-    def read(self, file_path): # type: (str)->PackedMemorySnapshot
-        self.__stream.open(file_path)
-        self.vm = self.__read_object(input=self.__stream)
+        self.identifier:str = 'PMS'
+        self.unity_version:str = ''
+        self.description:str = ''
+        self.operating_system_version:str = ''
+        self.create_time:str = ''
+        self.total_size:int = 0
+
+        self.native_memory_map = {}  # type: dict[int, NativeMemoryRef]
+
+    def __read_header(self, input:MemoryStream):
+        self.identifier = input.read(size=3).decode('ascii')
+        self.description = input.read_utfstring()
+        self.unity_version = input.read_utfstring()
+        self.operating_system_version = input.read_utfstring()
+        self.total_size = input.read_uint32()
+        self.create_time = self.__read_timestamp(input=input)
+        print('[PMS] identifier={!r} unity_version={!r} operating_system_version={!r} create_time={!r} total_size={} description={!r}'.format(
+            self.identifier, self.unity_version, self.operating_system_version, self.create_time, self.total_size, self.description
+        ))
+
+    def __read_timestamp(self, input:MemoryStream):
+        time_scale = 10**6
+        time_value = input.read_uint64()
+        seconds = float(time_value) / time_scale
+        fraction = time_value % time_scale
+        return time.strftime('%Y-%m-%dT%H:%M:%S.{:06d}'.format(fraction), time.localtime(seconds))
+
+    def __read_native_memory(self, input:MemoryStream):
+        native_count = input.read_uint32()
+        size_limit = 1 << 25
+        self.native_memory_map = {}
+        for n in range(native_count):
+            offset = input.position
+            address = input.read_uint64()
+            length = input.read_uint32()
+            if 0 < length <= size_limit:
+                ref = self.native_memory_map[address] = NativeMemoryRef(address=address, stream=input, offset=offset, length=length)
+                input.position += length
+                if self.debug: print(ref)
+            else:
+                assert input.read_uint32() == 0, 'address={:x} offset={} length={} {}/{}'.format(address, offset, length, n+1, native_count)
+
+    def __read_snapshot(self, input:MemoryStream):
+        self.vm = self.__read_object(input=input)
         print(self.vm)
-        snapshot = self.__read_object(input=self.__stream) # type: PackedMemorySnapshot
+        snapshot = self.__read_object(input=input)  # type: PackedMemorySnapshot
         snapshot.initialize()
         assert snapshot.cached_ptr
         self.cached_ptr = snapshot.cached_ptr
+        return snapshot
+
+    def read(self, file_path): # type: (str)->PackedMemorySnapshot
+        stream = self.__stream.open(file_path)
+        self.__read_header(input=self.__stream)
+        snapshot = None
+        while stream.bytes_available > 0:
+            offset = stream.position
+            block_length = stream.read_uint32()
+            block_type = stream.read(1)
+            if block_type == b'0':
+                snapshot = self.__read_snapshot(input=stream)
+                assert stream.position == offset + block_length, 'stream.position expect={} but={}'.format(offset + block_length, stream.position)
+            elif block_type == b'1':
+                self.__read_native_memory(input=stream)
+                assert stream.position == offset + block_length, 'stream.position expect={} but={}'.format(offset + block_length, stream.position)
+            else:
+                self.__stream.position += block_length - 5
+            print(self.__read_timestamp(input=stream))
         return snapshot
 
     def __read_object(self, input:MemoryStream):

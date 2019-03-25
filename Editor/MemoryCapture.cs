@@ -195,20 +195,24 @@ namespace Moobyte.MemoryProfiler
 			input.Write((uint)0);
 			input.Write('1');
 			
+			// Write the number of native objects
+			input.Write(snapshot.nativeObjects.Length);
+			
+			// Write native objects memory
 			var buffer = new byte[1 << 25];
 			foreach (var no in snapshot.nativeObjects)
 			{
-				if (no.size > 0)
+				input.Write(no.nativeObjectAddress);
+				input.Write(no.size);
+				if (no.size > buffer.Length || no.size < 0)
 				{
-					if (no.size > buffer.Length)
-					{
-						Debug.LogFormat("name={0} type={1} size={2}", no.name,
-							snapshot.nativeTypes[no.nativeTypeArrayIndex].name, no.size);
-						continue;
-					}
-					
+					Debug.LogFormat("[SIZE] address=0x{0:X} name='{1}' type='{2}' size={3}", no.nativeObjectAddress, no.name,
+						snapshot.nativeTypes[no.nativeTypeArrayIndex].name, no.size);
+					input.Write((uint)0);
+				}
+				else
+				{
 					Marshal.Copy(new IntPtr(no.nativeObjectAddress), buffer, 0, no.size);
-					input.Write(no.size);
 					input.Write(buffer, 0, no.size);
 				}
 			}

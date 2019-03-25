@@ -63,6 +63,7 @@ class MemoryStream(object):
 
     def open(self, file_path):
         self.data = open(file_path, 'r+b')
+        return self
 
     def save(self, output_path=None):
         if output_path:
@@ -157,7 +158,7 @@ class MemoryStream(object):
             string = self.data.read()
             return list(struct.unpack('{}{}B'.format(self.endian, len(string)), string))
 
-    def read(self, size=-1):
+    def read(self, size=-1): # type: (int)->bytes
         return self.data.read(size) if size >= 0 else self.data.read()
 
     def read_hex(self, size=-1):
