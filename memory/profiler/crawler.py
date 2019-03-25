@@ -298,7 +298,7 @@ class MemorySnapshotCrawler(object):
         return mo
 
     def is_crawlable(self, type:TypeDescription)->bool:
-        return not type.isValueType or type.size > self.vm.pointerSize
+        return not type.isValueType or type.size > 8 # self.vm.pointerSize
 
     def crawl_managed_array_address(self, address:int, type:TypeDescription, memory_reader:HeapReader, joint:KeepAliveJoint, depth:int):
         is_static_crawling = isinstance(memory_reader, StaticFieldReader)
@@ -320,12 +320,16 @@ class MemorySnapshotCrawler(object):
     def crawl_managed_entry_address(self, address:int, type:TypeDescription, memory_reader:HeapReader, joint:KeepAliveJoint = None, depth = 0):
         is_static_crawling = isinstance(memory_reader, StaticFieldReader)
         if address < 0 or not is_static_crawling and address == 0: return
-        if address in self.__visit or depth >= 512:
+        if depth >= 512:
             if depth >= 512: print('!! address={:08x} type={}'.format(address, type))
             return
-        type_index = self.find_type_of_address(address=address)
-        if type_index == -1:
-            type_index = type.typeIndex if type else -1
+        if type and type.isValueType:
+            type_index = type.typeIndex
+        else:
+            if address in self.__visit: return
+            type_index = self.find_type_of_address(address=address)
+            if type_index == -1:
+                type_index = type.typeIndex if type else -1
         if type_index == -1: return
         entry_type = self.snapshot.typeDescriptions[type_index]
         mo = self.create_managed_object(address=address, type_index=type_index)
@@ -351,8 +355,8 @@ class MemorySnapshotCrawler(object):
             return
         member_joint = KeepAliveJoint(object_type_index=type_index, object_index=mo.managed_object_index)
         dive_type = entry_type
-        if address == 0x13f052a48:
-            print('## {:x} {}'.format(self.find_type_of_address(address=0x1410ac2a0), entry_type))
+        # if address == 0x13f052a48:
+        #     print('## {} {}'.format(self.find_type_of_address(address=address), entry_type))
         while dive_type:
             for field in dive_type.fields: # crawl fields
                 field_type = self.snapshot.typeDescriptions[field.typeIndex]
@@ -360,6 +364,7 @@ class MemorySnapshotCrawler(object):
                     if field_type.isValueType and field.typeIndex == dive_type.typeIndex: continue
                 else:
                     if field.isStatic: continue
+                # if address == 0x13f052a48: print('+', field.typeIndex, entry_type.typeIndex, field, field_type)
                 if not self.is_crawlable(type=field_type): continue
                 if field_type.isValueType:
                     field_address = address + field.offset - self.vm.objectHeaderSize
@@ -371,8 +376,8 @@ class MemorySnapshotCrawler(object):
                     try:
                         field_address = memory_reader.read_pointer(address=address_ptr)
                     except: continue
-                if address == 0x13f052a48 and field.offset == 16:
-                    print('{} {:x} {:x}'.format(field, address, field_address))
+                # if address == 0x13f052a48 and field.offset == 16:
+                #     print('{} {:x} {:x} {}'.format(field, address, field_address, address_ptr))
                 pass_field_type = field_type if field_type.isValueType else None
                 pass_memory_reader = memory_reader if field_type.isValueType else self.__heap_reader
                 self.crawl_managed_entry_address(address=field_address, type=pass_field_type, memory_reader=pass_memory_reader,
