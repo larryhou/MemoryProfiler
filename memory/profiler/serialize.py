@@ -51,7 +51,7 @@ class MemorySnapshotReader(object):
         self.uuid = uuid.UUID(bytes=input.read(16))
         self.total_size = input.read_uint32()
         self.create_time = self.__read_timestamp(input=input)
-        print('[MemorySnapshotReader] mime={!r} unity_version={!r} system_version={!r} create_time={!r} total_size={:,} uuid={!r}'.format(
+        print('[MemorySnapshot] mime={!r} unity_version={!r} system_version={!r} create_time={!r} total_size={:,} uuid={!r}'.format(
             self.mime, self.unity_version, self.system_version, self.create_time, self.total_size, str(self.uuid)
         ))
 
