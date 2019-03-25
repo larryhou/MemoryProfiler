@@ -58,8 +58,6 @@ def main():
 
     data = reader.read(file_path=options.file_path)
     # data.generate_type_module()
-    assert reader.cached_ptr
-    print(reader.cached_ptr.dump())
     crawler = MemorySnapshotCrawler(snapshot=data)
     print(data.dump())
     crawler.crawl()
