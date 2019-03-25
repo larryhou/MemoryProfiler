@@ -142,7 +142,7 @@ namespace Moobyte.MemoryProfiler
 				Directory.CreateDirectory(spacedir);
 			}
 
-			var filepath = string.Format("{0}/snapshot_{1:yyyyMMddHHmmss}.dat", spacedir, DateTime.Now);
+			var filepath = string.Format("{0}/snapshot_{1:yyyyMMddHHmmss}.pms", spacedir, DateTime.Now);
 			Stream stream = new FileStream(filepath, FileMode.CreateNew);
 			
 			// Write snapshot header
@@ -150,7 +150,7 @@ namespace Moobyte.MemoryProfiler
 			stream.Write('P');
 			stream.Write('M');
 			stream.Write('S');
-			stream.Write("Generated through MemoryProfiler developed by LARRYHOU.");
+			stream.Write("GENERATED THROUGH MEMORYPROFILER DEVELOPED BY LARRYHOU");
 			stream.Write(Application.unityVersion);
 			stream.Write(SystemInfo.operatingSystem);
 			offset = stream.Position;

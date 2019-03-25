@@ -29,7 +29,7 @@ class MemorySnapshotReader(object):
         self.debug = debug
         self.cached_ptr:FieldDescription = None
 
-        self.identifier:str = 'PMS'
+        self.mime:str = 'PMS'
         self.unity_version:str = ''
         self.description:str = ''
         self.operating_system_version:str = ''
@@ -39,14 +39,14 @@ class MemorySnapshotReader(object):
         self.native_memory_map = {}  # type: dict[int, NativeMemoryRef]
 
     def __read_header(self, input:MemoryStream):
-        self.identifier = input.read(size=3).decode('ascii')
+        self.mime = input.read(size=3).decode('ascii')
         self.description = input.read_utfstring()
         self.unity_version = input.read_utfstring()
         self.operating_system_version = input.read_utfstring()
         self.total_size = input.read_uint32()
         self.create_time = self.__read_timestamp(input=input)
-        print('[PMS] identifier={!r} unity_version={!r} operating_system_version={!r} create_time={!r} total_size={} description={!r}'.format(
-            self.identifier, self.unity_version, self.operating_system_version, self.create_time, self.total_size, self.description
+        print('[MemorySnapshotReader] mime={!r} unity_version={!r} operating_system_version={!r} create_time={!r} total_size={:,}'.format(
+            self.mime, self.unity_version, self.operating_system_version, self.create_time, self.total_size
         ))
 
     def __read_timestamp(self, input:MemoryStream):
