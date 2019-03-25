@@ -98,7 +98,8 @@ class MemorySnapshotReader(object):
                 assert stream.position == offset + block_length, 'stream.position expect={} but={}'.format(offset + block_length, stream.position)
             else:
                 self.__stream.position += block_length - 5
-            print(self.__read_timestamp(input=stream))
+            timestamp = self.__read_timestamp(input=stream)
+            self.debug: print(timestamp)
         return snapshot
 
     def __read_object(self, input:MemoryStream):
