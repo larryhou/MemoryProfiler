@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from memory.profiler.serialize import MemorySnapshotReader
+from memory.profiler.serialize import MemorySnapshotReader, NativeMemoryRef
 from memory.profiler.crawler import MemorySnapshotCrawler
 import os, struct
 
@@ -33,12 +33,25 @@ def dump_missing_manged_objects(crawler:MemorySnapshotCrawler):
         addr = missing_list[n]
         print('* {} 0x{:x} {!r}'.format(print_format.format(n+1, missing_count), addr, address_map.get(addr)))
 
+def dump_texture_2d(reader:MemorySnapshotReader):
+    native_objects = reader.snapshot.nativeObjects
+    texture_2d_type_index = reader.snapshot.nativeTypeIndex.Texture2D
+    export_path = '__texture2d'
+    if not os.path.exists(export_path): os.makedirs(export_path)
+    for no in native_objects:
+        if no.nativeTypeArrayIndex == texture_2d_type_index:
+            file_path = '{}/{:08x}.tex'.format(export_path, no.nativeObjectAddress)
+            ref = reader.native_memory_map.get(no.nativeObjectAddress) # type: NativeMemoryRef
+            if ref:
+                with open(file_path, 'wb') as fp: fp.write(ref.read())
+
 def main():
     import argparse,sys
     arguments = argparse.ArgumentParser()
     arguments.add_argument('--file-path', '-f', required=True)
     arguments.add_argument('--debug', '-d', action='store_true')
     arguments.add_argument('--missing', '-m', action='store_true')
+    arguments.add_argument('--texture-2d', '-t', action='store_true')
 
     options = arguments.parse_args(sys.argv[1:])
     reader = MemorySnapshotReader(debug=options.debug)
@@ -53,6 +66,8 @@ def main():
 
     if options.missing:
         dump_missing_manged_objects(crawler=crawler)
+    if options.texture_2d:
+        dump_texture_2d(reader=reader)
 
 if __name__ == '__main__':
     main()

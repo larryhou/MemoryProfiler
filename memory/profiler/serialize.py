@@ -38,6 +38,7 @@ class MemorySnapshotReader(object):
         self.uuid:str = ''
 
         self.native_memory_map = {}  # type: dict[int, NativeMemoryRef]
+        self.snapshot:PackedMemorySnapshot = None
 
     def __read_header(self, input:MemoryStream):
         self.mime = input.read(size=3).decode('ascii')
@@ -85,13 +86,13 @@ class MemorySnapshotReader(object):
     def read(self, file_path): # type: (str)->PackedMemorySnapshot
         stream = self.__stream.open(file_path)
         self.__read_header(input=self.__stream)
-        snapshot = None
+        self.snapshot = None
         while stream.bytes_available > 0:
             offset = stream.position
             block_length = stream.read_uint32()
             block_type = stream.read(1)
             if block_type == b'0':
-                snapshot = self.__read_snapshot(input=stream)
+                self.snapshot = self.__read_snapshot(input=stream)
                 assert stream.position == offset + block_length, 'stream.position expect={} but={}'.format(offset + block_length, stream.position)
             elif block_type == b'1':
                 self.__read_native_memory(input=stream)
@@ -100,7 +101,7 @@ class MemorySnapshotReader(object):
                 self.__stream.position += block_length - 5
             timestamp = self.__read_timestamp(input=stream)
             self.debug: print(timestamp)
-        return snapshot
+        return self.snapshot
 
     def __read_object(self, input:MemoryStream):
         class_type = input.read_utfstring() # type: str
