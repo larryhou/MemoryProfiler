@@ -67,15 +67,14 @@ class MemorySnapshotReader(object):
         size_limit = 1 << 25
         self.native_memory_map = {}
         for n in range(native_count):
-            offset = input.position
             address = input.read_uint64()
             length = input.read_uint32()
             if 0 < length <= size_limit:
-                ref = self.native_memory_map[address] = NativeMemoryRef(address=address, stream=input, offset=offset, length=length)
+                ref = self.native_memory_map[address] = NativeMemoryRef(address=address, stream=input, offset=input.position, length=length)
                 input.position += length
                 if self.debug: print(ref)
             else:
-                assert input.read_uint32() == 0, 'address={:x} offset={} length={} {}/{}'.format(address, offset, length, n+1, native_count)
+                assert input.read_uint32() == 0, 'address={:x} offset={} length={} {}/{}'.format(address, input.position, length, n+1, native_count)
 
     def __read_snapshot(self, input:MemoryStream):
         self.vm = self.__read_object(input=input)
