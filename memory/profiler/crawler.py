@@ -321,7 +321,7 @@ class MemorySnapshotCrawler(object):
         is_static_crawling = isinstance(memory_reader, StaticFieldReader)
         if address < 0 or not is_static_crawling and address == 0: return
         if depth >= 512:
-            if depth >= 512: print('!! address={:08x} type={}'.format(address, type))
+            print('!![ITER_MAX={}] address={:08x} type={}'.format(depth, address, type))
             return
         if type and type.isValueType:
             type_index = type.typeIndex
