@@ -319,6 +319,7 @@ class MemorySnapshotCrawler(object):
 
     def crawl_managed_entry_address(self, address:int, type:TypeDescription, memory_reader:HeapReader, joint:KeepAliveJoint = None, depth = 0):
         is_static_crawling = isinstance(memory_reader, StaticFieldReader)
+        if address==0x13c77e060:print('>>', type)
         if address < 0 or not is_static_crawling and address == 0: return
         if depth >= 512:
             print('!![ITER_MAX={}] address={:08x} type={}'.format(depth, address, type))
@@ -355,8 +356,10 @@ class MemorySnapshotCrawler(object):
             return
         member_joint = KeepAliveJoint(object_type_index=type_index, object_index=mo.managed_object_index)
         dive_type = entry_type
-        # if address == 0x13f052a48:
+        # if address == 0x13b3b8e60:
         #     print('## {} {}'.format(self.find_type_of_address(address=address), entry_type))
+        # if address == 0x13c77e060:
+        #     print(entry_type)
         while dive_type:
             for field in dive_type.fields: # crawl fields
                 field_type = self.snapshot.typeDescriptions[field.typeIndex]
@@ -376,11 +379,10 @@ class MemorySnapshotCrawler(object):
                     try:
                         field_address = memory_reader.read_pointer(address=address_ptr)
                     except: continue
-                # if address == 0x13f052a48 and field.offset == 16:
-                #     print('{} {:x} {:x} {}'.format(field, address, field_address, address_ptr))
-                pass_field_type = field_type if field_type.isValueType else None
+                # if address == 0x13b3b8e60 and field.offset == 32:
+                #     print('{} {:x} {:x}'.format(field, address, field_address))
                 pass_memory_reader = memory_reader if field_type.isValueType else self.__heap_reader
-                self.crawl_managed_entry_address(address=field_address, type=pass_field_type, memory_reader=pass_memory_reader,
+                self.crawl_managed_entry_address(address=field_address, type=field_type, memory_reader=pass_memory_reader,
                                                  joint=member_joint.clone(field_type_index=field_type.typeIndex, field_index=field.slotIndex), depth=depth+1)
             dive_type = self.snapshot.typeDescriptions[dive_type.baseOrElementTypeIndex] if dive_type.baseOrElementTypeIndex >= 0 else None
 
