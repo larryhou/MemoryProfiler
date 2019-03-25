@@ -146,12 +146,14 @@ namespace Moobyte.MemoryProfiler
 			Stream stream = new FileStream(filepath, FileMode.CreateNew);
 			
 			// Write snapshot header
+			long offset = 0;
 			stream.Write('P');
 			stream.Write('M');
 			stream.Write('S');
 			stream.Write("Generated through MemoryProfiler developed by LARRYHOU.");
 			stream.Write(Application.unityVersion);
 			stream.Write(SystemInfo.operatingSystem);
+			offset = stream.Position;
 			stream.Write((uint) 0);
 			stream.Write(DateTime.Now);
 			
@@ -164,8 +166,18 @@ namespace Moobyte.MemoryProfiler
 				PackNativeObjectMemory(stream, snapshot);	
 			}
 			
+			RepackUInt32(stream, offset, (uint)stream.Length);
+			
 			Debug.LogFormat("+ {0}", filepath);
 			stream.Close();
+		}
+
+		private static void RepackUInt32(Stream input, long offset, uint size)
+		{
+			var position = input.Position;
+			input.Seek(offset, SeekOrigin.Begin);
+			input.Write(size);
+			input.Seek(position, SeekOrigin.Begin);
 		}
 
 		private static void PackSnapshotMemory(Stream input, PackedMemorySnapshot snapshot)
@@ -178,11 +190,7 @@ namespace Moobyte.MemoryProfiler
 			EncodeObject(input, snapshot);
 			
 			{
-				var position = input.Position;
-				var size = (uint)(input.Position - offset);
-				input.Seek(offset, SeekOrigin.Begin);
-				input.Write(size);
-				input.Seek(position, SeekOrigin.Begin);
+				RepackUInt32(input, offset, (uint)(input.Position - offset));
 				input.Write(DateTime.Now);
 			}
 			
@@ -218,11 +226,7 @@ namespace Moobyte.MemoryProfiler
 			}
 			
 			{
-				var position = input.Position;
-				var size = (uint)(input.Position - offset);
-				input.Seek(offset, SeekOrigin.Begin);
-				input.Write(size);
-				input.Seek(position, SeekOrigin.Begin);
+				RepackUInt32(input, offset, (uint)(input.Position - offset));
 				input.Write(DateTime.Now);
 			}
 			
