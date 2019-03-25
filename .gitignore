@@ -1,0 +1,7 @@
+.*
+*.meta
+*.map
+*.bin
+*.log
+*.txt
+__*
