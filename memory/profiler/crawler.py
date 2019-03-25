@@ -402,9 +402,6 @@ class MemorySnapshotCrawler(object):
                         field_address = static_reader.read_pointer(address=address_ptr)
                     except: continue
                     memory_reader = self.__heap_reader
-                # if mt.typeIndex == 440 and field.offset == 8:
-                #     memory_reader.debug()
-                #     print('##', field, field_address)
                 self.crawl_managed_entry_address(address=field_address, type=field_type, memory_reader=memory_reader,
                                                  joint=KeepAliveJoint(object_type_index=mt.typeIndex, field_index=field.typeIndex, field_type_index=field.slotIndex, is_static=True))
 
