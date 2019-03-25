@@ -26,9 +26,10 @@ class MemorySnapshotReader(object):
     def __init__(self, debug:bool = True):
         self.__stream = MemoryStream()
         self.vm:VirtualMachineInformation = None
-        self.debug = debug
         self.cached_ptr:FieldDescription = None
+        self.debug = debug
 
+        # header info
         self.mime:str = 'PMS'
         self.unity_version:str = ''
         self.description:str = ''
@@ -37,6 +38,7 @@ class MemorySnapshotReader(object):
         self.total_size:int = 0
         self.uuid:str = ''
 
+        # serialized results
         self.native_memory_map = {}  # type: dict[int, NativeMemoryRef]
         self.snapshot:PackedMemorySnapshot = None
 
