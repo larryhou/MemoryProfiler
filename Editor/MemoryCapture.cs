@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.IO;
+using System.Runtime.InteropServices;
 using UnityEditor;
 using UnityEditor.MemoryProfiler;
 using UnityEngine;
@@ -39,6 +40,17 @@ namespace Moobyte.MemoryProfiler
 				stream.Write(bytes.Length);
 				stream.Write(bytes, 0, bytes.Length);
 			}
+		}
+
+		public static void Write(this Stream stream, DateTime timestamp)
+		{
+			var refer = new DateTime(1970, 1, 1, 0, 0, 0, timestamp.Kind);
+			stream.Write((long) ((timestamp - refer).TotalSeconds * 1e6));
+		}
+
+		public static void Write(this Stream stream, char v)
+		{
+			stream.Write((byte)v);
 		}
 		
 		public static void Write(this Stream stream, byte v)
@@ -91,34 +103,126 @@ namespace Moobyte.MemoryProfiler
 
 	public static class MemoryCapture
 	{
-		[MenuItem("内存/捕获内存")]
+		[MenuItem("内存/捕获快照")]
 		public static void Capture()
 		{
 			MemorySnapshot.OnSnapshotReceived += OnSnapshotComplete;
 			MemorySnapshot.RequestNewSnapshot();
 		}
-
-		public static void AcceptMemorySnapshot(PackedMemorySnapshot snapshot)
+		
+		[MenuItem("内存/捕获快照和原生内存")]
+		public static void CaptureWithNativeMemeory()
 		{
-			OnSnapshotComplete(snapshot);
+			MemorySnapshot.OnSnapshotReceived += OnSnapshotCompleteForCrawling;
+			MemorySnapshot.RequestNewSnapshot();
 		}
 
 		private static void OnSnapshotComplete(PackedMemorySnapshot snapshot)
 		{
 			MemorySnapshot.OnSnapshotReceived -= OnSnapshotComplete;
+			ExportMemorySnapshot(snapshot, false);
+		}
+		
+		private static void OnSnapshotCompleteForCrawling(PackedMemorySnapshot snapshot)
+		{
+			MemorySnapshot.OnSnapshotReceived -= OnSnapshotCompleteForCrawling;
+			ExportMemorySnapshot(snapshot, true);
+		}
+
+		public static void AcceptMemorySnapshot(PackedMemorySnapshot snapshot)
+		{
+			ExportMemorySnapshot(snapshot, false);
+		}
+
+		private static void ExportMemorySnapshot(PackedMemorySnapshot snapshot, bool nativeEnabled)
+		{
 			var spacedir = string.Format("{0}/../MemoryCapture", Application.dataPath);
 			if (!Directory.Exists(spacedir))
 			{
 				Directory.CreateDirectory(spacedir);
 			}
-			
+
 			var filepath = string.Format("{0}/snapshot_{1:yyyyMMddHHmmss}.dat", spacedir, DateTime.Now);
 			Stream stream = new FileStream(filepath, FileMode.CreateNew);
-			EncodeObject(stream, snapshot.virtualMachineInformation);
-			EncodeObject(stream, snapshot);
-			stream.Flush();
+			
+			// Write snapshot header
+			stream.Write('P');
+			stream.Write('M');
+			stream.Write('S');
+			stream.Write("Generated through MemoryProfiler developed by LARRYHOU.");
+			stream.Write(Application.unityVersion);
+			stream.Write(SystemInfo.operatingSystem);
+			stream.Write((uint) 0);
+			stream.Write(DateTime.Now);
+			
+			// Write basic snapshot memory
+			PackSnapshotMemory(stream, snapshot);
+
+			if (nativeEnabled)
+			{			
+				// Write native object memory
+				PackNativeObjectMemory(stream, snapshot);	
+			}
+			
 			Debug.LogFormat("+ {0}", filepath);
 			stream.Close();
+		}
+
+		private static void PackSnapshotMemory(Stream input, PackedMemorySnapshot snapshot)
+		{
+			var offset = input.Position;
+			input.Write((uint)0);
+			input.Write('0');
+			
+			EncodeObject(input, snapshot.virtualMachineInformation);
+			EncodeObject(input, snapshot);
+			
+			{
+				var position = input.Position;
+				var size = (uint)(input.Position - offset);
+				input.Seek(offset, SeekOrigin.Begin);
+				input.Write(size);
+				input.Seek(position, SeekOrigin.Begin);
+				input.Write(DateTime.Now);
+			}
+			
+			input.Flush();
+		}
+		
+		private static void PackNativeObjectMemory(Stream input, PackedMemorySnapshot snapshot)
+		{
+			var offset = input.Position;
+			input.Write((uint)0);
+			input.Write('1');
+			
+			var buffer = new byte[1 << 25];
+			foreach (var no in snapshot.nativeObjects)
+			{
+				if (no.size > 0)
+				{
+					if (no.size > buffer.Length)
+					{
+						Debug.LogFormat("name={0} type={1} size={2}", no.name,
+							snapshot.nativeTypes[no.nativeTypeArrayIndex].name, no.size);
+						continue;
+					}
+					
+					Marshal.Copy(new IntPtr(no.nativeObjectAddress), buffer, 0, no.size);
+					input.Write(no.size);
+					input.Write(buffer, 0, no.size);
+				}
+			}
+			
+			{
+				var position = input.Position;
+				var size = (uint)(input.Position - offset);
+				input.Seek(offset, SeekOrigin.Begin);
+				input.Write(size);
+				input.Seek(position, SeekOrigin.Begin);
+				input.Write(DateTime.Now);
+			}
+			
+			input.Flush();
 		}
 
 		private static void EncodeObject(Stream output, object data)
