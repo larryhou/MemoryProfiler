@@ -27,6 +27,7 @@ class MemorySnapshotReader(object):
         self.__stream = MemoryStream()
         self.vm:VirtualMachineInformation = None
         self.cached_ptr:FieldDescription = None
+        self.verbose = False
         self.debug = debug
 
         # header info
@@ -108,16 +109,16 @@ class MemorySnapshotReader(object):
     def __read_object(self, input:MemoryStream):
         class_type = input.read_utfstring() # type: str
         class_name = class_type.split('.')[-1]
-        if self.debug: print('+ readObject offset={} class_type={}'.format(input.position, class_type))
+        if self.verbose: print('+ readObject offset={} class_type={}'.format(input.position, class_type))
         data = globals().get(class_name)() # type: object
         assert data
         field_count = input.read_ubyte()
-        if self.debug: print(field_count, input.position)
+        if self.verbose: print(field_count, input.position)
         for n in range(field_count):
             field_name = input.read_utfstring()
             if field_name == 'from': field_name = 'from_'
             field_type = input.read_utfstring()
-            if self.debug: print('    - {} {}'.format(field_name, field_type))
+            if self.verbose: print('    - {} {}'.format(field_name, field_type))
             if field_type.endswith('[]'):
                 if field_type.endswith('Byte[]'):
                     field_data = input.read(size=input.read_uint32())
