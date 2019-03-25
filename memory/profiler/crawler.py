@@ -289,14 +289,14 @@ class MemorySnapshotCrawler(object):
                 address=managed_object.address, type=type
             )
 
-    def create_managed_object(self, address:int, type_index:int)->UnityManagedObject:
+    def create_managed_object(self, address:int, type_index:int, is_static:bool = False)->UnityManagedObject:
         mo = UnityManagedObject()
         mo.address = address
         mo.type_index = type_index
         mo.managed_object_index = len(self.managed_objects)
         self.try_connect_with_native_object(managed_object=mo)
         self.__visit[mo.address] = mo.managed_object_index
-        self.managed_objects.append(mo)
+        if not is_static: self.managed_objects.append(mo)
         return mo
 
     def is_crawlable(self, type:TypeDescription)->bool:
@@ -332,7 +332,7 @@ class MemorySnapshotCrawler(object):
                 type_index = type.typeIndex if type else -1
         if type_index == -1: return
         entry_type = self.snapshot.typeDescriptions[type_index]
-        mo = self.create_managed_object(address=address, type_index=type_index)
+        mo = self.create_managed_object(address=address, type_index=type_index, is_static=is_static_crawling)
         mo.handle_index = joint.handle_index
         assert mo and mo.managed_object_index >= 0, mo
         self.set_object_size(managed_object=mo, type=self.snapshot.typeDescriptions[type_index], memory_reader=memory_reader)
