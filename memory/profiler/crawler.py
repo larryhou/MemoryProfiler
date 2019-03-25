@@ -317,7 +317,6 @@ class MemorySnapshotCrawler(object):
 
     def crawl_managed_entry_address(self, address:int, type:TypeDescription, memory_reader:HeapReader, joint:KeepAliveJoint = None, depth = 0):
         is_static_crawling = isinstance(memory_reader, StaticFieldReader)
-        if address==0x13c77e060:print('>>', type)
         if address < 0 or not is_static_crawling and address == 0: return
         if depth >= 512:
             print('!![ITER_MAX={}] address={:08x} type={}'.format(depth, address, type))
