@@ -246,7 +246,7 @@ class MemorySnapshotCrawler(object):
             joint = item.joint
             object_type = managed_types[joint.object_type_index]
             if joint.handle_index >= 0:
-                path_components.append('gcHandle::{}'.format(object_type.name))
+                path_components.append('GCHandle::{}'.format(object_type.name))
             else:
                 field_type = managed_types[joint.field_type_index]
                 object_base_type = object_type
