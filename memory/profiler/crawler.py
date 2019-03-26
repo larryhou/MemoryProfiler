@@ -8,7 +8,7 @@ class ConnectionKind(enum.Enum):
     none, handle, native, managed, static = range(5)
 
 class KeepAliveJoint(object):
-    def __init__(self, object_type_index:int = -1, object_index:int = -1, field_type_index:int = -1, field_index:int = -1, array_index:int = -1, handle_index:int = -1, is_static:bool = False):
+    def __init__(self, object_type_index:int = -1, object_index:int = -1, field_type_index:int = -1, field_index:int = -1, field_offset:int = -1, array_index:int = -1, handle_index:int = -1, is_static:bool = False):
         # gcHandle joint
         self.handle_index:int = handle_index
         # managed object joint
@@ -17,10 +17,11 @@ class KeepAliveJoint(object):
         # reference point
         self.field_type_index:int = field_type_index
         self.field_index:int = field_index
+        self.field_offset:int = field_offset
         self.array_index:int = array_index
         self.is_static = is_static
 
-    def clone(self, object_type_index:int = -1, object_index:int = -1, field_type_index:int = -1, field_index:int = -1, array_index:int = -1, handle_index:int = -1)-> 'KeepAliveJoint':
+    def clone(self, object_type_index:int = -1, object_index:int = -1, field_type_index:int = -1, field_index:int = -1, field_offset:int = -1, array_index:int = -1, handle_index:int = -1)-> 'KeepAliveJoint':
         rj = KeepAliveJoint()
         rj.handle_index = handle_index if handle_index >= 0 else self.handle_index
         rj.object_type_index = object_type_index if object_type_index >= 0 else self.object_type_index
@@ -28,6 +29,7 @@ class KeepAliveJoint(object):
         rj.field_type_index = field_type_index if field_type_index >= 0 else self.field_type_index
         rj.field_index = field_index if field_index >= 0 else self.field_index
         rj.array_index = array_index if array_index >= 0 else self.array_index
+        rj.field_offset = field_offset if field_offset >= 0 else self.field_offset
         rj.is_static = self.is_static
         return rj
 
@@ -251,11 +253,14 @@ class MemorySnapshotCrawler(object):
                 path_components.append('gcHandle::{}'.format(object_type.name))
             else:
                 field_type = managed_types[joint.field_type_index]
-                try:
-                    field = object_type.fields[joint.field_index]
-                except:
-                    print(joint, object_type.dump())
-                    raise
+                object_base_type = object_type
+                field = None
+                while object_base_type.baseOrElementTypeIndex >= 0:
+                    if joint.field_index < len(object_base_type.fields):
+                        field = object_base_type.fields[joint.field_index]
+                        if field.offset == joint.field_offset: break
+                    object_base_type = self.snapshot.typeDescriptions[object_base_type.baseOrElementTypeIndex]
+                assert field
                 if joint.array_index >= 0:
                     component = '{{{}:{}}}[{}]'.format(field.name, field_type.name, joint.array_index)
                 else:
@@ -264,7 +269,7 @@ class MemorySnapshotCrawler(object):
                 path_components.append(component)
         object_index = reference_chain[0].dst
         mo = self.managed_objects[object_index]
-        return '.'.join(path_components) + '@0x{:08X}'.format(mo.address)
+        return '\n    .'.join(path_components) + '@0x{:08X}'.format(mo.address)
 
     def find_mono_script_type(self, native_index: int) -> Tuple[str, int]:
         key = self.get_connection_key(kind=ConnectionKind.native, index=native_index)
@@ -429,7 +434,7 @@ class MemorySnapshotCrawler(object):
                     if field_type_index != -1: field_type = self.snapshot.typeDescriptions[field_type_index]
                 pass_memory_reader = memory_reader if field_type.isValueType else self.__heap_reader
                 self.crawl_managed_entry_address(address=field_address, type=field_type, memory_reader=pass_memory_reader, is_real_type=True,
-                                                 joint=mother_joint.clone(field_type_index=field_type.typeIndex, field_index=field.fieldSlotIndex), depth=depth + 1)
+                                                 joint=mother_joint.clone(field_type_index=field_type.typeIndex, field_index=field.fieldSlotIndex, field_offset=field.offset), depth=depth + 1)
             dive_type = self.snapshot.typeDescriptions[dive_type.baseOrElementTypeIndex] if dive_type.baseOrElementTypeIndex >= 0 else None
 
     def crawl_handles(self):
