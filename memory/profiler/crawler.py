@@ -238,7 +238,7 @@ class MemorySnapshotCrawler(object):
                     chain_array += self.retrieve_reference_chain(object_index=item.src, reference_chain=reference_chain + [item])
         return chain_array
 
-    def repr_retrived_chain(self, reference_chain:List[JointConnection])->str:
+    def repr_retrived_chain(self, reference_chain:List[JointConnection], indent:int = 4)->str:
         managed_types = self.snapshot.typeDescriptions
         path_components = []
         for n in range(len(reference_chain)):
@@ -265,7 +265,7 @@ class MemorySnapshotCrawler(object):
                 path_components.append(component)
         object_index = reference_chain[0].dst
         mo = self.managed_objects[object_index]
-        return '\n    .'.join(path_components) + '@0x{:08X}'.format(mo.address)
+        return '\n{}.'.format(' '*indent).join(path_components) + '@0x{:08X}'.format(mo.address)
 
     def find_mono_script_type(self, native_index: int) -> Tuple[str, int]:
         key = self.get_connection_key(kind=ConnectionKind.native, index=native_index)
