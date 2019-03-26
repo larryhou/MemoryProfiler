@@ -238,10 +238,6 @@ class MemorySnapshotCrawler(object):
                     chain_array += self.retrieve_reference_chain(object_index=item.src, reference_chain=reference_chain + [item])
         return chain_array
 
-    @staticmethod
-    def __trim_type_name(name:str)->str:
-        return name.split('.')[-1]
-
     def repr_retrived_chain(self, reference_chain:List[JointConnection])->str:
         managed_types = self.snapshot.typeDescriptions
         path_components = []
