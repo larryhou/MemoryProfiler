@@ -42,7 +42,7 @@ class FieldDescription(MemoryObject):
         self.typeIndex:int = -1
         # extend fields
         self.hostTypeIndex:int = -1
-        self.slotIndex:int = -1
+        self.fieldSlotIndex:int = -1
 
     def dump(self, indent:str = ''):
         return '{}[FieldDescription] isStatic={} name={!r} offset={} typeIndex={}'.format(indent, self.isStatic, self.name, self.offset, self.typeIndex)
@@ -203,7 +203,7 @@ class PackedMemorySnapshot(MemoryObject):
             for k in range(len(mt.fields)):
                 field = mt.fields[k]
                 field.hostTypeIndex = mt.typeIndex
-                field.slotIndex = k
+                field.fieldSlotIndex = k
                 if is_object and field.name == 'm_CachedPtr':
                     self.cached_ptr = field
                 offset = field.name.rfind('>k__BackingField')

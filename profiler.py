@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from memory.profiler.serialize import MemorySnapshotReader, NativeMemoryRef
 from memory.profiler.crawler import MemorySnapshotCrawler
+from memory.profiler.plugin import *
 import os, struct
 
 def dump_missing_manged_objects(crawler:MemorySnapshotCrawler):
@@ -66,6 +67,19 @@ def main():
         dump_missing_manged_objects(crawler=crawler)
     if options.texture_2d:
         dump_texture_2d(reader=reader)
+
+    plugins = [
+        ReferenceAnalyzer(),
+        TypeMemoryAnalyzer(),
+        TypeNumberAnalyzer(),
+        StringAnalyzer(),
+        StaticAnalyzer()
+    ]  # type: list[AnalyzePlugin]
+
+    for it in plugins:
+        print('#========== [{}] ==========#'.format(it.__class__.__name__))
+        it.setup(crawler=crawler)
+        it.analyze()
 
 if __name__ == '__main__':
     main()

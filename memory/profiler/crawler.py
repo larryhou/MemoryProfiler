@@ -31,6 +31,11 @@ class KeepAliveJoint(object):
         rj.is_static = self.is_static
         return rj
 
+    def __repr__(self):
+        return '[KeepAliveJoint] object_index={} object_type_index={} field_index={} field_type_index={} array_index={} handle_index={} is_static={}'.format(
+            self.object_index, self.object_type_index, self.field_index,self.field_type_index, self.array_index, self.handle_index, self.is_static
+        )
+
 class JointConnection(object):
     def __init__(self, src=0, src_kind=ConnectionKind.none, dst=0, dst_kind=ConnectionKind.none, joint:KeepAliveJoint = None):
         self.src: int = src
@@ -48,6 +53,7 @@ class UnityManagedObject(object):
         self.handle_index: int = -1
         self.is_value_type: bool = False
         self.size: int = 0
+        self.joint:KeepAliveJoint = None
 
     def __repr__(self):
         return '[UnityManagedObject] address={:08x} type_index={} native_object_index={} managed_object_index={} handle_index={} size={}'.format(
@@ -73,8 +79,8 @@ class MemorySnapshotCrawler(object):
         # connections
         self.managed_connections: List[JointConnection] = []
         self.mono_script_connections: List[JointConnection] = []
-        self.connections_from: Dict[int, List[JointConnection]] = {}
-        self.connections_to: Dict[int, List[JointConnection]] = {}
+        self.references_from: Dict[int, List[JointConnection]] = {}
+        self.references_to: Dict[int, List[JointConnection]] = {}
 
         self.__type_address_map: Dict[int, int] = {}
         self.__native_object_address_map: Dict[int, int] = {}
@@ -126,15 +132,15 @@ class MemorySnapshotCrawler(object):
     def accept_connection(self, connection:JointConnection):
         if connection.src_kind != ConnectionKind.none and connection.src != -1:
             key = self.get_connection_key(kind=connection.src_kind, index=connection.src)
-            if key not in self.connections_from:
-                self.connections_from[key] = []
-            self.connections_from[key].append(connection)
+            if key not in self.references_from:
+                self.references_from[key] = []
+            self.references_from[key].append(connection)
         if connection.dst_kind != ConnectionKind.none and connection.dst != -1:
             if connection.dst < 0: connection.dst = -connection.dst
             key = self.get_connection_key(kind=connection.dst_kind, index=connection.dst)
-            if key not in self.connections_to:
-                self.connections_to[key] = []
-            self.connections_to[key].append(connection)
+            if key not in self.references_to:
+                self.references_to[key] = []
+            self.references_to[key].append(connection)
 
     def get_connection_key(self, kind: ConnectionKind, index: int):
         return kind.value << 50 + index
@@ -198,12 +204,12 @@ class MemorySnapshotCrawler(object):
 
     def get_connections_of(self, kind: ConnectionKind, managed_object_index: int) -> List[JointConnection]:
         key = self.get_connection_key(kind=kind, index=managed_object_index)
-        references = self.connections_from.get(key)
+        references = self.references_from.get(key)
         return references if references else []
 
     def get_connections_referenced_by(self, kind: ConnectionKind, managed_object_index: int) -> List[JointConnection]:
         key = self.get_connection_key(kind=kind, index=managed_object_index)
-        references = self.connections_to.get(key)
+        references = self.references_to.get(key)
         return references if references else []
 
     def get_connections_in_heap_section(self, section: MemorySection) -> List[JointConnection]:
@@ -217,9 +223,52 @@ class MemorySnapshotCrawler(object):
                 references.append(JointConnection(dst=n, dst_kind=ConnectionKind.managed))
         return references
 
+    def retrieve_reference_chain(self, object_index:int, reference_chain:List[JointConnection] = [])->List[List[JointConnection]]:
+        chain_array = []  # type: list[list[JointConnection]]
+        if object_index == -1:
+            if reference_chain: chain_array.append(reference_chain)
+        else:
+            mo = self.managed_objects[object_index]
+            key = self.get_connection_key(kind=ConnectionKind.managed, index=mo.managed_object_index)
+            references = self.references_to.get(key)
+            if references:
+                for item in references:
+                    chain_array += self.retrieve_reference_chain(object_index=item.src, reference_chain=reference_chain + [item])
+        return chain_array
+
+    @staticmethod
+    def __trim_type_name(name:str)->str:
+        return name.split('.')[-1]
+
+    def repr_retrived_chain(self, reference_chain:List[JointConnection])->str:
+        managed_types = self.snapshot.typeDescriptions
+        path_components = []
+        for n in range(len(reference_chain)):
+            item = reference_chain[-(n+1)]
+            joint = item.joint
+            object_type = managed_types[joint.object_type_index]
+            if joint.handle_index >= 0:
+                path_components.append('gcHandle::{}'.format(object_type.name))
+            else:
+                field_type = managed_types[joint.field_type_index]
+                try:
+                    field = object_type.fields[joint.field_index]
+                except:
+                    print(joint, object_type.dump())
+                    raise
+                if joint.array_index >= 0:
+                    component = '{{{}:{}}}[{}]'.format(field.name, field_type.name, joint.array_index)
+                else:
+                    component = '{{{}:{}}}'.format(field.name, field_type.name)
+                if joint.is_static: component = '{}::{}'.format(object_type.name, component)
+                path_components.append(component)
+        object_index = reference_chain[0].dst
+        mo = self.managed_objects[object_index]
+        return '.'.join(path_components) + '@0x{:08X}'.format(mo.address)
+
     def find_mono_script_type(self, native_index: int) -> Tuple[str, int]:
         key = self.get_connection_key(kind=ConnectionKind.native, index=native_index)
-        reference_list = self.connections_from.get(key)
+        reference_list = self.references_from.get(key)
         if reference_list:
             for refer in reference_list:
                 type_index = self.snapshot.nativeObjects[refer.dst].nativeTypeArrayIndex
@@ -295,8 +344,7 @@ class MemorySnapshotCrawler(object):
         mo.type_index = type_index
         mo.managed_object_index = len(self.managed_objects)
         self.try_connect_with_native_object(managed_object=mo)
-        self.__visit[mo.address] = mo.managed_object_index
-        if not is_static: self.managed_objects.append(mo)
+        self.managed_objects.append(mo)
         return mo
 
     def is_crawlable(self, type:TypeDescription)->bool:
@@ -317,7 +365,7 @@ class MemorySnapshotCrawler(object):
             self.crawl_managed_entry_address(address=element_address, type=element_type, memory_reader=memory_reader,
                                              joint=joint.clone(array_index=n), depth=depth+1)
 
-    def crawl_managed_entry_address(self, address:int, type:TypeDescription, memory_reader:HeapReader, joint:KeepAliveJoint = None, depth = 0):
+    def crawl_managed_entry_address(self, address:int, type:TypeDescription, memory_reader:HeapReader, joint:KeepAliveJoint, is_real_type:bool = False, depth = 0):
         is_static_crawling = isinstance(memory_reader, StaticFieldReader)
         if address < 0 or not is_static_crawling and address == 0: return
         if depth >= 512:
@@ -327,13 +375,17 @@ class MemorySnapshotCrawler(object):
             type_index = type.typeIndex
         else:
             if address in self.__visit: return
-            type_index = self.find_type_of_address(address=address)
-            if type_index == -1:
-                type_index = type.typeIndex if type else -1
+            if is_real_type:
+                type_index = type.typeIndex
+            else:
+                type_index = self.find_type_of_address(address=address)
+                if type_index == -1:
+                    type_index = type.typeIndex if type else -1
         if type_index == -1: return
         entry_type = self.snapshot.typeDescriptions[type_index]
         mo = self.create_managed_object(address=address, type_index=type_index, is_static=is_static_crawling)
         mo.handle_index = joint.handle_index
+        mo.joint = joint
         assert mo and mo.managed_object_index >= 0, mo
         self.set_object_size(managed_object=mo, type=self.snapshot.typeDescriptions[type_index], memory_reader=memory_reader)
         print(mo)
@@ -353,7 +405,7 @@ class MemorySnapshotCrawler(object):
         if entry_type.isArray: # crawl array
             self.crawl_managed_array_address(address=address, type=entry_type, memory_reader=memory_reader, joint=joint, depth=depth+1)
             return
-        member_joint = KeepAliveJoint(object_type_index=type_index, object_index=mo.managed_object_index)
+        mother_joint = KeepAliveJoint(object_type_index=type_index, object_index=mo.managed_object_index)
         dive_type = entry_type
         while dive_type:
             for field in dive_type.fields: # crawl fields
@@ -373,9 +425,11 @@ class MemorySnapshotCrawler(object):
                     try:
                         field_address = memory_reader.read_pointer(address=address_ptr)
                     except: continue
+                    field_type_index = self.find_type_of_address(address=field_address)
+                    if field_type_index != -1: field_type = self.snapshot.typeDescriptions[field_type_index]
                 pass_memory_reader = memory_reader if field_type.isValueType else self.__heap_reader
-                self.crawl_managed_entry_address(address=field_address, type=field_type, memory_reader=pass_memory_reader,
-                                                 joint=member_joint.clone(field_type_index=field_type.typeIndex, field_index=field.slotIndex), depth=depth+1)
+                self.crawl_managed_entry_address(address=field_address, type=field_type, memory_reader=pass_memory_reader, is_real_type=True,
+                                                 joint=mother_joint.clone(field_type_index=field_type.typeIndex, field_index=field.fieldSlotIndex), depth=depth + 1)
             dive_type = self.snapshot.typeDescriptions[dive_type.baseOrElementTypeIndex] if dive_type.baseOrElementTypeIndex >= 0 else None
 
     def crawl_handles(self):
@@ -403,7 +457,7 @@ class MemorySnapshotCrawler(object):
                     except: continue
                     memory_reader = self.__heap_reader
                 self.crawl_managed_entry_address(address=field_address, type=field_type, memory_reader=memory_reader,
-                                                 joint=KeepAliveJoint(object_type_index=mt.typeIndex, field_index=field.typeIndex, field_type_index=field.slotIndex, is_static=True))
+                                                 joint=KeepAliveJoint(object_type_index=mt.typeIndex, field_index=field.fieldSlotIndex, field_type_index=field.typeIndex, is_static=True))
 
 
 
