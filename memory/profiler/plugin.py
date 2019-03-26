@@ -29,8 +29,7 @@ class ReferenceAnalyzer(AnalyzePlugin):
             mo = managed_objects[n]
             object_type = self.snapshot.typeDescriptions[mo.type_index]
             print('{} 0x{:08x} object_type={} handle_index={}'.format(index_format.format(n+1) ,mo.address, object_type.name, mo.handle_index))
-            for chain in self.crawler.retrieve_reference_chain(object_index=mo.managed_object_index):
-                print('  {}'.format(self.crawler.repr_retrived_chain(reference_chain=chain)))
+            print(self.crawler.dump_managed_object_reference_chain(object_index=mo.managed_object_index, indent=2))
 
 class TypeNumberAnalyzer(AnalyzePlugin):
     def __init__(self):

@@ -1,7 +1,7 @@
 from .core import *
 from .heap import *
 from typing import List, Dict, Tuple
-import enum, sys
+import enum, io
 
 
 class ConnectionKind(enum.Enum):
@@ -225,7 +225,17 @@ class MemorySnapshotCrawler(object):
                 references.append(JointConnection(dst=n, dst_kind=ConnectionKind.managed))
         return references
 
-    def retrieve_reference_chain(self, object_index:int, reference_chain:List[JointConnection] = [])->List[List[JointConnection]]:
+    def dump_managed_object_reference_chain(self, object_index:int, indent:int = 2)->str:
+        buffer = io.StringIO()
+        indent_space = ' ' * indent
+        for chain in self.__retrieve_reference_chain(object_index=object_index):
+            buffer.write(indent_space)
+            self.__format_reference_chain(reference_chain=chain, buffer=buffer, indent=indent + 2)
+            buffer.write('\n')
+        buffer.seek(0)
+        return buffer.read()
+
+    def __retrieve_reference_chain(self, object_index:int, reference_chain:List[JointConnection] = [])->List[List[JointConnection]]:
         chain_array = []  # type: list[list[JointConnection]]
         if object_index == -1:
             if reference_chain: chain_array.append(reference_chain)
@@ -235,18 +245,20 @@ class MemorySnapshotCrawler(object):
             references = self.references_to.get(key)
             if references:
                 for item in references:
-                    chain_array += self.retrieve_reference_chain(object_index=item.src, reference_chain=reference_chain + [item])
+                    chain_array += self.__retrieve_reference_chain(object_index=item.src, reference_chain=reference_chain + [item])
         return chain_array
 
-    def repr_retrived_chain(self, reference_chain:List[JointConnection], indent:int = 4)->str:
+    def __format_reference_chain(self, reference_chain:List[JointConnection], buffer:io.StringIO, indent:int = 4):
         managed_types = self.snapshot.typeDescriptions
-        path_components = []
+        indent_space = '\n' + ' ' * indent + '.'
+        top_complete = False
         for n in range(len(reference_chain)):
             item = reference_chain[-(n+1)]
             joint = item.joint
             object_type = managed_types[joint.object_type_index]
+            if top_complete: buffer.write(indent_space)
             if joint.handle_index >= 0:
-                path_components.append('GCHandle::{}'.format(object_type.name))
+                buffer.write('GCHandle::{}'.format(object_type.name))
             else:
                 field_type = managed_types[joint.field_type_index]
                 object_base_type = object_type
@@ -262,10 +274,11 @@ class MemorySnapshotCrawler(object):
                 else:
                     component = '{{{}:{}}}'.format(field.name, field_type.name)
                 if joint.is_static: component = '{}::{}'.format(object_type.name, component)
-                path_components.append(component)
+                buffer.write(component)
+            top_complete = True
         object_index = reference_chain[0].dst
         mo = self.managed_objects[object_index]
-        return '\n{}.'.format(' '*indent).join(path_components) + '@0x{:08X}'.format(mo.address)
+        buffer.write('@0x{:08X}'.format(mo.address))
 
     def find_mono_script_type(self, native_index: int) -> Tuple[str, int]:
         key = self.get_connection_key(kind=ConnectionKind.native, index=native_index)
