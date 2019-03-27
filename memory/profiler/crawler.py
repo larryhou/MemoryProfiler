@@ -42,8 +42,8 @@ class KeepAliveJoint(object):
         return rj
 
     def __repr__(self):
-        return '[KeepAliveJoint] object_index={} object_type_index={} field_index={} field_type_index={} array_index={} handle_index={} is_static={}'.format(
-            self.object_index, self.object_type_index, self.field_index,self.field_type_index, self.array_index, self.handle_index, self.is_static
+        return '[KeepAliveJoint] object_index={} object_type_index={} object_address={:x} field_index={} field_type_index={} field_offset={} field_address={:x} array_index={} handle_index={} is_static={}'.format(
+            self.object_index, self.object_type_index, self.object_address, self.field_index,self.field_type_index, self.field_offset, self.field_address, self.array_index, self.handle_index, self.is_static
         )
 
 class JointConnection(object):
@@ -53,6 +53,11 @@ class JointConnection(object):
         self.src_kind: ConnectionKind = src_kind
         self.dst_kind: ConnectionKind = dst_kind
         self.joint:KeepAliveJoint = joint
+
+    def __repr__(self):
+        return '[JointConnection] from={} from_kind={} to={} to_kind={}'.format(
+            self.src, self.src_kind.name, self.dst, self.dst_kind.name
+        )
 
 class UnityManagedObject(object):
     def __init__(self):
@@ -101,7 +106,7 @@ class MemorySnapshotCrawler(object):
 
     def crawl(self):
         self.init_managed_types()
-        self.init_managed_connections()
+        self.init_native_connections()
         self.init_mono_script_connections()
         self.crawl_handles()
         self.crawl_static()
@@ -119,7 +124,7 @@ class MemorySnapshotCrawler(object):
             mt = managed_types[n]
             mt.isUnityEngineObjectType = self.is_subclass_of_managed_type(mt, self.__mt_index.unityengine_Object)
 
-    def init_managed_connections(self, exclude_native: bool = False):
+    def init_native_connections(self, exclude_native: bool = False):
         managed_start = 0
         managed_stop = managed_start + len(self.snapshot.gcHandles)
         native_start = managed_start + managed_stop
@@ -248,25 +253,26 @@ class MemorySnapshotCrawler(object):
     def dump_managed_object_reference_chain(self, object_index:int, indent:int = 2, level:int = 2)->str:
         buffer = io.StringIO()
         indent_space = ' ' * indent
-        for chain in self.__retrieve_reference_chain(object_index=object_index, level=level):
+        reference_chains = self.__retrieve_reference_chains(object_index=object_index, level=level)
+        for chain in reference_chains:
             buffer.write(indent_space)
             self.__format_reference_chain(reference_chain=chain, buffer=buffer, indent=indent + 2)
             buffer.write('\n')
         buffer.seek(0)
         return buffer.read()
 
-    def __retrieve_reference_chain(self, object_index:int, level:int, reference_chain:List[JointConnection] = [], visit_set = ())->List[List[JointConnection]]:
+    def __retrieve_reference_chains(self, object_index:int, level:int, reference_chain:List[JointConnection] = [], anti_circular = ())->List[List[JointConnection]]:
         chain_array = []  # type: list[list[JointConnection]]
         if object_index == -1:
             if reference_chain: chain_array.append(reference_chain)
         else:
             mo = self.managed_objects[object_index]
-            key = self.get_index_key(kind=ConnectionKind.managed, index=mo.managed_object_index)
-            references = self.references_to.get(key)
+            index_key = self.get_index_key(kind=ConnectionKind.managed, index=mo.managed_object_index)
+            references = self.references_to.get(index_key)
             if references:
-                for item in references[:level]:
-                    if object_index in visit_set: continue
-                    chain_array += self.__retrieve_reference_chain(object_index=item.src, reference_chain=reference_chain + [item], visit_set=visit_set + (object_index,), level=level)
+                for connection in references[:level]:
+                    if mo.address in anti_circular: continue
+                    chain_array += self.__retrieve_reference_chains(object_index=connection.src, reference_chain=reference_chain + [connection], anti_circular=anti_circular + (mo.address,), level=level)
         return chain_array
 
     def __format_reference_chain(self, reference_chain:List[JointConnection], buffer:io.StringIO, indent:int = 4):
@@ -274,9 +280,10 @@ class MemorySnapshotCrawler(object):
         indent_space = '\n' + ' ' * indent + '.'
         top_complete = False
         for n in range(len(reference_chain)):
-            item = reference_chain[-(n+1)]
-            joint = item.joint
+            connection = reference_chain[-(n+1)]
+            joint = connection.joint
             object_type = managed_types[joint.object_type_index]
+
             if top_complete: buffer.write(indent_space)
             if joint.handle_index >= 0:
                 buffer.write('GCHandle::{}'.format(object_type.name))
@@ -426,7 +433,6 @@ class MemorySnapshotCrawler(object):
             object_index = self.__visit.get(address)
             mo = self.managed_objects[object_index]
             assert mo
-
         if joint.handle_index >= 0:
             connection = JointConnection(src_kind=ConnectionKind.handle, src=joint.object_index,
                                          dst_kind=ConnectionKind.managed, dst=mo.managed_object_index, joint=joint)
@@ -450,10 +456,7 @@ class MemorySnapshotCrawler(object):
         while dive_type:
             for field in dive_type.fields: # crawl fields
                 field_type = self.snapshot.typeDescriptions[field.typeIndex]
-                if is_static_crawling:
-                    if field_type.isValueType and field.typeIndex == dive_type.typeIndex: continue
-                else:
-                    if field.isStatic: continue
+                if field.isStatic: continue
                 if not self.is_crawlable(type=field_type): continue
                 if field_type.isValueType:
                     field_address = address + field.offset - self.vm.objectHeaderSize

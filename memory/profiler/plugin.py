@@ -27,6 +27,7 @@ class ReferenceAnalyzer(AnalyzePlugin):
         index_format = '[{:%dd}/%d]'%(int(digit_count), len(managed_objects))
         for n in range(len(managed_objects)):
             mo = managed_objects[n]
+            if mo.is_value_type: continue
             object_type = self.snapshot.typeDescriptions[mo.type_index]
             print('{} 0x{:08x} object_type={} handle_index={}'.format(index_format.format(n+1) ,mo.address, object_type.name, mo.handle_index))
             print(self.crawler.dump_managed_object_reference_chain(object_index=mo.managed_object_index, indent=2))
