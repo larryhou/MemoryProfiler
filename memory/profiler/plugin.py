@@ -54,8 +54,21 @@ class StringAnalyzer(AnalyzePlugin):
     def analyze(self):
         pass
 
-
 class StaticAnalyzer(AnalyzePlugin):
+    def __init__(self):
+        super().__init__()
+
+    def analyze(self):
+        pass
+
+class ScriptAnalyzer(AnalyzePlugin):
+    def __init__(self):
+        super().__init__()
+
+    def analyze(self):
+        pass
+
+class DelegateAnalyzer(AnalyzePlugin):
     def __init__(self):
         super().__init__()
 
