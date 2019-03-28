@@ -378,7 +378,7 @@ class MemorySnapshotCrawler(object):
                 address=managed_object.address, type=type
             )
 
-    def create_managed_object(self, address:int, type_index:int, is_static:bool = False)->UnityManagedObject:
+    def create_managed_object(self, address:int, type_index:int)->UnityManagedObject:
         mo = UnityManagedObject()
         mo.address = address
         mo.type_index = type_index
@@ -423,7 +423,7 @@ class MemorySnapshotCrawler(object):
         if type_index == -1: return
         entry_type = self.snapshot.typeDescriptions[type_index]
         if entry_type.isValueType or address not in self.__visit:
-            mo = self.create_managed_object(address=address, type_index=type_index, is_static=is_static_crawling)
+            mo = self.create_managed_object(address=address, type_index=type_index)
             mo.handle_index = joint.handle_index
             mo.joint = joint
             assert mo and mo.managed_object_index >= 0, mo
