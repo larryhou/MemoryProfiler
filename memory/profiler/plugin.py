@@ -1,4 +1,4 @@
-from .crawler import MemorySnapshotCrawler, UnityManagedObject, JointConnection
+from .crawler import MemorySnapshotCrawler, UnityManagedObject, JointBridge
 from .core import PackedMemorySnapshot
 from typing import List
 import math, io
