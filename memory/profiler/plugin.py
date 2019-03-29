@@ -1,7 +1,7 @@
 from .crawler import MemorySnapshotCrawler, UnityManagedObject, JointConnection
 from .core import PackedMemorySnapshot
 from typing import List
-import math
+import math, io
 
 class AnalyzePlugin(object):
     def __init__(self):
@@ -90,7 +90,7 @@ class TypeMemoryAnalyzer(AnalyzePlugin):
             lambda a, b: -1 if managed_type_set[a].instanceCount > managed_type_set[b].instanceCount else 1
         ))
         count_rank = {}
-        for n in range(len(instance_count_set)): count_rank[instance_count_set[n]] = n
+        for n in range(len(instance_count_set)): count_rank[instance_count_set[n]] = n + 1
         # print memory infomation
         print('[ManagedMemory] total_memaged_memory={:,} total_managed_count={:,} total_native_memory={:,} total_native_count={:,} '.format(
             total_manage_memory, total_manage_count, total_native_memory, total_native_count
@@ -105,16 +105,79 @@ class TypeMemoryAnalyzer(AnalyzePlugin):
             ))
             type_instances = type_map.get(type_index)
             assert type_instances
+            buffer = io.StringIO()
+            buffer.write(' '*4)
             for object_index in type_instances:
-                mo = managed_objects[object_index]
-                print('    address={:08x} type_index={} size={:,} native_size={:,} '.format(mo.address, mo.type_index, mo.size, mo.native_size))
+                no = managed_objects[object_index]
+                buffer.write('{{0x{:08x}:{}|{}}},'.format(no.address, no.size, no.native_size))
+            buffer.seek(buffer.tell()-1)
+            buffer.write('\n')
+            buffer.seek(0)
+            print(buffer.read())
 
-
+        ######
+        # native memory
+        total_native_count = 0
+        total_native_memory = 0
+        type_map = {} # type: dict[int, list[int]]
+        type_index_set = []
         native_type_set = snapshot.nativeTypes
         for no in snapshot.nativeObjects:
             native_type = native_type_set[no.nativeTypeArrayIndex]
             native_type.instanceCount += 1
             native_type.nativeMemory += no.size
+            total_native_count += 1
+            total_native_memory += no.size
+            if native_type.typeIndex not in type_map:
+                type_map[native_type.typeIndex] = []
+                type_index_set.append(native_type.typeIndex)
+            type_map[native_type.typeIndex].append(no.nativeObjectArrayIndex)
+        type_index_set.sort(key=functools.cmp_to_key(
+            lambda a, b: -1 if native_type_set[a].nativeMemory > native_type_set[b].nativeMemory else 1
+        ))
+        native_objects = snapshot.nativeObjects
+        def sort_native_object(a:int, b:int)->int:
+            return -1 if native_objects[a].size > native_objects[b].size else 1
+        def sort_native_type(a:int, b:int)->int:
+            type_a = native_type_set[a]
+            type_b = native_type_set[b]
+            return -1 if type_a.nativeMemory > type_b.nativeMemory else 1
+        type_index_set.sort(key=functools.cmp_to_key(sort_native_type))
+
+        # memory decending
+        instance_count_set = []
+        for type_index, object_indice in type_map.items():
+            instance_count_set.append(type_index)
+            object_indice.sort(key=functools.cmp_to_key(sort_native_object))
+        # caculate instance count rank
+        instance_count_set.sort(key=functools.cmp_to_key(
+            lambda a, b: -1 if native_type_set[a].instanceCount > native_type_set[b].instanceCount else 1
+        ))
+        count_rank = {}
+        for n in range(len(instance_count_set)): count_rank[instance_count_set[n]] = n + 1
+
+        # print memory infomation
+        print('[NativeMemory] total_memory={:,} instance_count={:,}'.format(total_native_memory, total_native_count))
+
+        # memory decending
+        type_number_formatter = self.get_number_formatter(len(type_index_set))
+        for n in range(len(type_index_set)):
+            type_index = type_index_set[n]
+            native_type = native_type_set[type_index]
+            print('[Native]{} name={!r} type_index={} native_memory={:,} instance_count={:,} count_rank={} '.format(
+                    type_number_formatter.format(n + 1), native_type.name, native_type.typeIndex, native_type.nativeMemory, native_type.instanceCount, count_rank[type_index]
+                ))
+            type_instances = type_map.get(type_index)
+            assert type_instances
+            buffer = io.StringIO()
+            buffer.write(' ' * 4)
+            for object_index in type_instances:
+                no = native_objects[object_index]
+                buffer.write('{{0x{:08x}:{}|{!r}}},'.format(no.nativeObjectAddress, no.size, no.name))
+            buffer.seek(buffer.tell() - 1)
+            buffer.write('\n')
+            buffer.seek(0)
+            print(buffer.read())
 
 
 class StringAnalyzer(AnalyzePlugin):

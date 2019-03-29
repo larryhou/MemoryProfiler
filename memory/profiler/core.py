@@ -122,6 +122,7 @@ class PackedNativeUnityEngineObject(MemoryObject):
 
         # extend fields
         self.managedObjectArrayIndex:int = -1
+        self.nativeObjectArrayIndex:int = -1
 
     def __format_flags(self):
         shift = 0
@@ -216,7 +217,7 @@ class PackedMemorySnapshot(MemoryObject):
         for n in range(len(self.managedHeapSections)):
             self.managedHeapSections[n].heepArrayIndex = n
         for n in range(len(self.nativeObjects)):
-            self.nativeObjects[n].managedObjectArrayIndex = n
+            self.nativeObjects[n].nativeObjectArrayIndex = n
 
     def generate_type_module(self):
         import os.path as p
