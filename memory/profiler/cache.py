@@ -5,10 +5,12 @@ import os.path as p
 from .crawler import *
 
 class CacheStorage(object):
-    def __init__(self, uuid:str):
+    def __init__(self, uuid:str, create_mode:bool = True):
         assert uuid
         self.__workspace = p.abspath('__cache')
         self.__database_filepath = '{}/{}.db'.format(self.__workspace, uuid)
+        if create_mode and p.exists(self.__database_filepath):
+            os.remove(self.__database_filepath)
         if not p.exists(self.__workspace):
             os.makedirs(self.__workspace)
         self.__connection = sqlite3.connect(database=self.__database_filepath)
@@ -48,9 +50,9 @@ class CrawlerCache(object):
         self.storage:CacheStorage = None
         self.uuid:str = ''
 
-    def __init_database(self, uuid:str):
+    def __init_database_creation(self, uuid:str):
         self.uuid = uuid
-        storage = CacheStorage(uuid=uuid)
+        storage = CacheStorage(uuid=uuid, create_mode=True)
         storage.create_table(name='joints', column_schemas=(
             'id INTEGER NOT NULL PRIMARY KEY',
             'object_type_index INTEGER',
@@ -70,11 +72,7 @@ class CrawlerCache(object):
             'src_kind INTEGER',
             'dst INTEGER',
             'dst_kind INTEGER',
-            'joint_id INTEGER',
-        ), constrains=(
-            'CONSTRAINT fk_joints',
-            'FOREIGN KEY (joint_id)',
-            'REFERENCES joints(id)'
+            'joint_id INTEGER REFERENCES joints (id)',
         ))
         storage.create_table(name='objects', column_schemas=(
             'address INTEGER NOT NULL PRIMARY KEY',
@@ -85,16 +83,12 @@ class CrawlerCache(object):
             'is_value_type INTEGER',
             'size INTEGER',
             'native_size INTEGER',
-            'joint_id INTEGER',
-        ), constrains=(
-            'CONSTRAINT fk_joints',
-            'FOREIGN KEY (joint_id)',
-            'REFERENCES joints(id)'
+            'joint_id INTEGER REFERENCES joints (id)',
         ))
         self.storage = storage
 
     def save(self, crawler:MemorySnapshotCrawler):
-        self.__init_database(uuid=crawler.snapshot.uuid)
+        self.__init_database_creation(uuid=crawler.snapshot.uuid)
         joint_rows = []
         bridge_rows = []
         object_rows = []
