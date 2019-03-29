@@ -93,8 +93,8 @@ class MemorySnapshotCrawler(object):
 
         # connections
         self.joint_bridges: List[JointBridge] = []
-        self.references_from: Dict[int, List[JointBridge]] = {}
-        self.references_to: Dict[int, List[JointBridge]] = {}
+        self.__bridge_from: Dict[int, List[JointBridge]] = {}
+        self.__bridge_to: Dict[int, List[JointBridge]] = {}
 
         self.__bridge_visit:Dict[str, JointBridge] = {}
         self.__type_address_map: Dict[int, int] = {}
@@ -146,15 +146,15 @@ class MemorySnapshotCrawler(object):
 
         if connection.src_kind != BridgeKind.none and connection.src != -1:
             key = self.get_index_key(kind=connection.src_kind, index=connection.src)
-            if key not in self.references_from:
-                self.references_from[key] = []
-            self.references_from[key].append(connection)
+            if key not in self.__bridge_from:
+                self.__bridge_from[key] = []
+            self.__bridge_from[key].append(connection)
         if connection.dst_kind != BridgeKind.none and connection.dst != -1:
             if connection.dst < 0: connection.dst = -connection.dst
             key = self.get_index_key(kind=connection.dst_kind, index=connection.dst)
-            if key not in self.references_to:
-                self.references_to[key] = []
-            self.references_to[key].append(connection)
+            if key not in self.__bridge_to:
+                self.__bridge_to[key] = []
+            self.__bridge_to[key].append(connection)
 
     def get_index_key(self, kind: BridgeKind, index: int):
         return (kind.value << 28) + index
@@ -222,12 +222,12 @@ class MemorySnapshotCrawler(object):
 
     def get_connections_of(self, kind: BridgeKind, managed_object_index: int) -> List[JointBridge]:
         key = self.get_index_key(kind=kind, index=managed_object_index)
-        references = self.references_from.get(key)
+        references = self.__bridge_from.get(key)
         return references if references else []
 
     def get_connections_referenced_by(self, kind: BridgeKind, managed_object_index: int) -> List[JointBridge]:
         key = self.get_index_key(kind=kind, index=managed_object_index)
-        references = self.references_to.get(key)
+        references = self.__bridge_to.get(key)
         return references if references else []
 
     def get_connections_in_heap_section(self, section: MemorySection) -> List[JointBridge]:
@@ -259,7 +259,7 @@ class MemorySnapshotCrawler(object):
         else:
             mo = self.managed_objects[object_index]
             index_key = self.get_index_key(kind=BridgeKind.managed, index=mo.managed_object_index)
-            references = self.references_to.get(index_key)
+            references = self.__bridge_to.get(index_key)
             if references:
                 for connection in references[:level]:
                     if mo.address in anti_circular: continue
@@ -299,7 +299,7 @@ class MemorySnapshotCrawler(object):
 
     def find_mono_script_type(self, native_index: int) -> Tuple[str, int]:
         key = self.get_index_key(kind=BridgeKind.native, index=native_index)
-        reference_list = self.references_from.get(key)
+        reference_list = self.__bridge_from.get(key)
         if reference_list:
             for refer in reference_list:
                 type_index = self.snapshot.nativeObjects[refer.dst].nativeTypeArrayIndex
