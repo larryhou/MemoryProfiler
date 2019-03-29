@@ -60,9 +60,12 @@ class StringAnalyzer(AnalyzePlugin):
                 managed_strings.append(mo)
         import operator
         managed_strings.sort(key=operator.attrgetter('size'))
-        for mo in managed_strings:
+        import math
+        digit_format = '[{:%dd}/%d]' % (int(math.ceil(math.log(len(managed_strings), 10))), len(managed_strings))
+        for n in range(len(managed_strings)):
+            mo = managed_strings[n]
             data = self.crawler.heap_memory.read_string(address=mo.address + vm.objectHeaderSize)
-            print('[String] 0x{:08x}={:,} {!r}'.format(mo.address, mo.size, data))
+            print('[String]{} 0x{:08x}={:,} {!r}'.format(digit_format.format(n+1), mo.address, mo.size, data))
 
 class StaticAnalyzer(AnalyzePlugin):
     def __init__(self):
