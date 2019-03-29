@@ -52,7 +52,11 @@ class StringAnalyzer(AnalyzePlugin):
         super().__init__()
 
     def analyze(self):
-        pass
+        string_type_index = self.crawler.snapshot.managedTypeIndex.system_String
+        for mo in self.crawler.managed_objects:
+            if mo.type_index == string_type_index:
+                data = self.crawler.heap_memory.read_string(address=mo.address)
+                print('[String] 0x{:08x} {}'.format(mo.address, data))
 
 class StaticAnalyzer(AnalyzePlugin):
     def __init__(self):

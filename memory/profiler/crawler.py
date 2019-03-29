@@ -81,10 +81,10 @@ class MemorySnapshotCrawler(object):
         self.snapshot: PackedMemorySnapshot = snapshot
         self.snapshot.initialize()
         self.vm = snapshot.virtualMachineInformation
+        self.heap_memory: HeapReader = HeapReader(snapshot=snapshot)
 
         # record crawling footprint
         self.__visit: Dict[int, int] = {}
-        self.__heap_reader: HeapReader = HeapReader(snapshot=snapshot)
         self.__cached_ptr: FieldDescription = snapshot.cached_ptr
 
         # type index utils
@@ -175,9 +175,9 @@ class MemorySnapshotCrawler(object):
     def find_type_of_address(self, address: int) -> int:
         type_index = self.find_type_at_type_info_address(type_info_address=address)
         if type_index != -1: return type_index
-        type_ptr = self.__heap_reader.read_pointer(address)
+        type_ptr = self.heap_memory.read_pointer(address)
         if type_ptr == 0: return -1
-        vtable_ptr = self.__heap_reader.read_pointer(type_ptr)
+        vtable_ptr = self.heap_memory.read_pointer(type_ptr)
         if vtable_ptr != 0:
             return self.find_type_at_type_info_address(vtable_ptr)
         return self.find_type_at_type_info_address(type_ptr)
@@ -360,7 +360,7 @@ class MemorySnapshotCrawler(object):
         mt = self.snapshot.typeDescriptions[managed_object.type_index]
         managed_object.is_value_type = mt.isValueType
         if mt.isValueType or mt.isArray or not mt.isUnityEngineObjectType: return
-        native_address = self.__heap_reader.read_pointer(managed_object.address + self.__cached_ptr.offset)
+        native_address = self.heap_memory.read_pointer(managed_object.address + self.__cached_ptr.offset)
         if native_address == 0: return
         native_object_index = self.find_native_object_at_address(address=native_address)
         if native_object_index == -1: return
@@ -470,7 +470,7 @@ class MemorySnapshotCrawler(object):
                     except: continue
                     field_type_index = self.find_type_of_address(address=field_address)
                     if field_type_index != -1: field_type = self.snapshot.typeDescriptions[field_type_index]
-                pass_memory_reader = memory_reader if field_type.isValueType else self.__heap_reader
+                pass_memory_reader = memory_reader if field_type.isValueType else self.heap_memory
                 self.crawl_managed_entry_address(address=field_address, type=field_type, memory_reader=pass_memory_reader, is_real_type=True,
                                                  joint=mother_joint.clone(field_type_index=field_type.typeIndex, field_index=field.fieldSlotIndex, field_offset=field.offset, field_address=field_address),
                                                  depth=depth + 1)
@@ -479,7 +479,7 @@ class MemorySnapshotCrawler(object):
     def crawl_handles(self):
         for item in self.snapshot.gcHandles:
             self.crawl_managed_entry_address(address=item.target, joint=KeepAliveJoint(handle_index=item.gcHandleArrayIndex),
-                                             memory_reader=self.__heap_reader, type=None)
+                                             memory_reader=self.heap_memory, type=None)
 
     def crawl_static(self):
         managed_types = self.snapshot.typeDescriptions
@@ -499,7 +499,7 @@ class MemorySnapshotCrawler(object):
                     try:
                         field_address = static_reader.read_pointer(address=address_ptr)
                     except: continue
-                    memory_reader = self.__heap_reader
+                    memory_reader = self.heap_memory
                 self.crawl_managed_entry_address(address=field_address, type=field_type, memory_reader=memory_reader,
                                                  joint=KeepAliveJoint(object_type_index=mt.typeIndex, field_index=field.fieldSlotIndex, field_type_index=field.typeIndex, is_static=True))
 

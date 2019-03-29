@@ -169,7 +169,7 @@ class HeapReader(object):
         offset += 4  # string length
         length *= 2  # wide char
         try:
-            return self.memory[offset:offset + length].decode(encoding='utf-16')  # unicode encoding
+            return self.memory[offset:offset + length].decode(encoding='unicode')  # unicode encoding
         except:
             # print(binascii.hexlify(self.memory[offset:offset+length]))
             return '[STR] address={:08x} offset={} length={} total_memory_length={}'.format(address, offset, length, len(self.memory))
