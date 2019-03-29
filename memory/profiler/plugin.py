@@ -9,6 +9,12 @@ class AnalyzePlugin(object):
         self.snapshot:PackedMemorySnapshot = None
         self.args = []
 
+    @staticmethod
+    def get_index_formatter(count: int):
+        assert count > 0
+        digit_count = int(math.ceil(math.log(count, 10)))
+        return '[{:%dd}/%d]' % (digit_count, count)
+
     def setup(self, crawler:MemorySnapshotCrawler, *args):
         self.crawler = crawler
         self.snapshot = crawler.snapshot
@@ -22,27 +28,19 @@ class ReferenceAnalyzer(AnalyzePlugin):
         super().__init__()
 
     def analyze(self):
-        import math
         managed_objects = self.crawler.managed_objects
-        digit_count = math.ceil(math.log(len(managed_objects), 10))
-        index_format = '[{:%dd}/%d]'%(int(digit_count), len(managed_objects))
+        index_formatter = self.get_index_formatter(len(managed_objects))
         for n in range(len(managed_objects)):
             mo = managed_objects[n]
             if mo.is_value_type: continue
             object_type = self.snapshot.typeDescriptions[mo.type_index]
-            print('{} 0x{:08x} object_type={} handle_index={}'.format(index_format.format(n+1) ,mo.address, object_type.name, mo.handle_index))
+            print('{} 0x{:08x} object_type={} handle_index={}'.format(index_formatter.format(n+1) ,mo.address, object_type.name, mo.handle_index))
             print(self.crawler.dump_managed_object_reference_chain(object_index=mo.managed_object_index, indent=2))
 
 
 class TypeMemoryAnalyzer(AnalyzePlugin):
     def __init__(self):
         super().__init__()
-
-    @staticmethod
-    def get_number_formatter(count:int):
-        assert count > 0
-        digit_count = int(math.ceil(math.log(count, 10)))
-        return '[{:%dd}/%d]' % (digit_count, count)
 
     def analyze(self):
         snapshot = self.crawler.snapshot
@@ -96,7 +94,7 @@ class TypeMemoryAnalyzer(AnalyzePlugin):
             total_manage_memory, total_manage_count, total_native_memory, total_native_count
         ))
         # memory decending
-        type_number_formatter = self.get_number_formatter(len(type_index_set))
+        type_number_formatter = self.get_index_formatter(len(type_index_set))
         for n in range(len(type_index_set)):
             type_index = type_index_set[n]
             managed_type = managed_type_set[type_index]
@@ -160,7 +158,7 @@ class TypeMemoryAnalyzer(AnalyzePlugin):
         print('[NativeMemory] total_memory={:,} instance_count={:,}'.format(total_native_memory, total_native_count))
 
         # memory decending
-        type_number_formatter = self.get_number_formatter(len(type_index_set))
+        type_number_formatter = self.get_index_formatter(len(type_index_set))
         for n in range(len(type_index_set)):
             type_index = type_index_set[n]
             native_type = native_type_set[type_index]
@@ -196,12 +194,11 @@ class StringAnalyzer(AnalyzePlugin):
         print('[String][Summary] instance_count={:,} total_memory={:,}'.format(len(managed_strings), total_size))
         import operator
         managed_strings.sort(key=operator.attrgetter('size'))
-        import math
-        digit_format = '[{:%dd}/%d]' % (int(math.ceil(math.log(len(managed_strings), 10))), len(managed_strings))
+        index_formatter = self.get_index_formatter(len(managed_strings))
         for n in range(len(managed_strings)):
             mo = managed_strings[n]
             data = self.crawler.heap_memory.read_string(address=mo.address + vm.objectHeaderSize)
-            print('[String]{} 0x{:08x}={:,} {!r}'.format(digit_format.format(n+1), mo.address, mo.size, data))
+            print('[String]{} 0x{:08x}={:,} {!r}'.format(index_formatter.format(n+1), mo.address, mo.size, data))
 
 class StaticAnalyzer(AnalyzePlugin):
     def __init__(self):
