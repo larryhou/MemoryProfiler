@@ -117,7 +117,6 @@ class CrawlerCache(object):
             ))
             joint_count += 1
         for mo in crawler.managed_objects:
-            # if mo.is_value_type: continue
             object_rows.append((
                 mo.address, mo.type_index, mo.managed_object_index, mo.native_object_index, mo.handle_index,
                 1 if mo.is_value_type else 0, mo.size, mo.native_size, mo.joint.id
