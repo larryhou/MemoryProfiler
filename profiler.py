@@ -54,6 +54,7 @@ def main():
     arguments.add_argument('--debug', '-d', action='store_true')
     arguments.add_argument('--missing', '-m', action='store_true')
     arguments.add_argument('--texture-2d', '-t', action='store_true')
+    arguments.add_argument('--dont-cache', '-n', action='store_true')
 
     options = arguments.parse_args(sys.argv[1:])
     reader = MemorySnapshotReader(debug=options.debug)
@@ -63,7 +64,7 @@ def main():
     crawler = MemorySnapshotCrawler(snapshot=data)
     print(data.dump())
 
-    if not CrawlerCache.fill(crawler):
+    if options.dont_cache or not CrawlerCache.fill(crawler):
         crawler.crawl()
         cache = CrawlerCache()
         cache.save(crawler=crawler)
