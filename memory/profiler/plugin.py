@@ -1,7 +1,7 @@
 from .crawler import MemorySnapshotCrawler, UnityManagedObject, JointBridge
 from .core import PackedMemorySnapshot
 from typing import List
-import math, io
+import math, io, functools
 
 
 class AnalyzePlugin(object):
@@ -71,7 +71,7 @@ class TypeMemoryAnalyzer(AnalyzePlugin):
                 type_map[mo.type_index] = []
                 type_index_set.append(mo.type_index)
             type_map[mo.type_index].append(mo.managed_object_index)
-        import functools
+
         def sort_managed_object(a: int, b: int) -> int:
             obj_a = managed_objects[a]
             obj_b = managed_objects[b]
