@@ -80,6 +80,7 @@ class MemorySnapshotReader(object):
         self.vm = self.__read_object(input=input)
         print(self.vm)
         snapshot = self.__read_object(input=input)  # type: PackedMemorySnapshot
+        snapshot.uuid = str(self.uuid)
         snapshot.initialize()
         assert snapshot.cached_ptr
         self.cached_ptr = snapshot.cached_ptr

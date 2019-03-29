@@ -7,6 +7,7 @@ class BridgeKind(enum.Enum):
     none, handle, native, managed, static = range(5)
 
 class ActiveJoint(object):
+    __instance_sequence:int = 0
     def __init__(self, object_type_index:int = -1, object_index:int = -1, object_address:int = 0,
                  field_type_index:int = -1, field_index:int = -1, field_offset:int = -1, field_address:int = 0,
                  array_index:int = -1, handle_index:int = -1, is_static:bool = False):
@@ -23,6 +24,8 @@ class ActiveJoint(object):
         self.field_address:int = field_address
         self.array_index:int = array_index
         self.is_static = is_static
+        self.id = ActiveJoint.__instance_sequence
+        ActiveJoint.__instance_sequence += 1
 
     def clone(self, object_type_index:int = -1, object_index:int = -1, object_address:int = 0,
                  field_type_index:int = -1, field_index:int = -1, field_offset:int = -1, field_address:int = 0,
@@ -143,7 +146,7 @@ class MemorySnapshotCrawler(object):
                 dst_object = self.managed_objects[connection.dst]
                 if self.__bridge_visit.get(src_object.address) == dst_object.address: return
                 self.__bridge_visit[src_object.address] = dst_object.address
-
+        self.joint_bridges.append(connection)
         if connection.src_kind != BridgeKind.none and connection.src != -1:
             key = self.get_index_key(kind=connection.src_kind, index=connection.src)
             if key not in self.__bridge_from:

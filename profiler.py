@@ -2,6 +2,7 @@
 from memory.profiler.serialize import MemorySnapshotReader, NativeMemoryRef
 from memory.profiler.crawler import MemorySnapshotCrawler
 from memory.profiler.plugin import *
+from memory.profiler.cache import CrawlerCache
 import os, struct
 
 def dump_missing_manged_objects(crawler:MemorySnapshotCrawler):
@@ -62,6 +63,9 @@ def main():
     crawler = MemorySnapshotCrawler(snapshot=data)
     print(data.dump())
     crawler.crawl()
+
+    cache = CrawlerCache()
+    cache.save(crawler=crawler)
 
     if options.missing:
         dump_missing_manged_objects(crawler=crawler)

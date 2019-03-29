@@ -184,8 +184,10 @@ class PackedMemorySnapshot(MemoryObject):
         self.virtualMachineInformation:VirtualMachineInformation = None
         self.cached_ptr:FieldDescription = None
 
+        # extend fields
         self.managedTypeIndex = ManagedTypeIndex()
         self.nativeTypeIndex = NativeTypeIndex()
+        self.uuid:str = ''
 
     def initialize(self):
         import operator
