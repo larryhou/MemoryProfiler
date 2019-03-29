@@ -92,11 +92,11 @@ class MemorySnapshotCrawler(object):
         self.__mt_index = self.snapshot.managedTypeIndex
 
         # connections
-        self.managed_connections: List[JointBridge] = []
+        self.joint_bridges: List[JointBridge] = []
         self.references_from: Dict[int, List[JointBridge]] = {}
         self.references_to: Dict[int, List[JointBridge]] = {}
 
-        self.__connect_visit:Dict[str, JointBridge] = {}
+        self.__bridge_visit:Dict[str, JointBridge] = {}
         self.__type_address_map: Dict[int, int] = {}
         self.__native_object_address_map: Dict[int, int] = {}
         self.__managed_object_address_map: Dict[int, int] = {}
@@ -134,15 +134,15 @@ class MemorySnapshotCrawler(object):
             if exclude_native and connection.src_kind == BridgeKind.native: continue
             managed_connections.append(connection)
             self.try_accept_connection(connection=connection, from_native=True)
-        self.managed_connections = managed_connections
+        self.joint_bridges = managed_connections
 
     def try_accept_connection(self, connection:JointBridge, from_native:bool = False):
         if connection.src >= 0 and not from_native:
             src_object = self.managed_objects[connection.src]
-            if src_object.address in self.__connect_visit:
+            if src_object.address in self.__bridge_visit:
                 dst_object = self.managed_objects[connection.dst]
-                if self.__connect_visit.get(src_object.address) == dst_object.address: return
-                self.__connect_visit[src_object.address] = dst_object.address
+                if self.__bridge_visit.get(src_object.address) == dst_object.address: return
+                self.__bridge_visit[src_object.address] = dst_object.address
 
         if connection.src_kind != BridgeKind.none and connection.src != -1:
             key = self.get_index_key(kind=connection.src_kind, index=connection.src)
