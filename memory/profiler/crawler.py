@@ -68,11 +68,12 @@ class UnityManagedObject(object):
         self.handle_index: int = -1
         self.is_value_type: bool = False
         self.size: int = 0
+        self.native_size:int = 0
         self.joint:KeepAliveJoint = None
 
     def __repr__(self):
-        return '[UnityManagedObject] address={:08x} type_index={} native_object_index={} managed_object_index={} handle_index={} size={}'.format(
-            self.address, self.type_index, self.native_object_index, self.managed_object_index, self.handle_index, self.size
+        return '[UnityManagedObject] address={:08x} type_index={} native_object_index={} managed_object_index={} handle_index={} size={} native_size={:,}'.format(
+            self.address, self.type_index, self.native_object_index, self.managed_object_index, self.handle_index, self.size, self.native_size
         )
 
 class MemorySnapshotCrawler(object):
@@ -367,6 +368,7 @@ class MemorySnapshotCrawler(object):
         # connect native object and managed object
         native_type_index = self.snapshot.nativeObjects[native_object_index].nativeTypeArrayIndex
         managed_object.native_object_index = native_object_index
+        managed_object.native_size = self.snapshot.nativeObjects[native_object_index].size
         self.snapshot.nativeObjects[native_object_index].managedObjectArrayIndex = managed_object.managed_object_index
         # connect native type and managed type
         self.snapshot.typeDescriptions[managed_object.type_index].nativeTypeArrayIndex = native_type_index
@@ -428,7 +430,7 @@ class MemorySnapshotCrawler(object):
             mo.joint = joint
             assert mo and mo.managed_object_index >= 0, mo
             self.set_object_size(managed_object=mo, type=self.snapshot.typeDescriptions[type_index], memory_reader=memory_reader)
-            print(mo)
+            # print(mo)
         else:
             object_index = self.__visit.get(address)
             mo = self.managed_objects[object_index]

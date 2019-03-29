@@ -63,14 +63,15 @@ class TypeDescription(MemoryObject):
         self.typeInfoAddress:int = 0 # pointer
         # extend fields
         self.instanceCount: int = 0
-        self.instanceMemory: int = 0
+        self.managedMemory: int = 0
+        self.nativeMemory:int = 0
         self.isUnityEngineObjectType: bool = False
         self.nativeTypeArrayIndex:int = -1
 
     def dump(self, indent:str = ''):
         fp = StringIO()
-        fp.write('{}[TypeDescription] arrayRank={} assembly={!r} baseOrElementTypeIndex={} isArray={} isValueType={} name={!r} size={} staticFieldBytes={} typeIndex={} typeInfoAddress={} instanceCount={} instanceMemory={}'.format(
-            indent, self.arrayRank, self.assembly, self.baseOrElementTypeIndex, self.isArray, self.isValueType, self.name, self.size, self.__format_bytes__(self.staticFieldBytes), self.typeIndex, self.typeInfoAddress, self.instanceCount, self.instanceMemory
+        fp.write('{}[TypeDescription] arrayRank={} assembly={!r} baseOrElementTypeIndex={} isArray={} isValueType={} name={!r} size={} staticFieldBytes={} typeIndex={} typeInfoAddress={} instanceCount={} managedMemory={} nativeMemory={}'.format(
+            indent, self.arrayRank, self.assembly, self.baseOrElementTypeIndex, self.isArray, self.isValueType, self.name, self.size, self.__format_bytes__(self.staticFieldBytes), self.typeIndex, self.typeInfoAddress, self.instanceCount, self.managedMemory, self.nativeMemory
         ))
         nest_indent = indent + ' '*NEST_INDENT_STEP
         iter_count = len(self.fields)
@@ -145,13 +146,13 @@ class PackedNativeType(MemoryObject):
         self.nativeBaseTypeArrayIndex:int = -1
         # extend fields
         self.typeIndex:int = -1
-        self.instanceCount:int = 0
-        self.instanceMemory:int = 0
         self.managedTypeArrayIndex: int = -1
+        self.instanceCount:int = 0
+        self.nativeMemory:int = 0
 
     def dump(self, indent:str = ''):
-        return '{}[PackedNativeType] name={!r} nativeBaseTypeArrayIndex={} typeIndex={} instanceCount={} instanceMemory={}'.format(
-            indent, self.name, self.nativeBaseTypeArrayIndex, self.typeIndex, self.instanceCount, self.instanceMemory
+        return '{}[PackedNativeType] name={!r} nativeBaseTypeArrayIndex={} typeIndex={} instanceCount={} nativeMemory={}'.format(
+            indent, self.name, self.nativeBaseTypeArrayIndex, self.typeIndex, self.instanceCount, self.nativeMemory
         )
 
 class VirtualMachineInformation(MemoryObject):

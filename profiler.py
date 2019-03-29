@@ -71,7 +71,6 @@ def main():
     plugins = [
         ReferenceAnalyzer(),
         TypeMemoryAnalyzer(),
-        TypeNumberAnalyzer(),
         StringAnalyzer(),
         StaticAnalyzer()
     ]  # type: list[AnalyzePlugin]
