@@ -270,15 +270,14 @@ class MemorySnapshotCrawler(object):
         if object_index == -1:
             if reference_chain: chain_array.append(reference_chain)
         else:
-            mo = self.managed_objects[object_index]
-            index_key = self.get_index_key(kind=BridgeKind.managed, index=mo.managed_object_index)
+            index_key = self.get_index_key(kind=BridgeKind.managed, index=object_index)
             references = self.__bridge_to.get(index_key)
             if references:
                 for connection in references[:level]:
-                    if mo.address in anti_circular: continue
+                    if object_index in anti_circular: continue
                     chain_array += self.__retrieve_reference_chains(object_index=connection.src,
                                                                     reference_chain=reference_chain + [connection],
-                                                                    anti_circular=anti_circular + (mo.address,),
+                                                                    anti_circular=anti_circular + (object_index,),
                                                                     level=level)
         return chain_array
 
