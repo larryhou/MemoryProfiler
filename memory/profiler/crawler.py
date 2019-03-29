@@ -157,6 +157,7 @@ class MemorySnapshotCrawler(object):
             self.__bridge_to[key].append(connection)
 
     def get_index_key(self, kind: BridgeKind, index: int):
+        assert index < (1 << 28), index
         return (kind.value << 28) + index
 
     def get_connection_key(self, connection:JointBridge):
