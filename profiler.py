@@ -62,10 +62,11 @@ def main():
     # data.generate_type_module()
     crawler = MemorySnapshotCrawler(snapshot=data)
     print(data.dump())
-    crawler.crawl()
 
-    cache = CrawlerCache()
-    cache.save(crawler=crawler)
+    if not CrawlerCache.fill(crawler):
+        crawler.crawl()
+        cache = CrawlerCache()
+        cache.save(crawler=crawler)
 
     if options.missing:
         dump_missing_manged_objects(crawler=crawler)

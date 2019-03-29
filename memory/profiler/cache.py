@@ -5,16 +5,20 @@ import os.path as p
 from .crawler import *
 
 class CacheStorage(object):
-    def __init__(self, uuid:str, create_mode:bool = True):
+    def __init__(self, uuid:str, create_mode:bool):
         assert uuid
         self.__workspace = p.abspath('__cache')
         self.__database_filepath = '{}/{}.db'.format(self.__workspace, uuid)
         if create_mode and p.exists(self.__database_filepath):
             os.remove(self.__database_filepath)
+        self.__brand_new = not p.exists(self.__database_filepath)
         if not p.exists(self.__workspace):
             os.makedirs(self.__workspace)
         self.__connection = sqlite3.connect(database=self.__database_filepath)
         self.__cursor = self.__connection.cursor()
+
+    @property
+    def brand_new(self)->bool: return self.__brand_new
 
     def create_table(self, name:str, column_schemas:Tuple[str], constrains:Tuple[str] = ()):
         if constrains:
@@ -33,6 +37,9 @@ class CacheStorage(object):
                 SELECT * FROM {} WHERE id=?
                 '''.format(name)
         return self.__cursor.execute(command, (id,)).fetchall()
+
+    def execute(self, command:str)->sqlite3.Cursor:
+        return self.__cursor.execute(command)
 
     def insert_table(self, name: str, records: List[Tuple]):
         if not records: return
@@ -75,9 +82,9 @@ class CrawlerCache(object):
             'joint_id INTEGER REFERENCES joints (id)',
         ))
         storage.create_table(name='objects', column_schemas=(
-            'address INTEGER NOT NULL PRIMARY KEY',
+            'address INTEGER NOT NULL',
             'type_index INTEGER',
-            'managed_object_index INTEGER',
+            'managed_object_index INTEGER NOT NULL PRIMARY KEY',
             'native_object_index INTEGER',
             'handle_index INTEGER',
             'is_value_type INTEGER',
@@ -105,7 +112,7 @@ class CrawlerCache(object):
             ))
             joint_count += 1
         for mo in crawler.managed_objects:
-            if mo.is_value_type: continue
+            # if mo.is_value_type: continue
             object_rows.append((
                 mo.address, mo.type_index, mo.managed_object_index, mo.native_object_index, mo.handle_index, 1 if mo.is_value_type else 0, mo.size, mo.native_size, mo.joint.id
             ))
@@ -115,5 +122,33 @@ class CrawlerCache(object):
         self.storage.insert_table(name='objects', records=object_rows)
         self.storage.commit(close_sqlite=True)
 
-    def load(self, uuid:str):
-        pass
+    @classmethod
+    def fill(cls, crawler:MemorySnapshotCrawler)->bool:
+        storage = CacheStorage(uuid=crawler.snapshot.uuid, create_mode=False)
+        if storage.brand_new: return False
+        joint_map = {}
+        for item in storage.execute('SELECT * FROM joints ORDER BY id ASC').fetchall():
+            joint = ActiveJoint(*item[1:])
+            joint_map[joint.id] = joint
+        crawler.managed_objects = []
+        for item in storage.execute('SELECT * FROM objects ORDER BY managed_object_index ASC').fetchall():
+            mo = UnityManagedObject()
+            mo.address, \
+                mo.type_index, \
+                mo.managed_object_index, \
+                mo.native_object_index, \
+                mo.handle_index,\
+                mo.is_value_type, \
+                mo.size, \
+                mo.native_size = item[:-1]
+            mo.is_value_type = mo.is_value_type != 0
+            mo.joint = joint_map.get(item[-1])
+            crawler.managed_objects.append(mo)
+        for item in storage.execute('SELECT * FROM bridges ORDER BY id ASC').fetchall():
+            params = list(item[1:])
+            params[-1] = joint_map.get(params[-1])
+            bridge = JointBridge(*params)
+            bridge.src_kind = BridgeKind(bridge.src_kind)
+            bridge.dst_kind = BridgeKind(bridge.dst_kind)
+            crawler.try_accept_connection(connection=bridge)
+        return True
