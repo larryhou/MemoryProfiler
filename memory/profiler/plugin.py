@@ -3,10 +3,11 @@ from .core import PackedMemorySnapshot
 from typing import List
 import math, io
 
+
 class AnalyzePlugin(object):
     def __init__(self):
-        self.crawler:MemorySnapshotCrawler = None
-        self.snapshot:PackedMemorySnapshot = None
+        self.crawler: MemorySnapshotCrawler = None
+        self.snapshot: PackedMemorySnapshot = None
         self.args = []
 
     @staticmethod
@@ -15,13 +16,14 @@ class AnalyzePlugin(object):
         digit_count = int(math.ceil(math.log(count, 10)))
         return '[{:%dd}/%d]' % (digit_count, count)
 
-    def setup(self, crawler:MemorySnapshotCrawler, *args):
+    def setup(self, crawler: MemorySnapshotCrawler, *args):
         self.crawler = crawler
         self.snapshot = crawler.snapshot
         self.args = list(args)
 
     def analyze(self):
         pass
+
 
 class ReferenceAnalyzer(AnalyzePlugin):
     def __init__(self):
@@ -34,7 +36,8 @@ class ReferenceAnalyzer(AnalyzePlugin):
             mo = managed_objects[n]
             if mo.is_value_type: continue
             object_type = self.snapshot.typeDescriptions[mo.type_index]
-            print('{} 0x{:08x} object_type={} handle_index={}'.format(index_formatter.format(n+1) ,mo.address, object_type.name, mo.handle_index))
+            print('{} 0x{:08x} object_type={} handle_index={}'.format(index_formatter.format(n + 1), mo.address,
+                                                                      object_type.name, mo.handle_index))
             print(self.crawler.dump_managed_object_reference_chain(object_index=mo.managed_object_index, indent=2))
 
 
@@ -46,8 +49,8 @@ class TypeMemoryAnalyzer(AnalyzePlugin):
         snapshot = self.crawler.snapshot
         managed_type_set = snapshot.typeDescriptions
         managed_objects = self.crawler.managed_objects
-        type_map = {} # type: dict[int, list[int]]
-        type_index_set = [] # type: list[int]
+        type_map = {}  # type: dict[int, list[int]]
+        type_index_set = []  # type: list[int]
         total_native_count = 0
         total_manage_count = 0
         total_manage_memory = 0
@@ -69,14 +72,16 @@ class TypeMemoryAnalyzer(AnalyzePlugin):
                 type_index_set.append(mo.type_index)
             type_map[mo.type_index].append(mo.managed_object_index)
         import functools
-        def sort_managed_object(a:int, b:int)->int:
+        def sort_managed_object(a: int, b: int) -> int:
             obj_a = managed_objects[a]
             obj_b = managed_objects[b]
             return -1 if obj_a.size + obj_a.native_size > obj_b.size + obj_b.native_size else 1
-        def sort_managed_type(a:int, b:int)->int:
+
+        def sort_managed_type(a: int, b: int) -> int:
             type_a = managed_type_set[a]
             type_b = managed_type_set[b]
             return -1 if type_a.nativeMemory + type_a.managedMemory > type_b.nativeMemory + type_b.managedMemory else 1
+
         type_index_set.sort(key=functools.cmp_to_key(sort_managed_type))
         # memory decending
         instance_count_set = []
@@ -90,25 +95,29 @@ class TypeMemoryAnalyzer(AnalyzePlugin):
         count_rank = {}
         for n in range(len(instance_count_set)): count_rank[instance_count_set[n]] = n + 1
         # print memory infomation
-        print('[ManagedMemory] total_memaged_memory={:,} total_managed_count={:,} total_native_memory={:,} total_native_count={:,} '.format(
-            total_manage_memory, total_manage_count, total_native_memory, total_native_count
-        ))
+        print(
+            '[ManagedMemory] total_memaged_memory={:,} total_managed_count={:,} total_native_memory={:,} total_native_count={:,} '.format(
+                total_manage_memory, total_manage_count, total_native_memory, total_native_count
+            ))
         # memory decending
         type_number_formatter = self.get_index_formatter(len(type_index_set))
         for n in range(len(type_index_set)):
             type_index = type_index_set[n]
             managed_type = managed_type_set[type_index]
-            print('[Managed]{} name={!r} type_index={} managed_memory={:,} native_memory={:,} instance_count={:,} count_rank={} '.format(
-                type_number_formatter.format(n+1), managed_type.name, managed_type.typeIndex ,managed_type.managedMemory, managed_type.nativeMemory, managed_type.instanceCount, count_rank[type_index]
-            ))
+            print(
+                '[Managed]{} name={!r} type_index={} managed_memory={:,} native_memory={:,} instance_count={:,} count_rank={} '.format(
+                    type_number_formatter.format(n + 1), managed_type.name, managed_type.typeIndex,
+                    managed_type.managedMemory, managed_type.nativeMemory, managed_type.instanceCount,
+                    count_rank[type_index]
+                ))
             type_instances = type_map.get(type_index)
             assert type_instances
             buffer = io.StringIO()
-            buffer.write(' '*4)
+            buffer.write(' ' * 4)
             for object_index in type_instances:
                 no = managed_objects[object_index]
                 buffer.write('{{0x{:08x}:{}|{}}},'.format(no.address, no.size, no.native_size))
-            buffer.seek(buffer.tell()-1)
+            buffer.seek(buffer.tell() - 1)
             buffer.write('\n')
             buffer.seek(0)
             print(buffer.read())
@@ -117,7 +126,7 @@ class TypeMemoryAnalyzer(AnalyzePlugin):
         # native memory
         total_native_count = 0
         total_native_memory = 0
-        type_map = {} # type: dict[int, list[int]]
+        type_map = {}  # type: dict[int, list[int]]
         type_index_set = []
         native_type_set = snapshot.nativeTypes
         for no in snapshot.nativeObjects:
@@ -134,12 +143,15 @@ class TypeMemoryAnalyzer(AnalyzePlugin):
             lambda a, b: -1 if native_type_set[a].nativeMemory > native_type_set[b].nativeMemory else 1
         ))
         native_objects = snapshot.nativeObjects
-        def sort_native_object(a:int, b:int)->int:
+
+        def sort_native_object(a: int, b: int) -> int:
             return -1 if native_objects[a].size > native_objects[b].size else 1
-        def sort_native_type(a:int, b:int)->int:
+
+        def sort_native_type(a: int, b: int) -> int:
             type_a = native_type_set[a]
             type_b = native_type_set[b]
             return -1 if type_a.nativeMemory > type_b.nativeMemory else 1
+
         type_index_set.sort(key=functools.cmp_to_key(sort_native_type))
 
         # memory decending
@@ -163,8 +175,9 @@ class TypeMemoryAnalyzer(AnalyzePlugin):
             type_index = type_index_set[n]
             native_type = native_type_set[type_index]
             print('[Native]{} name={!r} type_index={} native_memory={:,} instance_count={:,} count_rank={} '.format(
-                    type_number_formatter.format(n + 1), native_type.name, native_type.typeIndex, native_type.nativeMemory, native_type.instanceCount, count_rank[type_index]
-                ))
+                type_number_formatter.format(n + 1), native_type.name, native_type.typeIndex, native_type.nativeMemory,
+                native_type.instanceCount, count_rank[type_index]
+            ))
             type_instances = type_map.get(type_index)
             assert type_instances
             buffer = io.StringIO()
@@ -198,7 +211,8 @@ class StringAnalyzer(AnalyzePlugin):
         for n in range(len(managed_strings)):
             mo = managed_strings[n]
             data = self.crawler.heap_memory.read_string(address=mo.address + vm.objectHeaderSize)
-            print('[String]{} 0x{:08x}={:,} {!r}'.format(index_formatter.format(n+1), mo.address, mo.size, data))
+            print('[String]{} 0x{:08x}={:,} {!r}'.format(index_formatter.format(n + 1), mo.address, mo.size, data))
+
 
 class StaticAnalyzer(AnalyzePlugin):
     def __init__(self):
@@ -207,12 +221,14 @@ class StaticAnalyzer(AnalyzePlugin):
     def analyze(self):
         pass
 
+
 class ScriptAnalyzer(AnalyzePlugin):
     def __init__(self):
         super().__init__()
 
     def analyze(self):
         pass
+
 
 class DelegateAnalyzer(AnalyzePlugin):
     def __init__(self):

@@ -4,8 +4,9 @@ import os
 import os.path as p
 from .crawler import *
 
+
 class CacheStorage(object):
-    def __init__(self, uuid:str, create_mode:bool):
+    def __init__(self, uuid: str, create_mode: bool):
         assert uuid
         self.__workspace = p.abspath('__cache')
         self.__database_filepath = '{}/{}.db'.format(self.__workspace, uuid)
@@ -18,9 +19,10 @@ class CacheStorage(object):
         self.__cursor = self.__connection.cursor()
 
     @property
-    def brand_new(self)->bool: return self.__brand_new
+    def brand_new(self) -> bool:
+        return self.__brand_new
 
-    def create_table(self, name:str, column_schemas:Tuple[str], constrains:Tuple[str] = ()):
+    def create_table(self, name: str, column_schemas: Tuple[str], constrains: Tuple[str] = ()):
         if constrains:
             command = '''
                         CREATE TABLE {} ({},{})
@@ -38,7 +40,7 @@ class CacheStorage(object):
                 '''.format(name)
         return self.__cursor.execute(command, (id,)).fetchall()
 
-    def execute(self, command:str)->sqlite3.Cursor:
+    def execute(self, command: str) -> sqlite3.Cursor:
         return self.__cursor.execute(command)
 
     def insert_table(self, name: str, records: List[Tuple]):
@@ -52,12 +54,13 @@ class CacheStorage(object):
         self.__connection.commit()
         if close_sqlite: self.__connection.close()
 
+
 class CrawlerCache(object):
     def __init__(self):
-        self.storage:CacheStorage = None
-        self.uuid:str = ''
+        self.storage: CacheStorage = None
+        self.uuid: str = ''
 
-    def __init_database_creation(self, uuid:str):
+    def __init_database_creation(self, uuid: str):
         self.uuid = uuid
         storage = CacheStorage(uuid=uuid, create_mode=True)
         storage.create_table(name='joints', column_schemas=(
@@ -94,7 +97,7 @@ class CrawlerCache(object):
         ))
         self.storage = storage
 
-    def save(self, crawler:MemorySnapshotCrawler):
+    def save(self, crawler: MemorySnapshotCrawler):
         self.__init_database_creation(uuid=crawler.snapshot.uuid)
         joint_rows = []
         bridge_rows = []
@@ -105,7 +108,9 @@ class CrawlerCache(object):
             joint = bridge.joint
             assert joint, bridge
             joint_rows.append((
-                joint.id, joint.object_type_index, joint.object_index, joint.object_address, joint.field_type_index, joint.field_index, joint.field_offset, joint.field_address,joint.array_index, joint.handle_index, 1 if joint.is_static else 0
+                joint.id, joint.object_type_index, joint.object_index, joint.object_address, joint.field_type_index,
+                joint.field_index, joint.field_offset, joint.field_address, joint.array_index, joint.handle_index,
+                1 if joint.is_static else 0
             ))
             bridge_rows.append((
                 joint_count, bridge.src, bridge.src_kind.value, bridge.dst, bridge.dst_kind.value, joint.id
@@ -114,7 +119,8 @@ class CrawlerCache(object):
         for mo in crawler.managed_objects:
             # if mo.is_value_type: continue
             object_rows.append((
-                mo.address, mo.type_index, mo.managed_object_index, mo.native_object_index, mo.handle_index, 1 if mo.is_value_type else 0, mo.size, mo.native_size, mo.joint.id
+                mo.address, mo.type_index, mo.managed_object_index, mo.native_object_index, mo.handle_index,
+                1 if mo.is_value_type else 0, mo.size, mo.native_size, mo.joint.id
             ))
         assert bridge_rows and joint_rows
         self.storage.insert_table(name='joints', records=joint_rows)
@@ -123,30 +129,31 @@ class CrawlerCache(object):
         self.storage.commit(close_sqlite=True)
 
     @classmethod
-    def fill(cls, crawler:MemorySnapshotCrawler)->bool:
+    def fill(cls, crawler: MemorySnapshotCrawler) -> bool:
         storage = CacheStorage(uuid=crawler.snapshot.uuid, create_mode=False)
         if storage.brand_new: return False
         joint_map = {}
         for item in storage.execute('SELECT * FROM joints ORDER BY id ASC').fetchall():
             joint = ActiveJoint(*item[1:])
+            joint.id = item[0]
             joint_map[joint.id] = joint
         crawler.managed_objects = []
         for item in storage.execute('SELECT * FROM objects ORDER BY managed_object_index ASC').fetchall():
             mo = UnityManagedObject()
             mo.address, \
-                mo.type_index, \
-                mo.managed_object_index, \
-                mo.native_object_index, \
-                mo.handle_index,\
-                mo.is_value_type, \
-                mo.size, \
-                mo.native_size = item[:-1]
+            mo.type_index, \
+            mo.managed_object_index, \
+            mo.native_object_index, \
+            mo.handle_index, \
+            mo.is_value_type, \
+            mo.size, \
+            mo.native_size = item[:-1]
             mo.is_value_type = mo.is_value_type != 0
-            mo.joint = joint_map.get(item[-1])
+            mo.joint = joint_map[item[-1]]
             crawler.managed_objects.append(mo)
         for item in storage.execute('SELECT * FROM bridges ORDER BY id ASC').fetchall():
             params = list(item[1:])
-            params[-1] = joint_map.get(params[-1])
+            params[-1] = joint_map[params[-1]]
             bridge = JointBridge(*params)
             bridge.src_kind = BridgeKind(bridge.src_kind)
             bridge.dst_kind = BridgeKind(bridge.dst_kind)

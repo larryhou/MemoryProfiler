@@ -3,33 +3,36 @@ from .heap import *
 from typing import List, Dict, Tuple
 import enum, io
 
+
 class BridgeKind(enum.Enum):
     none, handle, native, managed, static = range(5)
 
+
 class ActiveJoint(object):
-    __instance_sequence:int = 0
-    def __init__(self, object_type_index:int = -1, object_index:int = -1, object_address:int = 0,
-                 field_type_index:int = -1, field_index:int = -1, field_offset:int = -1, field_address:int = 0,
-                 array_index:int = -1, handle_index:int = -1, is_static:bool = False):
+    __instance_sequence: int = 0
+
+    def __init__(self, object_type_index: int = -1, object_index: int = -1, object_address: int = 0,
+                 field_type_index: int = -1, field_index: int = -1, field_offset: int = -1, field_address: int = 0,
+                 array_index: int = -1, handle_index: int = -1, is_static: bool = False):
         # gcHandle joint
-        self.handle_index:int = handle_index
+        self.handle_index: int = handle_index
         # managed object joint
         self.object_type_index: int = object_type_index
         self.object_index: int = object_index
-        self.object_address:int = object_address
+        self.object_address: int = object_address
         # reference point
-        self.field_type_index:int = field_type_index
-        self.field_index:int = field_index
-        self.field_offset:int = field_offset
-        self.field_address:int = field_address
-        self.array_index:int = array_index
+        self.field_type_index: int = field_type_index
+        self.field_index: int = field_index
+        self.field_offset: int = field_offset
+        self.field_address: int = field_address
+        self.array_index: int = array_index
         self.is_static = is_static
         self.id = ActiveJoint.__instance_sequence
         ActiveJoint.__instance_sequence += 1
 
-    def clone(self, object_type_index:int = -1, object_index:int = -1, object_address:int = 0,
-                 field_type_index:int = -1, field_index:int = -1, field_offset:int = -1, field_address:int = 0,
-                 array_index:int = -1, handle_index:int = -1)-> 'ActiveJoint':
+    def clone(self, object_type_index: int = -1, object_index: int = -1, object_address: int = 0,
+              field_type_index: int = -1, field_index: int = -1, field_offset: int = -1, field_address: int = 0,
+              array_index: int = -1, handle_index: int = -1) -> 'ActiveJoint':
         rj = ActiveJoint()
         rj.handle_index = handle_index if handle_index >= 0 else self.handle_index
         rj.object_type_index = object_type_index if object_type_index >= 0 else self.object_type_index
@@ -45,21 +48,24 @@ class ActiveJoint(object):
 
     def __repr__(self):
         return '[ActiveJoint] object_index={} object_type_index={} object_address={:x} field_index={} field_type_index={} field_offset={} field_address={:x} array_index={} handle_index={} is_static={}'.format(
-            self.object_index, self.object_type_index, self.object_address, self.field_index,self.field_type_index, self.field_offset, self.field_address, self.array_index, self.handle_index, self.is_static
+            self.object_index, self.object_type_index, self.object_address, self.field_index, self.field_type_index,
+            self.field_offset, self.field_address, self.array_index, self.handle_index, self.is_static
         )
 
+
 class JointBridge(object):
-    def __init__(self, src=0, src_kind=BridgeKind.none, dst=0, dst_kind=BridgeKind.none, joint:ActiveJoint = None):
+    def __init__(self, src=0, src_kind=BridgeKind.none, dst=0, dst_kind=BridgeKind.none, joint: ActiveJoint = None):
         self.src: int = src
         self.dst: int = dst
         self.src_kind: BridgeKind = src_kind
         self.dst_kind: BridgeKind = dst_kind
-        self.joint:ActiveJoint = joint
+        self.joint: ActiveJoint = joint
 
     def __repr__(self):
         return '[JointBridge] from={} from_kind={} to={} to_kind={}'.format(
             self.src, self.src_kind.name, self.dst, self.dst_kind.name
         )
+
 
 class UnityManagedObject(object):
     def __init__(self):
@@ -70,13 +76,15 @@ class UnityManagedObject(object):
         self.handle_index: int = -1
         self.is_value_type: bool = False
         self.size: int = 0
-        self.native_size:int = 0
-        self.joint:ActiveJoint = None
+        self.native_size: int = 0
+        self.joint: ActiveJoint = None
 
     def __repr__(self):
         return '[UnityManagedObject] address={:08x} type_index={} native_object_index={} managed_object_index={} handle_index={} size={} native_size={:,}'.format(
-            self.address, self.type_index, self.native_object_index, self.managed_object_index, self.handle_index, self.size, self.native_size
+            self.address, self.type_index, self.native_object_index, self.managed_object_index, self.handle_index,
+            self.size, self.native_size
         )
+
 
 class MemorySnapshotCrawler(object):
     def __init__(self, snapshot: PackedMemorySnapshot):
@@ -99,7 +107,7 @@ class MemorySnapshotCrawler(object):
         self.__bridge_from: Dict[int, List[JointBridge]] = {}
         self.__bridge_to: Dict[int, List[JointBridge]] = {}
 
-        self.__bridge_visit:Dict[str, JointBridge] = {}
+        self.__bridge_visit: Dict[str, JointBridge] = {}
         self.__type_address_map: Dict[int, int] = {}
         self.__native_object_address_map: Dict[int, int] = {}
         self.__managed_object_address_map: Dict[int, int] = {}
@@ -139,7 +147,7 @@ class MemorySnapshotCrawler(object):
             self.try_accept_connection(connection=connection, from_native=True)
         self.joint_bridges = managed_connections
 
-    def try_accept_connection(self, connection:JointBridge, from_native:bool = False):
+    def try_accept_connection(self, connection: JointBridge, from_native: bool = False):
         if connection.src >= 0 and not from_native:
             src_object = self.managed_objects[connection.src]
             if src_object.address in self.__bridge_visit:
@@ -163,7 +171,7 @@ class MemorySnapshotCrawler(object):
         assert index < (1 << 28), index
         return (kind.value << 28) + index
 
-    def get_connection_key(self, connection:JointBridge):
+    def get_connection_key(self, connection: JointBridge):
         return self.get_index_key(kind=connection.src_kind, index=connection.src) << 32 \
                | self.get_index_key(kind=connection.dst_kind, index=connection.dst)
 
@@ -245,7 +253,7 @@ class MemorySnapshotCrawler(object):
                 references.append(JointBridge(dst=n, dst_kind=BridgeKind.managed))
         return references
 
-    def dump_managed_object_reference_chain(self, object_index:int, indent:int = 2, level:int = 2)->str:
+    def dump_managed_object_reference_chain(self, object_index: int, indent: int = 2, level: int = 2) -> str:
         buffer = io.StringIO()
         indent_space = ' ' * indent
         reference_chains = self.__retrieve_reference_chains(object_index=object_index, level=level)
@@ -256,7 +264,8 @@ class MemorySnapshotCrawler(object):
         buffer.seek(0)
         return buffer.read()
 
-    def __retrieve_reference_chains(self, object_index:int, level:int, reference_chain:List[JointBridge] = [], anti_circular = ())->List[List[JointBridge]]:
+    def __retrieve_reference_chains(self, object_index: int, level: int, reference_chain: List[JointBridge] = [],
+                                    anti_circular=()) -> List[List[JointBridge]]:
         chain_array = []  # type: list[list[JointBridge]]
         if object_index == -1:
             if reference_chain: chain_array.append(reference_chain)
@@ -267,15 +276,18 @@ class MemorySnapshotCrawler(object):
             if references:
                 for connection in references[:level]:
                     if mo.address in anti_circular: continue
-                    chain_array += self.__retrieve_reference_chains(object_index=connection.src, reference_chain=reference_chain + [connection], anti_circular=anti_circular + (mo.address,), level=level)
+                    chain_array += self.__retrieve_reference_chains(object_index=connection.src,
+                                                                    reference_chain=reference_chain + [connection],
+                                                                    anti_circular=anti_circular + (mo.address,),
+                                                                    level=level)
         return chain_array
 
-    def __format_reference_chain(self, reference_chain:List[JointBridge], buffer:io.StringIO, indent:int = 4):
+    def __format_reference_chain(self, reference_chain: List[JointBridge], buffer: io.StringIO, indent: int = 4):
         managed_types = self.snapshot.typeDescriptions
         indent_space = '\n' + ' ' * indent + '.'
         top_complete = False
         for n in range(len(reference_chain)):
-            connection = reference_chain[-(n+1)]
+            connection = reference_chain[-(n + 1)]
             joint = connection.joint
             object_type = managed_types[joint.object_type_index]
 
@@ -368,13 +380,13 @@ class MemorySnapshotCrawler(object):
         self.snapshot.typeDescriptions[managed_object.type_index].nativeTypeArrayIndex = native_type_index
         self.snapshot.nativeTypes[native_type_index].managedTypeArrayIndex = managed_object.type_index
 
-    def set_object_size(self, managed_object: UnityManagedObject, type: TypeDescription, memory_reader:HeapReader):
+    def set_object_size(self, managed_object: UnityManagedObject, type: TypeDescription, memory_reader: HeapReader):
         if managed_object.size == 0:
             managed_object.size = memory_reader.read_object_size(
                 address=managed_object.address, type=type
             )
 
-    def create_managed_object(self, address:int, type_index:int)->UnityManagedObject:
+    def create_managed_object(self, address: int, type_index: int) -> UnityManagedObject:
         mo = UnityManagedObject()
         mo.address = address
         mo.type_index = type_index
@@ -383,10 +395,11 @@ class MemorySnapshotCrawler(object):
         self.managed_objects.append(mo)
         return mo
 
-    def is_crawlable(self, type:TypeDescription)->bool:
-        return not type.isValueType or type.size > 8 # self.vm.pointerSize
+    def is_crawlable(self, type: TypeDescription) -> bool:
+        return not type.isValueType or type.size > 8  # self.vm.pointerSize
 
-    def crawl_managed_array_address(self, address:int, type:TypeDescription, memory_reader:HeapReader, joint:ActiveJoint, depth:int):
+    def crawl_managed_array_address(self, address: int, type: TypeDescription, memory_reader: HeapReader,
+                                    joint: ActiveJoint, depth: int):
         is_static_crawling = isinstance(memory_reader, StaticFieldReader)
         if address < 0 or not is_static_crawling and address == 0: return
         element_type = self.snapshot.typeDescriptions[type.baseOrElementTypeIndex]
@@ -399,9 +412,10 @@ class MemorySnapshotCrawler(object):
                 address_ptr = address + self.vm.arrayHeaderSize + n * self.vm.pointerSize
                 element_address = memory_reader.read_pointer(address=address_ptr)
             self.crawl_managed_entry_address(address=element_address, type=element_type, memory_reader=memory_reader,
-                                             joint=joint.clone(array_index=n), depth=depth+1)
+                                             joint=joint.clone(array_index=n), depth=depth + 1)
 
-    def crawl_managed_entry_address(self, address:int, type:TypeDescription, memory_reader:HeapReader, joint:ActiveJoint, is_real_type:bool = False, depth = 0):
+    def crawl_managed_entry_address(self, address: int, type: TypeDescription, memory_reader: HeapReader,
+                                    joint: ActiveJoint, is_real_type: bool = False, depth=0):
         is_static_crawling = isinstance(memory_reader, StaticFieldReader)
         if address < 0 or not is_static_crawling and address == 0: return
         if depth >= 512:
@@ -423,7 +437,8 @@ class MemorySnapshotCrawler(object):
             mo.handle_index = joint.handle_index
             mo.joint = joint
             assert mo and mo.managed_object_index >= 0, mo
-            self.set_object_size(managed_object=mo, type=self.snapshot.typeDescriptions[type_index], memory_reader=memory_reader)
+            self.set_object_size(managed_object=mo, type=self.snapshot.typeDescriptions[type_index],
+                                 memory_reader=memory_reader)
             # print(mo)
         else:
             object_index = self.__visit.get(address)
@@ -444,13 +459,15 @@ class MemorySnapshotCrawler(object):
             if address in self.__visit: return
             self.__visit[mo.address] = mo.managed_object_index
 
-        if entry_type.isArray: # crawl array
-            self.crawl_managed_array_address(address=address, type=entry_type, memory_reader=memory_reader, joint=joint, depth=depth+1)
+        if entry_type.isArray:  # crawl array
+            self.crawl_managed_array_address(address=address, type=entry_type, memory_reader=memory_reader, joint=joint,
+                                             depth=depth + 1)
             return
-        mother_joint = ActiveJoint(object_type_index=type_index, object_index=mo.managed_object_index, object_address=mo.address)
+        mother_joint = ActiveJoint(object_type_index=type_index, object_index=mo.managed_object_index,
+                                   object_address=mo.address)
         dive_type = entry_type
         while dive_type:
-            for field in dive_type.fields: # crawl fields
+            for field in dive_type.fields:  # crawl fields
                 field_type = self.snapshot.typeDescriptions[field.typeIndex]
                 if field.isStatic: continue
                 if not self.is_crawlable(type=field_type): continue
@@ -463,18 +480,25 @@ class MemorySnapshotCrawler(object):
                         address_ptr = address + field.offset
                     try:
                         field_address = memory_reader.read_pointer(address=address_ptr)
-                    except: continue
+                    except:
+                        continue
                     field_type_index = self.find_type_of_address(address=field_address)
                     if field_type_index != -1: field_type = self.snapshot.typeDescriptions[field_type_index]
                 pass_memory_reader = memory_reader if field_type.isValueType else self.heap_memory
-                self.crawl_managed_entry_address(address=field_address, type=field_type, memory_reader=pass_memory_reader, is_real_type=True,
-                                                 joint=mother_joint.clone(field_type_index=field_type.typeIndex, field_index=field.fieldSlotIndex, field_offset=field.offset, field_address=field_address),
+                self.crawl_managed_entry_address(address=field_address, type=field_type,
+                                                 memory_reader=pass_memory_reader, is_real_type=True,
+                                                 joint=mother_joint.clone(field_type_index=field_type.typeIndex,
+                                                                          field_index=field.fieldSlotIndex,
+                                                                          field_offset=field.offset,
+                                                                          field_address=field_address),
                                                  depth=depth + 1)
-            dive_type = self.snapshot.typeDescriptions[dive_type.baseOrElementTypeIndex] if dive_type.baseOrElementTypeIndex >= 0 else None
+            dive_type = self.snapshot.typeDescriptions[
+                dive_type.baseOrElementTypeIndex] if dive_type.baseOrElementTypeIndex >= 0 else None
 
     def crawl_handles(self):
         for item in self.snapshot.gcHandles:
-            self.crawl_managed_entry_address(address=item.target, joint=ActiveJoint(handle_index=item.gcHandleArrayIndex),
+            self.crawl_managed_entry_address(address=item.target,
+                                             joint=ActiveJoint(handle_index=item.gcHandleArrayIndex),
                                              memory_reader=self.heap_memory, type=None)
 
     def crawl_static(self):
@@ -494,36 +518,10 @@ class MemorySnapshotCrawler(object):
                     address_ptr = field.offset
                     try:
                         field_address = static_reader.read_pointer(address=address_ptr)
-                    except: continue
+                    except:
+                        continue
                     memory_reader = self.heap_memory
                 self.crawl_managed_entry_address(address=field_address, type=field_type, memory_reader=memory_reader,
-                                                 joint=ActiveJoint(object_type_index=mt.typeIndex, field_index=field.fieldSlotIndex, field_type_index=field.typeIndex, is_static=True))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                                                 joint=ActiveJoint(object_type_index=mt.typeIndex,
+                                                                   field_index=field.fieldSlotIndex,
+                                                                   field_type_index=field.typeIndex, is_static=True))
