@@ -1,8 +1,10 @@
-from .crawler import MemorySnapshotCrawler, UnityManagedObject, JointBridge
+import functools
+import io
+import math
+
 from .core import PackedMemorySnapshot
+from .crawler import MemorySnapshotCrawler
 from .perf import TimeSampler
-from typing import List
-import math, io, functools
 
 
 class AnalyzePlugin(object):

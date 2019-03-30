@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-from memory.profiler.serialize import MemorySnapshotReader, NativeMemoryRef
-from memory.profiler.crawler import MemorySnapshotCrawler
-from memory.profiler.plugin import *
+import os
+import struct
+
 from memory.profiler.cache import CrawlerCache
-from memory.profiler.perf import TimeSampler
-import os, struct
+from memory.profiler.plugin import *
+from memory.profiler.serialize import MemorySnapshotReader, NativeMemoryRef
+
 
 def dump_missing_manged_objects(crawler:MemorySnapshotCrawler):
     address_map = {}
@@ -92,7 +93,6 @@ def main():
         it.analyze()
 
     sampler.summary()
-    print(sampler.dump(file_path=sampler.save()))
 
 if __name__ == '__main__':
     main()

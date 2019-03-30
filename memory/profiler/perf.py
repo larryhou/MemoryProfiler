@@ -139,6 +139,7 @@ class TimeSampler(object):
             self.__write(bridge_map, index=entity, buffer=buffer)
         buffer.seek(0)
         print(buffer.read())
+        self.save()
 
     def __write(self, bridge_map, index, buffer,
                 indent=''):  # type: (dict[int, list[int]], int, io.StringIO, str)->io.StringIO

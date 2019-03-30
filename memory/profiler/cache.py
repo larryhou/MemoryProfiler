@@ -1,7 +1,7 @@
-import sqlite3
-from typing import Tuple, List
 import os
 import os.path as p
+import sqlite3
+
 from .crawler import *
 from .perf import TimeSampler
 

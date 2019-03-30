@@ -1,6 +1,6 @@
-from .core import PackedMemorySnapshot, TypeDescription
 from struct import unpack
-import binascii
+
+from .core import PackedMemorySnapshot, TypeDescription
 
 
 class Quaternion(object):
