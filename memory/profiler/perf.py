@@ -116,14 +116,14 @@ class TimeSampler(object):
             if parent not in bridge_map:
                 bridge_map[parent] = []
             bridge_map[parent].append(child)
+        buffer = io.StringIO()
         for entity in self.__entities:
-            buffer = self.__write(bridge_map, index=entity)
-            buffer.seek(0)
-            print(buffer.read())
+            self.__write(bridge_map, index=entity, buffer=buffer)
+        buffer.seek(0)
+        print(buffer.read())
 
-    def __write(self, bridge_map, index, buffer=None,
+    def __write(self, bridge_map, index, buffer,
                 indent=''):  # type: (dict[int, list[int]], int, io.StringIO, str)->io.StringIO
-        if not buffer: buffer = io.StringIO()
         event, elapse = self.__record.get(index)
         buffer.write(indent)
         buffer.write('[{}] {}={:.6f}\n'.format(self.__index_formatter.format(index), event, elapse))
