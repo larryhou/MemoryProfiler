@@ -61,6 +61,7 @@ def main():
     sampler = TimeSampler(name='Crawling')
     reader = MemorySnapshotReader(sampler=sampler, debug=options.debug)
     data = reader.read(file_path=options.file_path)
+    sampler.name = data.uuid
     # data.generate_type_module()
     crawler = MemorySnapshotCrawler(snapshot=data, sampler=sampler)
     sampler.begin('dump_snapshot')
@@ -91,8 +92,7 @@ def main():
         it.analyze()
 
     sampler.summary()
-    sampler.save()
-    print(sampler.dump(file_path='{}.hex'.format(sampler.name)))
+    print(sampler.dump(file_path=sampler.save()))
 
 if __name__ == '__main__':
     main()

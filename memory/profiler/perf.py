@@ -1,19 +1,36 @@
 #!/usr/bin/env python3
 
-import time, io, math, struct
+import time, io, math, struct, os
+import os.path as p
 
 
 class TimeSampler(object):
-    def __init__(self, name='Summary'):
-        self.name = name
+    def __init__(self, name='Summary', workspace='__perf'):
+        self.__name = name
+        self.__workspace = workspace
+        if not p.exists(self.__workspace):
+            os.makedirs(self.__workspace)
         self.__sequence = 0
-        self.__event_map = {}  # type: dict[int, str]
+        self.__event_map = {}  # type: dict[int, tuple[str, float]]
         self.__bridge = {}  # type: dict[int, int]
         self.__cursor = []  # type: list[int]
-        self.__record = {}  # type: dict[int, float]
+        self.__record = {}  # type: dict[int,tuple[str, float]]
         self.__index_formatter = '{:2}'
         self.__entities = [] # type: list[int]
-        self.begin(name)
+        self.begin(event=self.__name)
+
+    @property
+    def name(self): return self.__name
+    @name.setter
+    def name(self, v):
+        self.__name = v
+        summary_index = 0
+        if summary_index in self.__event_map:
+            _, timestamp = self.__event_map[summary_index]
+            self.__event_map[summary_index] = self.__name, timestamp
+        if summary_index in self.__record:
+            _, elapse = self.__record[summary_index]
+            self.__record[summary_index] = self.__name, elapse
 
     def reset(self):
         self.__init__()
@@ -43,7 +60,7 @@ class TimeSampler(object):
         if len(self.__cursor) == 1 and self.__cursor[0] == 0:
             self.end()
 
-    def save(self):
+    def save(self): # type: ()->str
         self.finish()
         assert not self.__event_map, self.__event_map
         if not self.__record: return
@@ -61,8 +78,9 @@ class TimeSampler(object):
             entity_index = self.__entities[n]
             self.__encode_entity(index=entity_index, bridge_map=bridge_map, buffer=buffer)
         buffer.seek(0)
-        with open('{}.hex'.format(self.name), 'wb') as fp:
+        with open('{}/{}.hex'.format(self.__workspace, self.name), 'wb') as fp:
             fp.write(buffer.read())
+            return fp.name
 
     def dump(self, file_path): # type: (str)->str
         buffer = io.StringIO()
