@@ -4,5 +4,6 @@
 *.bin
 *.log
 *.txt
+*.hex
 __*
 
