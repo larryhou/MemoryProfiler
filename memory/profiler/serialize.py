@@ -98,7 +98,7 @@ class MemorySnapshotReader(object):
 
     def read(self, file_path): # type: (str)->PackedMemorySnapshot
         self.sampler.begin('MemorySnapshotReader')
-        stream = self.__stream.open(file_path, load_into_memory=True)
+        stream = self.__stream.open(file_path, load_into_memory=False)
         self.__read_header(input=self.__stream)
         self.snapshot = None
         while stream.bytes_available > 0:

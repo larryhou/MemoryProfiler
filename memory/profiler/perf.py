@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
-import time, io, math
+import time, io, math, struct
 
 
 class TimeSampler(object):
     def __init__(self, name='Summary'):
+        self.name = name
         self.__sequence = 0
         self.__event_map = {}  # type: dict[int, str]
         self.__bridge = {}  # type: dict[int, int]
@@ -42,31 +43,93 @@ class TimeSampler(object):
         if len(self.__cursor) == 1 and self.__cursor[0] == 0:
             self.end()
 
+    def save(self):
+        self.finish()
+        assert not self.__event_map, self.__event_map
+        if not self.__record: return
+        bridge_map = {}
+        for child, parent in self.__bridge.items():
+            if parent not in bridge_map:
+                bridge_map[parent] = []
+            bridge_map[parent].append(child)
+        entity_count = len(self.__entities)
+        buffer = io.BytesIO()
+        buffer.write(b'PERF')
+        buffer.write(struct.pack('>I', len(self.__record)))
+        buffer.write(struct.pack('>I', entity_count))
+        for n in range(entity_count):
+            entity_index = self.__entities[n]
+            self.__encode_entity(index=entity_index, bridge_map=bridge_map, buffer=buffer)
+        buffer.seek(0)
+        with open('{}.hex'.format(self.name), 'wb') as fp:
+            fp.write(buffer.read())
+
+    def dump(self, file_path): # type: (str)->str
+        buffer = io.StringIO()
+        with open(file_path, 'rb') as fp:
+            assert fp.read(4) == b'PERF'
+            record_count, = struct.unpack('>I', fp.read(4))
+            entity_count, = struct.unpack('>I', fp.read(4))
+            self.__index_formatter = self.__get_index_formatter(entity_count=record_count)
+            for _ in range(entity_count):
+                self.__read(fp=fp, buffer=buffer, indent='')
+        buffer.seek(0)
+        return buffer.read()
+
+    def __read(self, fp, buffer, indent):
+        index, = struct.unpack('>I', fp.read(4))
+        count, = struct.unpack('>I', fp.read(4))
+        event = fp.read(count).decode('utf-8')
+        elapse, = struct.unpack('>d', fp.read(8))
+        buffer.write(indent)
+        buffer.write('[{}] {}={:.6f}\n'.format(self.__index_formatter.format(index), event, elapse))
+        child_count, = struct.unpack('>I', fp.read(4))
+        for _ in range(child_count):
+            self.__read(fp=fp, indent=indent + '    ', buffer=buffer)
+
+    def __encode_entity(self, index, bridge_map, buffer:io.BytesIO):
+        event, elapse = self.__record[index]  # type: str, float
+        buffer.write(struct.pack('>I', index))
+        event_data = event.encode('utf-8')
+        buffer.write(struct.pack('>I', len(event_data)))
+        buffer.write(event_data)
+        buffer.write(struct.pack('>d', elapse))
+        if index in bridge_map:
+            children = bridge_map[index]
+            buffer.write(struct.pack('>I', len(children)))
+            for child_index in children:
+                self.__encode_entity(index=child_index, bridge_map=bridge_map, buffer=buffer)
+        else:
+            buffer.write(struct.pack('>I', 0))
+
+    def __get_index_formatter(self, entity_count):
+        digit_count = int(math.ceil(math.log(entity_count, 10)))
+        return '{:0%dd}' % digit_count
+
     def summary(self):
         self.finish()
         assert not self.__event_map, self.__event_map
-        if not self.__bridge: return
-        digit_count = int(math.ceil(math.log(len(self.__bridge), 10)))
-        self.__index_formatter = '{:0%dd}' % digit_count
-        bridge_tree = {}
+        if not self.__record: return
+        self.__index_formatter = self.__get_index_formatter(entity_count=len(self.__record))
+        bridge_map = {}
         for child, parent in self.__bridge.items():
-            if parent not in bridge_tree:
-                bridge_tree[parent] = []
-            bridge_tree[parent].append(child)
+            if parent not in bridge_map:
+                bridge_map[parent] = []
+            bridge_map[parent].append(child)
         for entity in self.__entities:
-            buffer = self.__dump(bridge_tree, index=entity)
+            buffer = self.__write(bridge_map, index=entity)
             buffer.seek(0)
             print(buffer.read())
 
-    def __dump(self, bridge_tree, index, buffer=None,
-               indent=''):  # type: (dict[int, list[int]], int, io.StringIO, str)->io.StringIO
+    def __write(self, bridge_map, index, buffer=None,
+                indent=''):  # type: (dict[int, list[int]], int, io.StringIO, str)->io.StringIO
         if not buffer: buffer = io.StringIO()
         event, elapse = self.__record.get(index)
         buffer.write(indent)
         buffer.write('[{}] {}={:.6f}\n'.format(self.__index_formatter.format(index), event, elapse))
-        if index in bridge_tree:
-            for child in bridge_tree.get(index):
-                self.__dump(bridge_tree, index=child, buffer=buffer, indent=indent + '    ')
+        if index in bridge_map:
+            for child in bridge_map.get(index):
+                self.__write(bridge_map, index=child, buffer=buffer, indent=indent + '    ')
         return buffer
 
 if __name__ == '__main__':

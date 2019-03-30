@@ -91,6 +91,8 @@ def main():
         it.analyze()
 
     sampler.summary()
+    sampler.save()
+    print(sampler.dump(file_path='{}.hex'.format(sampler.name)))
 
 if __name__ == '__main__':
     main()
