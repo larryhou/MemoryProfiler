@@ -1,5 +1,6 @@
 from .crawler import MemorySnapshotCrawler, UnityManagedObject, JointBridge
 from .core import PackedMemorySnapshot
+from .perf import TimeSampler
 from typing import List
 import math, io, functools
 
@@ -8,6 +9,7 @@ class AnalyzePlugin(object):
     def __init__(self):
         self.crawler: MemorySnapshotCrawler = None
         self.snapshot: PackedMemorySnapshot = None
+        self.sampler:TimeSampler = None
         self.args = []
 
     @staticmethod
@@ -16,7 +18,8 @@ class AnalyzePlugin(object):
         digit_count = int(math.ceil(math.log(count, 10)))
         return '[{:%dd}/%d]' % (digit_count, count)
 
-    def setup(self, crawler: MemorySnapshotCrawler, *args):
+    def setup(self, crawler: MemorySnapshotCrawler, sampler:TimeSampler, *args):
+        self.sampler = sampler
         self.crawler = crawler
         self.snapshot = crawler.snapshot
         self.args = list(args)
@@ -30,6 +33,7 @@ class ReferenceAnalyzer(AnalyzePlugin):
         super().__init__()
 
     def analyze(self):
+        self.sampler.begin('ReferenceAnalyzer')
         managed_objects = self.crawler.managed_objects
         index_formatter = self.get_index_formatter(len(managed_objects))
         for n in range(len(managed_objects)):
@@ -42,6 +46,7 @@ class ReferenceAnalyzer(AnalyzePlugin):
                                                                                       mo.managed_object_index,
                                                                                       mo.handle_index))
             print(self.crawler.dump_managed_object_reference_chain(object_index=mo.managed_object_index, indent=2))
+        self.sampler.end()
 
 
 class TypeMemoryAnalyzer(AnalyzePlugin):
@@ -49,6 +54,8 @@ class TypeMemoryAnalyzer(AnalyzePlugin):
         super().__init__()
 
     def analyze(self):
+        self.sampler.begin('TypeMemoryAnalyzer')
+        self.sampler.begin('managed_memory')
         snapshot = self.crawler.snapshot
         managed_type_set = snapshot.typeDescriptions
         managed_objects = self.crawler.managed_objects
@@ -124,9 +131,11 @@ class TypeMemoryAnalyzer(AnalyzePlugin):
             buffer.write('\n')
             buffer.seek(0)
             print(buffer.read())
+        self.sampler.end()
 
         ######
         # native memory
+        self.sampler.begin('native_memory')
         total_native_count = 0
         total_native_memory = 0
         type_map = {}  # type: dict[int, list[int]]
@@ -192,6 +201,8 @@ class TypeMemoryAnalyzer(AnalyzePlugin):
             buffer.write('\n')
             buffer.seek(0)
             print(buffer.read())
+        self.sampler.end()
+        self.sampler.end()
 
 
 class StringAnalyzer(AnalyzePlugin):
@@ -199,6 +210,7 @@ class StringAnalyzer(AnalyzePlugin):
         super().__init__()
 
     def analyze(self):
+        self.sampler.begin('StringAnalyzer')
         managed_strings = []
         string_type_index = self.crawler.snapshot.managedTypeIndex.system_String
         vm = self.crawler.snapshot.virtualMachineInformation
@@ -215,6 +227,7 @@ class StringAnalyzer(AnalyzePlugin):
             mo = managed_strings[n]
             data = self.crawler.heap_memory.read_string(address=mo.address + vm.objectHeaderSize)
             print('[String]{} 0x{:08x}={:,} {!r}'.format(index_formatter.format(n + 1), mo.address, mo.size, data))
+        self.sampler.end()
 
 
 class StaticAnalyzer(AnalyzePlugin):

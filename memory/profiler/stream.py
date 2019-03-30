@@ -61,8 +61,13 @@ class MemoryStream(object):
             self.path = os.path.abspath(self.data.name)
         self.position = 0
 
-    def open(self, file_path):
-        self.data = open(file_path, 'r+b')
+    def open(self, file_path, load_into_memory=False):
+        if load_into_memory:
+            with open(file_path, 'r+b') as fp:
+                self.data = io.BytesIO(fp.read())
+                fp.close()
+        else:
+            self.data = open(file_path, 'r+b')
         return self
 
     def save(self, output_path=None):

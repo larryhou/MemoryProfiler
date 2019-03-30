@@ -3,6 +3,7 @@ from memory.profiler.serialize import MemorySnapshotReader, NativeMemoryRef
 from memory.profiler.crawler import MemorySnapshotCrawler
 from memory.profiler.plugin import *
 from memory.profiler.cache import CrawlerCache
+from memory.profiler.perf import TimeSampler
 import os, struct
 
 def dump_missing_manged_objects(crawler:MemorySnapshotCrawler):
@@ -57,17 +58,20 @@ def main():
     arguments.add_argument('--dont-cache', '-n', action='store_true')
 
     options = arguments.parse_args(sys.argv[1:])
-    reader = MemorySnapshotReader(debug=options.debug)
-
+    sampler = TimeSampler(name='Crawling')
+    reader = MemorySnapshotReader(sampler=sampler, debug=options.debug)
     data = reader.read(file_path=options.file_path)
     # data.generate_type_module()
-    crawler = MemorySnapshotCrawler(snapshot=data)
+    crawler = MemorySnapshotCrawler(snapshot=data, sampler=sampler)
+    sampler.begin('dump_snapshot')
     print(data.dump())
+    sampler.end()
 
-    if options.dont_cache or not CrawlerCache.fill(crawler):
+    cache = CrawlerCache(sampler=sampler)
+    if options.dont_cache or not cache.fill(crawler):
         crawler.crawl()
-        cache = CrawlerCache()
         cache.save(crawler=crawler)
+    sampler.finish()
 
     if options.missing:
         dump_missing_manged_objects(crawler=crawler)
@@ -83,8 +87,10 @@ def main():
 
     for it in plugins:
         print('#========== [{}] ==========#'.format(it.__class__.__name__))
-        it.setup(crawler=crawler)
+        it.setup(crawler=crawler, sampler=sampler)
         it.analyze()
+
+    sampler.summary()
 
 if __name__ == '__main__':
     main()

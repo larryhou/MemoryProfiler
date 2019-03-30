@@ -1,5 +1,6 @@
 from .stream import MemoryStream
 from .core import *
+from .perf import TimeSampler
 import time, uuid
 
 class NativeMemoryRef(object):
@@ -23,10 +24,11 @@ class NativeMemoryRef(object):
         return '[NativeMemoryRef] address={:x} offset={} length={}'.format(self.__address, self.__offset, self.__length)
 
 class MemorySnapshotReader(object):
-    def __init__(self, debug:bool = True):
+    def __init__(self, sampler:TimeSampler, debug:bool = True):
         self.__stream = MemoryStream()
         self.vm:VirtualMachineInformation = None
         self.cached_ptr:FieldDescription = None
+        self.sampler:TimeSampler = sampler
         self.verbose = False
         self.debug = debug
 
@@ -44,6 +46,7 @@ class MemorySnapshotReader(object):
         self.snapshot:PackedMemorySnapshot = None
 
     def __read_header(self, input:MemoryStream):
+        self.sampler.begin('header')
         self.mime = input.read(size=3).decode('ascii')
         self.description = input.read_utfstring()
         self.unity_version = input.read_utfstring()
@@ -54,6 +57,7 @@ class MemorySnapshotReader(object):
         print('[MemorySnapshot] mime={!r} unity_version={!r} system_version={!r} create_time={!r} total_size={:,} uuid={!r}'.format(
             self.mime, self.unity_version, self.system_version, self.create_time, self.total_size, str(self.uuid)
         ))
+        self.sampler.end()
 
     def __read_timestamp(self, input:MemoryStream):
         time_scale = 10**6
@@ -63,6 +67,7 @@ class MemorySnapshotReader(object):
         return time.strftime('%Y-%m-%dT%H:%M:%S.{:06d}'.format(fraction), time.localtime(seconds))
 
     def __read_native_memory(self, input:MemoryStream):
+        self.sampler.begin('native_memory')
         native_count = input.read_uint32()
         size_limit = 1 << 25
         self.native_memory_map = {}
@@ -75,19 +80,25 @@ class MemorySnapshotReader(object):
                 if self.debug: print(ref)
             else:
                 assert input.read_uint32() == 0, 'address={:x} offset={} length={} {}/{}'.format(address, input.position, length, n+1, native_count)
+        self.sampler.end()
 
     def __read_snapshot(self, input:MemoryStream):
+        self.sampler.begin('snapshot')
         self.vm = self.__read_object(input=input)
         print(self.vm)
         snapshot = self.__read_object(input=input)  # type: PackedMemorySnapshot
         snapshot.uuid = str(self.uuid)
+        self.sampler.begin('initialize')
         snapshot.initialize()
+        self.sampler.end()
         assert snapshot.cached_ptr
         self.cached_ptr = snapshot.cached_ptr
+        self.sampler.end()
         return snapshot
 
     def read(self, file_path): # type: (str)->PackedMemorySnapshot
-        stream = self.__stream.open(file_path)
+        self.sampler.begin('MemorySnapshotReader')
+        stream = self.__stream.open(file_path, load_into_memory=True)
         self.__read_header(input=self.__stream)
         self.snapshot = None
         while stream.bytes_available > 0:
@@ -104,6 +115,7 @@ class MemorySnapshotReader(object):
                 self.__stream.position += block_length - 5
             timestamp = self.__read_timestamp(input=stream)
             self.debug: print(timestamp)
+        self.sampler.end()
         return self.snapshot
 
     def __read_object(self, input:MemoryStream):

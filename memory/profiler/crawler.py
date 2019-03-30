@@ -1,5 +1,6 @@
 from .core import *
 from .heap import *
+from .perf import TimeSampler
 from typing import List, Dict, Tuple
 import enum, io
 
@@ -87,12 +88,13 @@ class UnityManagedObject(object):
 
 
 class MemorySnapshotCrawler(object):
-    def __init__(self, snapshot: PackedMemorySnapshot):
+    def __init__(self, snapshot: PackedMemorySnapshot, sampler:TimeSampler):
         self.managed_objects: List[UnityManagedObject] = []
         self.snapshot: PackedMemorySnapshot = snapshot
         self.snapshot.initialize()
         self.vm = snapshot.virtualMachineInformation
         self.heap_memory: HeapReader = HeapReader(snapshot=snapshot)
+        self.sampler:TimeSampler = sampler
 
         # record crawling footprint
         self.__visit: Dict[int, int] = {}
@@ -115,18 +117,23 @@ class MemorySnapshotCrawler(object):
         self.__handle_address_map: Dict[int, int] = {}
 
     def crawl(self):
+        self.sampler.begin('crawl')
         self.init_managed_types()
         self.init_native_connections()
         self.crawl_handles()
         self.crawl_static()
+        self.sampler.end()
 
     def init_managed_types(self):
+        self.sampler.begin('init_managed_types')
         managed_types = self.snapshot.typeDescriptions
         for n in range(len(managed_types)):
             mt = managed_types[n]
             mt.isUnityEngineObjectType = self.is_subclass_of_managed_type(mt, self.__mt_index.unityengine_Object)
+        self.sampler.end()
 
     def init_native_connections(self, exclude_native: bool = False):
+        self.sampler.begin('init_native_connections')
         managed_start = 0
         managed_stop = managed_start + len(self.snapshot.gcHandles)
         native_start = managed_start + managed_stop
@@ -146,6 +153,7 @@ class MemorySnapshotCrawler(object):
             managed_connections.append(connection)
             self.try_accept_connection(connection=connection, from_native=True)
         self.joint_bridges = managed_connections
+        self.sampler.end()
 
     def try_accept_connection(self, connection: JointBridge, from_native: bool = False):
         if connection.src >= 0 and not from_native:
@@ -495,12 +503,15 @@ class MemorySnapshotCrawler(object):
                 dive_type.baseOrElementTypeIndex] if dive_type.baseOrElementTypeIndex >= 0 else None
 
     def crawl_handles(self):
+        self.sampler.begin('crawl_handles')
         for item in self.snapshot.gcHandles:
             self.crawl_managed_entry_address(address=item.target,
                                              joint=ActiveJoint(handle_index=item.gcHandleArrayIndex),
                                              memory_reader=self.heap_memory, type=None)
+        self.sampler.end()
 
     def crawl_static(self):
+        self.sampler.begin('crawl_static')
         managed_types = self.snapshot.typeDescriptions
         static_reader = StaticFieldReader(snapshot=self.snapshot)
         for mt in managed_types:
@@ -524,3 +535,4 @@ class MemorySnapshotCrawler(object):
                                                  joint=ActiveJoint(object_type_index=mt.typeIndex,
                                                                    field_index=field.fieldSlotIndex,
                                                                    field_type_index=field.typeIndex, is_static=True))
+        self.sampler.end()

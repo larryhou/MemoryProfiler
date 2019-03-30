@@ -3,6 +3,7 @@ from typing import Tuple, List
 import os
 import os.path as p
 from .crawler import *
+from .perf import TimeSampler
 
 
 class CacheStorage(object):
@@ -56,7 +57,8 @@ class CacheStorage(object):
 
 
 class CrawlerCache(object):
-    def __init__(self):
+    def __init__(self, sampler:TimeSampler):
+        self.sampler:TimeSampler = sampler
         self.storage: CacheStorage = None
         self.uuid: str = ''
 
@@ -98,6 +100,7 @@ class CrawlerCache(object):
         self.storage = storage
 
     def save(self, crawler: MemorySnapshotCrawler):
+        self.sampler.begin('cache_save')
         self.__init_database_creation(uuid=crawler.snapshot.uuid)
         joint_rows = []
         bridge_rows = []
@@ -122,21 +125,33 @@ class CrawlerCache(object):
                 1 if mo.is_value_type else 0, mo.size, mo.native_size, mo.joint.id
             ))
         assert bridge_rows and joint_rows
+        self.sampler.begin('joints')
         self.storage.insert_table(name='joints', records=joint_rows)
+        self.sampler.end()
+        self.sampler.begin('bridges')
         self.storage.insert_table(name='bridges', records=bridge_rows)
+        self.sampler.end()
+        self.sampler.begin('objects')
         self.storage.insert_table(name='objects', records=object_rows)
+        self.sampler.end()
+        self.sampler.begin('commit')
         self.storage.commit(close_sqlite=True)
+        self.sampler.end()
+        self.sampler.end()
 
-    @classmethod
-    def fill(cls, crawler: MemorySnapshotCrawler) -> bool:
+    def fill(self, crawler: MemorySnapshotCrawler) -> bool:
+        self.sampler.begin('cache_load')
         storage = CacheStorage(uuid=crawler.snapshot.uuid, create_mode=False)
         if storage.brand_new: return False
         joint_map = {}
+        self.sampler.begin('joints')
         for item in storage.execute('SELECT * FROM joints ORDER BY id ASC').fetchall():
             joint = ActiveJoint(*item[1:])
             joint.id = item[0]
             joint_map[joint.id] = joint
+        self.sampler.end()
         crawler.managed_objects = []
+        self.sampler.begin('objects')
         for item in storage.execute('SELECT * FROM objects ORDER BY managed_object_index ASC').fetchall():
             mo = UnityManagedObject()
             mo.address, \
@@ -150,6 +165,8 @@ class CrawlerCache(object):
             mo.is_value_type = mo.is_value_type != 0
             mo.joint = joint_map[item[-1]]
             crawler.managed_objects.append(mo)
+        self.sampler.end()
+        self.sampler.begin('bridges')
         for item in storage.execute('SELECT * FROM bridges ORDER BY id ASC').fetchall():
             params = list(item[1:])
             params[-1] = joint_map[params[-1]]
@@ -157,4 +174,6 @@ class CrawlerCache(object):
             bridge.src_kind = BridgeKind(bridge.src_kind)
             bridge.dst_kind = BridgeKind(bridge.dst_kind)
             crawler.try_accept_connection(connection=bridge)
+        self.sampler.end()
+        self.sampler.end()
         return True
