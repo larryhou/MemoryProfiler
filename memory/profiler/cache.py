@@ -17,6 +17,7 @@ class CacheStorage(object):
         if not p.exists(self.__workspace):
             os.makedirs(self.__workspace)
         self.__connection = sqlite3.connect(database=self.__database_filepath)
+        self.__connection.execute('pragma foreign_keys=ON')
         self.__cursor = self.__connection.cursor()
 
     @property
