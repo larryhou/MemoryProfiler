@@ -245,6 +245,7 @@ class ScriptAnalyzer(SnapshotAnalyzer):
         super().__init__()
 
     def analyze(self):
+        self.sampler.begin('ScriptAnalyzer')
         type_stats = {} # type: dict[int, list[int]]
         total_manage_memory = 0
         total_native_memory = 0
@@ -286,6 +287,7 @@ class ScriptAnalyzer(SnapshotAnalyzer):
             ))
         buffer.seek(0)
         print(buffer.read())
+        self.sampler.end()
 
 class DelegateAnalyzer(SnapshotAnalyzer):
     def __init__(self):
