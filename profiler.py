@@ -73,7 +73,7 @@ def main():
     if options.dont_cache or not cache.fill(crawler):
         crawler.crawl()
         cache.save(crawler=crawler)
-    sampler.finish()
+    sampler.done()
 
     if options.missing:
         dump_missing_manged_objects(crawler=crawler)

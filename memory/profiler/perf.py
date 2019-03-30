@@ -56,12 +56,12 @@ class TimeSampler(object):
         del self.__cursor[-1]
         return event_elapse
 
-    def finish(self):
+    def done(self):
         if len(self.__cursor) == 1 and self.__cursor[0] == 0:
             self.end()
 
     def save(self): # type: ()->str
-        self.finish()
+        self.done()
         assert not self.__event_map, self.__event_map
         if not self.__record: return
         bridge_map = {}
@@ -125,7 +125,7 @@ class TimeSampler(object):
         return '{:0%dd}' % digit_count
 
     def summary(self):
-        self.finish()
+        self.done()
         assert not self.__event_map, self.__event_map
         if not self.__record: return
         self.__index_formatter = self.__get_index_formatter(entity_count=len(self.__record))
