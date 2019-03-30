@@ -3,7 +3,7 @@ import os
 import struct
 
 from memory.profiler.cache import CrawlerCache
-from memory.profiler.plugin import *
+from memory.profiler.analyze import *
 from memory.profiler.serialize import MemorySnapshotReader, NativeMemoryRef
 
 
@@ -80,14 +80,15 @@ def main():
     if options.texture_2d:
         dump_texture_2d(reader=reader)
 
-    plugins = [
+    analyzers = [
         ReferenceAnalyzer(),
         TypeMemoryAnalyzer(),
         StringAnalyzer(),
-        StaticAnalyzer()
-    ]  # type: list[AnalyzePlugin]
+        StaticAnalyzer(),
+        ScriptAnalyzer()
+    ]  # type: list[SnapshotAnalyzer]
 
-    for it in plugins:
+    for it in analyzers:
         print('#========== [{}] ==========#'.format(it.__class__.__name__))
         it.setup(crawler=crawler, sampler=sampler)
         it.analyze()

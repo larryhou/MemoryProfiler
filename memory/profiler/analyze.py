@@ -7,7 +7,7 @@ from .crawler import MemorySnapshotCrawler
 from .perf import TimeSampler
 
 
-class AnalyzePlugin(object):
+class SnapshotAnalyzer(object):
     def __init__(self):
         self.crawler: MemorySnapshotCrawler = None
         self.snapshot: PackedMemorySnapshot = None
@@ -30,7 +30,7 @@ class AnalyzePlugin(object):
         pass
 
 
-class ReferenceAnalyzer(AnalyzePlugin):
+class ReferenceAnalyzer(SnapshotAnalyzer):
     def __init__(self):
         super().__init__()
 
@@ -51,7 +51,7 @@ class ReferenceAnalyzer(AnalyzePlugin):
         self.sampler.end()
 
 
-class TypeMemoryAnalyzer(AnalyzePlugin):
+class TypeMemoryAnalyzer(SnapshotAnalyzer):
     def __init__(self):
         super().__init__()
 
@@ -207,7 +207,7 @@ class TypeMemoryAnalyzer(AnalyzePlugin):
         self.sampler.end()
 
 
-class StringAnalyzer(AnalyzePlugin):
+class StringAnalyzer(SnapshotAnalyzer):
     def __init__(self):
         super().__init__()
 
@@ -232,7 +232,7 @@ class StringAnalyzer(AnalyzePlugin):
         self.sampler.end()
 
 
-class StaticAnalyzer(AnalyzePlugin):
+class StaticAnalyzer(SnapshotAnalyzer):
     def __init__(self):
         super().__init__()
 
@@ -240,15 +240,54 @@ class StaticAnalyzer(AnalyzePlugin):
         pass
 
 
-class ScriptAnalyzer(AnalyzePlugin):
+class ScriptAnalyzer(SnapshotAnalyzer):
     def __init__(self):
         super().__init__()
 
     def analyze(self):
-        pass
+        type_stats = {} # type: dict[int, list[int]]
+        total_manage_memory = 0
+        total_native_memory = 0
+        instance_count = 0
+        for mo in self.crawler.managed_objects:
+            if mo.is_value_type: continue
+            if mo.type_index not in type_stats:
+                type_stats[mo.type_index] = [0]*3
+            stats = type_stats[mo.type_index]
+            stats[0] += 1
+            stats[1] += mo.size
+            stats[2] += mo.native_size
+            total_manage_memory += mo.size
+            total_native_memory += mo.native_size
+            instance_count += 1
+        type_indice_by_count = list(type_stats.keys())
+        type_indice_by_memory = list(type_stats.keys())
+        type_indice_by_count.sort(key=functools.cmp_to_key(
+            lambda a, b: -1 if type_stats[a][0] > type_stats[b][0] else 1
+        ))
+        type_indice_by_memory.sort(key=functools.cmp_to_key(
+            lambda a, b: -1 if type_stats[a][1] > type_stats[b][1] else 1
+        ))
+        memory_rank = {}
+        for n in range(len(type_indice_by_memory)):
+            type_index = type_indice_by_memory[n]
+            memory_rank[type_index] = n + 1
+        buffer = io.StringIO()
+        buffer.write('[Script][Summary] instance_count={:,} total_managed_memory={:,} total_native_memory={:,}\n'.format(
+            instance_count, total_manage_memory, total_native_memory
+        ))
+        index_formatter = self.get_index_formatter(len(type_indice_by_count))
+        for n in range(len(type_indice_by_count)):
+            type_index = type_indice_by_count[n]
+            object_type = self.snapshot.typeDescriptions[type_index]
+            stats = type_stats[type_index]
+            buffer.write('[Script]{} name={!r} instance_count={:,} memory_rank={} managed_mameory={:,} native_memory={:,}\n'.format(
+                index_formatter.format(n+1), object_type.name, stats[0], memory_rank[type_index], *stats[1:]
+            ))
+        buffer.seek(0)
+        print(buffer.read())
 
-
-class DelegateAnalyzer(AnalyzePlugin):
+class DelegateAnalyzer(SnapshotAnalyzer):
     def __init__(self):
         super().__init__()
 
