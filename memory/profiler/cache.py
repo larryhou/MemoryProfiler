@@ -142,7 +142,7 @@ class CrawlerCache(object):
             joint_rows.append((
                 joint.id, joint.object_type_index, joint.object_index, joint.object_address, joint.field_type_index,
                 joint.field_index, joint.field_offset, joint.field_address, joint.array_index, joint.handle_index,
-                1 if joint.is_static else 0
+                joint.is_static
             ))
             bridge_rows.append((
                 joint_count, bridge.src, bridge.src_kind.value, bridge.dst, bridge.dst_kind.value, joint.id
@@ -151,7 +151,7 @@ class CrawlerCache(object):
         for mo in crawler.managed_objects:
             object_rows.append((
                 mo.address, mo.type_index, mo.managed_object_index, mo.native_object_index, mo.handle_index,
-                1 if mo.is_value_type else 0, mo.size, mo.native_size, mo.joint.id
+                mo.is_value_type, mo.size, mo.native_size, mo.joint.id
             ))
 
         type_rows = []
