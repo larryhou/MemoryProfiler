@@ -161,8 +161,8 @@ class CrawlerCache(object):
             buffer.seek(0)
             for n in range(len(mt.fields)):
                 field = mt.fields[n]
-                field_id = mt.typeIndex << 8 | n
-                buffer.write(struct.pack('>I', field_id))
+                field_id = mt.typeIndex << 16 | n
+                buffer.write(struct.pack('>Q', field_id))
                 field_rows.append((field_id, field.isStatic, field.name, field.offset, field.typeIndex))
             length = buffer.tell()
             buffer.seek(0)
