@@ -211,6 +211,7 @@ class TypeMemoryAnalyzer(SnapshotAnalyzer):
 
         # memory decending
         native_rows = []
+        rawbytes = io.StringIO()
         type_number_formatter = self.get_index_formatter(len(type_index_set))
         for n in range(len(type_index_set)):
             type_index = type_index_set[n]
@@ -227,7 +228,7 @@ class TypeMemoryAnalyzer(SnapshotAnalyzer):
             for object_index in type_instances:
                 no = native_objects[object_index]
                 buffer.write('{{0x{:08x}:{}|{!r}}},'.format(no.nativeObjectAddress, no.size, no.name))
-                rawbytes.write(struct.pack('>Q', no.nativeObjectAddress))
+                if no.name: rawbytes.write('{};'.format(no.name))
             buffer.seek(buffer.tell() - 1)
             buffer.write('\n')
             buffer.seek(0)
@@ -242,7 +243,7 @@ class TypeMemoryAnalyzer(SnapshotAnalyzer):
             'name TEXT NOT NULL',
             'instance_count INTEGER',
             'native_memory INTEGER',
-            'instances BLOB'
+            'instances TEXT'
         ))
         cache.insert_table('native', records=native_rows)
         self.sampler.end()
@@ -256,6 +257,13 @@ class StringAnalyzer(SnapshotAnalyzer):
 
     def analyze(self):
         self.sampler.begin('StringAnalyzer')
+        cache = CacheStorage(uuid='{}_string'.format(self.snapshot.uuid), create_mode=True)
+        cache.create_table(name='strings', column_schemas=(
+            'id INTEGER PRIMARY KEY',
+            'address INTEGER',
+            'size INTEGER',
+            'data TEXT NOT NULL'
+        ))
         managed_strings = []
         string_type_index = self.crawler.snapshot.managedTypeIndex.system_String
         vm = self.crawler.snapshot.virtualMachineInformation
@@ -268,12 +276,15 @@ class StringAnalyzer(SnapshotAnalyzer):
         import operator
         managed_strings.sort(key=operator.attrgetter('size'))
         index_formatter = self.get_index_formatter(len(managed_strings))
+        string_rows = []
         for n in range(len(managed_strings)):
             mo = managed_strings[n]
             data = self.crawler.heap_memory.read_string(address=mo.address + vm.objectHeaderSize)
             print('[String]{} 0x{:08x}={:,} {!r}'.format(index_formatter.format(n + 1), mo.address, mo.size, data))
+            string_rows.append((n, mo.address, mo.size, data))
+        cache.insert_table('strings', records=string_rows)
+        cache.commit(close_sqlite=True)
         self.sampler.end()
-
 
 class StaticAnalyzer(SnapshotAnalyzer):
     def __init__(self):
@@ -320,6 +331,7 @@ class ScriptAnalyzer(SnapshotAnalyzer):
         buffer.write('[Script][Summary] instance_count={:,} total_managed_memory={:,} total_native_memory={:,}\n'.format(
             instance_count, total_manage_memory, total_native_memory
         ))
+        script_rows = []
         index_formatter = self.get_index_formatter(len(type_indice_by_count))
         for n in range(len(type_indice_by_count)):
             type_index = type_indice_by_count[n]
@@ -328,8 +340,37 @@ class ScriptAnalyzer(SnapshotAnalyzer):
             buffer.write('[Script]{} name={!r} instance_count={:,} memory_rank={} managed_mameory={:,} native_memory={:,}\n'.format(
                 index_formatter.format(n+1), object_type.name, stats[0], memory_rank[type_index], *stats[1:]
             ))
+            script_rows.append((type_index, object_type.name, *stats))
         buffer.seek(0)
         print(buffer.read())
+        cache = CacheStorage('{}_script'.format(self.snapshot.uuid), create_mode=True)
+        cache.create_table('script', column_schemas=(
+            'type_index INTEGER PRIMARY KEY',
+            'name TEXT NOT NULL',
+            'instance_count INTEGER',
+            'managed_memory INTEGER',
+            'native_memory INTEGER'
+        ))
+        cache.insert_table('script', records=script_rows)
+        mono_stats = {}
+        mono_script = self.crawler.snapshot.nativeTypeIndex.MonoScript
+        for no in self.crawler.snapshot.nativeObjects:
+            if not no.nativeTypeArrayIndex == mono_script: continue
+            if not no.name in mono_stats:
+                mono_stats[no.name] = [0]*2
+            stats = mono_stats[no.name]
+            stats[0] += 1
+            stats[1] += no.size
+        mono_rows = []
+        for name, stats in mono_stats.items():
+            mono_rows.append((name, *stats))
+        cache.create_table('mono_script', column_schemas=(
+            'name TEXT NOT NULL PRIMARY KEY',
+            'instance_count INTEGER',
+            'memory INTEGER'
+        ))
+        cache.insert_table('mono_script', records=mono_rows)
+        cache.commit(close_sqlite=True)
         self.sampler.end()
 
 class DelegateAnalyzer(SnapshotAnalyzer):
