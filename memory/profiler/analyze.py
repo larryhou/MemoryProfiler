@@ -159,7 +159,11 @@ class TypeMemoryAnalyzer(SnapshotAnalyzer):
         native_objects = snapshot.nativeObjects
 
         def sort_native_object(a: int, b: int) -> int:
-            return -1 if native_objects[a].size > native_objects[b].size else 1
+            obj_a = native_objects[a]
+            obj_b = native_objects[b]
+            if obj_a.size != obj_b.size:
+                return -1 if obj_a.size > obj_b.size else 1
+            return 1 if obj_a.name > obj_b.name else -1
 
         def sort_native_type(a: int, b: int) -> int:
             type_a = native_type_set[a]
