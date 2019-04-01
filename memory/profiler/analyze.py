@@ -1,10 +1,12 @@
 import functools
 import io
 import math
+import struct
 
 from .core import PackedMemorySnapshot
 from .crawler import MemorySnapshotCrawler
 from .perf import TimeSampler
+from .cache import CacheStorage
 
 
 class SnapshotAnalyzer(object):
@@ -112,6 +114,8 @@ class TypeMemoryAnalyzer(SnapshotAnalyzer):
                 total_manage_memory, total_manage_count, total_native_memory, total_native_count
             ))
         # memory decending
+        rawbytes = io.BytesIO()
+        managed_rows = []
         type_number_formatter = self.get_index_formatter(len(type_index_set))
         for n in range(len(type_index_set)):
             type_index = type_index_set[n]
@@ -126,14 +130,32 @@ class TypeMemoryAnalyzer(SnapshotAnalyzer):
             assert type_instances
             buffer = io.StringIO()
             buffer.write(' ' * 4)
+            rawbytes.seek(0)
             for object_index in type_instances:
                 no = managed_objects[object_index]
                 buffer.write('{{0x{:08x}:{}|{}}},'.format(no.address, no.size, no.native_size))
+                rawbytes.write(struct.pack('>Q', no.address))
             buffer.seek(buffer.tell() - 1)
             buffer.write('\n')
             buffer.seek(0)
             print(buffer.read())
+            position = rawbytes.tell()
+            rawbytes.seek(0)
+            managed_rows.append((
+                type_index, managed_type.name, managed_type.instanceCount, managed_type.managedMemory, managed_type.nativeMemory, managed_type.nativeTypeArrayIndex, rawbytes.read(position)
+            ))
         self.sampler.end()
+        cache = CacheStorage(uuid='{}_memory'.format(snapshot.uuid), create_mode=True)
+        cache.create_table('managed', column_schemas=(
+            'type_index INTEGER PRIMARY KEY',
+            'name TEXT NOT NULL',
+            'instance_count INTEGER',
+            'managed_memory INTEGER',
+            'native_memory INTEGER',
+            'native_type_index INTEGER',
+            'instances BLOB'
+        ))
+        cache.insert_table(name='managed', records=managed_rows)
 
         ######
         # native memory
@@ -188,6 +210,7 @@ class TypeMemoryAnalyzer(SnapshotAnalyzer):
         print('[NativeMemory] total_memory={:,} instance_count={:,}'.format(total_native_memory, total_native_count))
 
         # memory decending
+        native_rows = []
         type_number_formatter = self.get_index_formatter(len(type_index_set))
         for n in range(len(type_index_set)):
             type_index = type_index_set[n]
@@ -200,14 +223,30 @@ class TypeMemoryAnalyzer(SnapshotAnalyzer):
             assert type_instances
             buffer = io.StringIO()
             buffer.write(' ' * 4)
+            rawbytes.seek(0)
             for object_index in type_instances:
                 no = native_objects[object_index]
                 buffer.write('{{0x{:08x}:{}|{!r}}},'.format(no.nativeObjectAddress, no.size, no.name))
+                rawbytes.write(struct.pack('>Q', no.nativeObjectAddress))
             buffer.seek(buffer.tell() - 1)
             buffer.write('\n')
             buffer.seek(0)
             print(buffer.read())
+            position = rawbytes.tell()
+            rawbytes.seek(0)
+            native_rows.append((
+                type_index, native_type.name, native_type.instanceCount, native_type.nativeMemory, rawbytes.read(position)
+            ))
+        cache.create_table('native', column_schemas=(
+            'type_index INTEGER PRIMARY KEY',
+            'name TEXT NOT NULL',
+            'instance_count INTEGER',
+            'native_memory INTEGER',
+            'instances BLOB'
+        ))
+        cache.insert_table('native', records=native_rows)
         self.sampler.end()
+        cache.commit(close_sqlite=True)
         self.sampler.end()
 
 
