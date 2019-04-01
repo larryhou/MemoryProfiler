@@ -73,6 +73,27 @@ class CrawlerCache(object):
     def __init_database_creation(self, uuid: str):
         self.uuid = uuid
         storage = CacheStorage(uuid=uuid, create_mode=True)
+        storage.create_table(name=table_names.types, column_schemas=(
+            'arrayRank INTEGER',
+            'assembly TEXT NOT NULL',
+            'baseOrElementTypeIndex INTEGER',
+            'isArray INTEGER',
+            'isValueType INTEGER',
+            'name TEXT NOT NULL',
+            'size INTEGER',
+            'staticFieldBytes BLOB',
+            'typeIndex INTEGER PRIMARY KEY',
+            'typeInfoAddress INTEGER',
+            'nativeTypeArrayIndex INTEGER',
+            'fields BLOB',
+        ))
+        storage.create_table(name=table_names.fields, column_schemas=(
+            'id INTEGER PRIMARY KEY',
+            'isStatic INTEGER',
+            'name TEXT NOT NULL',
+            'offset INTEGER',
+            'typeIndex INTEGER REFERENCES types (typeIndex)',
+        ))
         storage.create_table(name=table_names.joints, column_schemas=(
             'id INTEGER NOT NULL PRIMARY KEY',
             'object_type_index INTEGER',
@@ -96,7 +117,7 @@ class CrawlerCache(object):
         ))
         storage.create_table(name=table_names.objects, column_schemas=(
             'address INTEGER NOT NULL',
-            'type_index INTEGER',
+            'type_index INTEGER REFERENCES types (typeIndex)',
             'managed_object_index INTEGER NOT NULL PRIMARY KEY',
             'native_object_index INTEGER',
             'handle_index INTEGER',
@@ -104,27 +125,6 @@ class CrawlerCache(object):
             'size INTEGER',
             'native_size INTEGER',
             'joint_id INTEGER REFERENCES joints (id)',
-        ))
-        storage.create_table(name=table_names.types, column_schemas=(
-            'arrayRank INTEGER',
-            'assembly TEXT NOT NULL',
-            'baseOrElementTypeIndex INTEGER',
-            'isArray INTEGER',
-            'isValueType INTEGER',
-            'name TEXT NOT NULL',
-            'size INTEGER',
-            'staticFieldBytes BLOB',
-            'typeIndex INTEGER PRIMARY KEY',
-            'typeInfoAddress INTEGER',
-            'nativeTypeArrayIndex INTEGER',
-            'fields BLOB',
-        ))
-        storage.create_table(name=table_names.fields, column_schemas=(
-            'id INTEGER PRIMARY KEY',
-            'isStatic INTEGER',
-            'name TEXT NOT NULL',
-            'offset INTEGER',
-            'typeIndex INTEGER REFERENCES types (typeIndex)',
         ))
         self.storage = storage
 
@@ -172,6 +172,12 @@ class CrawlerCache(object):
             ))
 
         assert bridge_rows and joint_rows
+        self.sampler.begin(table_names.types)
+        self.storage.insert_table(name=table_names.types, records=type_rows)
+        self.sampler.end()
+        self.sampler.begin(table_names.fields)
+        self.storage.insert_table(name=table_names.fields, records=field_rows)
+        self.sampler.end()
         self.sampler.begin(table_names.joints)
         self.storage.insert_table(name=table_names.joints, records=joint_rows)
         self.sampler.end()
@@ -180,12 +186,6 @@ class CrawlerCache(object):
         self.sampler.end()
         self.sampler.begin(table_names.objects)
         self.storage.insert_table(name=table_names.objects, records=object_rows)
-        self.sampler.end()
-        self.sampler.begin(table_names.types)
-        self.storage.insert_table(name=table_names.types, records=type_rows)
-        self.sampler.end()
-        self.sampler.begin(table_names.fields)
-        self.storage.insert_table(name=table_names.fields, records=field_rows)
         self.sampler.end()
         self.sampler.begin('commit')
         self.storage.commit(close_sqlite=True)
