@@ -1,6 +1,7 @@
 import os
 import os.path as p
 import sqlite3
+import struct
 
 from .crawler import *
 from .perf import TimeSampler
@@ -56,6 +57,12 @@ class CacheStorage(object):
         self.__connection.commit()
         if close_sqlite: self.__connection.close()
 
+class table_names(object):
+    bridges = 'bridges'
+    objects = 'objects'
+    joints = 'joints'
+    fields = 'fields'
+    types = 'types'
 
 class CrawlerCache(object):
     def __init__(self, sampler:TimeSampler):
@@ -66,7 +73,7 @@ class CrawlerCache(object):
     def __init_database_creation(self, uuid: str):
         self.uuid = uuid
         storage = CacheStorage(uuid=uuid, create_mode=True)
-        storage.create_table(name='joints', column_schemas=(
+        storage.create_table(name=table_names.joints, column_schemas=(
             'id INTEGER NOT NULL PRIMARY KEY',
             'object_type_index INTEGER',
             'object_index INTEGER',
@@ -79,7 +86,7 @@ class CrawlerCache(object):
             'handle_index INTEGER',
             'is_static INTEGER'
         ))
-        storage.create_table(name='bridges', column_schemas=(
+        storage.create_table(name=table_names.bridges, column_schemas=(
             'id INTEGER NOT NULL PRIMARY KEY',
             'src INTEGER',
             'src_kind INTEGER',
@@ -87,7 +94,7 @@ class CrawlerCache(object):
             'dst_kind INTEGER',
             'joint_id INTEGER REFERENCES joints (id)',
         ))
-        storage.create_table(name='objects', column_schemas=(
+        storage.create_table(name=table_names.objects, column_schemas=(
             'address INTEGER NOT NULL',
             'type_index INTEGER',
             'managed_object_index INTEGER NOT NULL PRIMARY KEY',
@@ -97,6 +104,27 @@ class CrawlerCache(object):
             'size INTEGER',
             'native_size INTEGER',
             'joint_id INTEGER REFERENCES joints (id)',
+        ))
+        storage.create_table(name=table_names.types, column_schemas=(
+            'arrayRank INTEGER',
+            'assembly TEXT NOT NULL',
+            'baseOrElementTypeIndex INTEGER',
+            'isArray INTEGER',
+            'isValueType INTEGER',
+            'name TEXT NOT NULL',
+            'size INTEGER',
+            'staticFieldBytes BLOB',
+            'typeIndex INTEGER PRIMARY KEY',
+            'typeInfoAddress INTEGER',
+            'nativeTypeArrayIndex INTEGER',
+            'fields BLOB',
+        ))
+        storage.create_table(name=table_names.fields, column_schemas=(
+            'id INTEGER PRIMARY KEY',
+            'isStatic INTEGER',
+            'name TEXT NOT NULL',
+            'offset INTEGER',
+            'typeIndex INTEGER REFERENCES types (typeIndex)',
         ))
         self.storage = storage
 
@@ -125,15 +153,39 @@ class CrawlerCache(object):
                 mo.address, mo.type_index, mo.managed_object_index, mo.native_object_index, mo.handle_index,
                 1 if mo.is_value_type else 0, mo.size, mo.native_size, mo.joint.id
             ))
+
+        type_rows = []
+        field_rows = []
+        buffer = io.BytesIO()
+        for mt in crawler.snapshot.typeDescriptions:
+            buffer.seek(0)
+            for n in range(len(mt.fields)):
+                field = mt.fields[n]
+                field_id = mt.typeIndex << 8 | n
+                buffer.write(struct.pack('>I', field_id))
+                field_rows.append((field_id, field.isStatic, field.name, field.offset, field.typeIndex))
+            length = buffer.tell()
+            buffer.seek(0)
+            type_rows.append((
+                mt.arrayRank, mt.assembly, mt.baseOrElementTypeIndex, mt.isArray, mt.isValueType, mt.name, mt.size,
+                mt.staticFieldBytes, mt.typeIndex, mt.typeInfoAddress, mt.nativeTypeArrayIndex, buffer.read(length)
+            ))
+
         assert bridge_rows and joint_rows
-        self.sampler.begin('joints')
-        self.storage.insert_table(name='joints', records=joint_rows)
+        self.sampler.begin(table_names.joints)
+        self.storage.insert_table(name=table_names.joints, records=joint_rows)
         self.sampler.end()
-        self.sampler.begin('bridges')
-        self.storage.insert_table(name='bridges', records=bridge_rows)
+        self.sampler.begin(table_names.bridges)
+        self.storage.insert_table(name=table_names.bridges, records=bridge_rows)
         self.sampler.end()
-        self.sampler.begin('objects')
-        self.storage.insert_table(name='objects', records=object_rows)
+        self.sampler.begin(table_names.objects)
+        self.storage.insert_table(name=table_names.objects, records=object_rows)
+        self.sampler.end()
+        self.sampler.begin(table_names.types)
+        self.storage.insert_table(name=table_names.types, records=type_rows)
+        self.sampler.end()
+        self.sampler.begin(table_names.fields)
+        self.storage.insert_table(name=table_names.fields, records=field_rows)
         self.sampler.end()
         self.sampler.begin('commit')
         self.storage.commit(close_sqlite=True)
@@ -145,15 +197,15 @@ class CrawlerCache(object):
         storage = CacheStorage(uuid=crawler.snapshot.uuid, create_mode=False)
         if storage.brand_new: return False
         joint_map = {}
-        self.sampler.begin('joints')
-        for item in storage.execute('SELECT * FROM joints ORDER BY id ASC').fetchall():
+        self.sampler.begin(table_names.joints)
+        for item in storage.execute('SELECT * FROM {} ORDER BY id ASC'.format(table_names.joints)).fetchall():
             joint = ActiveJoint(*item[1:])
             joint.id = item[0]
             joint_map[joint.id] = joint
         self.sampler.end()
         crawler.managed_objects = []
-        self.sampler.begin('objects')
-        for item in storage.execute('SELECT * FROM objects ORDER BY managed_object_index ASC').fetchall():
+        self.sampler.begin(table_names.objects)
+        for item in storage.execute('SELECT * FROM {} ORDER BY managed_object_index ASC'.format(table_names.objects)).fetchall():
             mo = UnityManagedObject()
             mo.address, \
             mo.type_index, \
@@ -167,8 +219,8 @@ class CrawlerCache(object):
             mo.joint = joint_map[item[-1]]
             crawler.managed_objects.append(mo)
         self.sampler.end()
-        self.sampler.begin('bridges')
-        for item in storage.execute('SELECT * FROM bridges ORDER BY id ASC').fetchall():
+        self.sampler.begin(table_names.bridges)
+        for item in storage.execute('SELECT * FROM {} ORDER BY id ASC'.format(table_names.bridges)).fetchall():
             params = list(item[1:])
             params[-1] = joint_map[params[-1]]
             bridge = JointBridge(*params)
