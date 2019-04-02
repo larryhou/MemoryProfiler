@@ -61,11 +61,14 @@ if __name__ == '__main__':
     import argparse, sys
     arguments = argparse.ArgumentParser()
     arguments.add_argument('--field-size', '-s', nargs='+', type=int, required=True)
+    arguments.add_argument('--check', '-c', action='store_true')
     arguments.add_argument('--debug', '-d', action='store_true')
     options = arguments.parse_args(sys.argv[1:])
 
+    input_field_sizes = options.field_size
+
     MAX_FIELD_SIZE = 0
-    for field_size in options.field_size:
+    for field_size in input_field_sizes:
         if field_size > MAX_FIELD_SIZE: MAX_FIELD_SIZE = field_size
 
     def align_address(address:int, align:int)->int:
@@ -82,10 +85,13 @@ if __name__ == '__main__':
                 address = align_address(address, size)  # align field
             address += size
         return align_address(address, MAX_FIELD_SIZE)  # align object
+    if options.check:
+        print(get_candidate_memory(input_field_sizes), input_field_sizes)
+        sys.exit()
 
     result = []
     unique_map = {}
-    for candidate in iter(PermutationIterator(items=options.field_size)):
+    for candidate in iter(PermutationIterator(items=input_field_sizes)):
         key = get_candicate_key(candidate)
         if key in unique_map: continue
         unique_map[key] = candidate
