@@ -193,9 +193,9 @@ class CrawlerCache(object):
         self.sampler.end()
 
     def fill(self, crawler: MemorySnapshotCrawler) -> bool:
-        self.sampler.begin('cache_load')
         storage = CacheStorage(uuid=crawler.snapshot.uuid, create_mode=False)
         if storage.brand_new: return False
+        self.sampler.begin('cache_load')
         joint_map = {}
         self.sampler.begin(table_names.joints)
         for item in storage.execute('SELECT * FROM {} ORDER BY id ASC'.format(table_names.joints)).fetchall():
