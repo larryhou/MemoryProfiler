@@ -13,7 +13,7 @@ class PermutationIterator(object):
     def __init__(self, items): # type: (list)->None
         self.__items = items
         self.__size = len(items)
-        assert self.__size >= 3
+        assert self.__size >= 2
         self.__complete = False
         self.__alias = list(range(self.__size))
         self.__first = True
@@ -38,6 +38,10 @@ class PermutationIterator(object):
             items[-1] = items[-2]
             items[-2] = temp
             return self.__transform(columns=items)
+        if self.__size == 2:
+            self.__complete = True
+            raise StopIteration()
+
         index = self.__size - 3
         while index >= 0:
             value = items[index]
