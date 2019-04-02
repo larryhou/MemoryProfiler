@@ -9,6 +9,53 @@ def permuate(array, visit = []): # type: (list[int], list[int])->list[int]
         result += permuate(array=array[:n] + array[n+1:], visit=visit+[item])
     return result
 
+class PermutationIterator(object):
+    def __init__(self, items): # type: (list)->None
+        self.__items = items
+        self.__size = len(items)
+        assert self.__size >= 3
+        self.__columns = list(range(self.__size))
+        self.__complete = False
+        self.__alias = items.copy()
+        self.__first = True
+
+    def __iter__(self):
+        self.__columns = list(range(self.__size))
+        self.__alias = self.__items.copy()
+        self.__first = True
+        self.__complete = False
+        return self
+
+    def __next__(self):
+        if self.__complete: raise StopIteration()
+        if self.__first:
+            self.__first = False
+            return self.__alias
+        items = self.__alias
+        if items[-1] > items[-2]:
+            temp = items[-1]
+            items[-1] = items[-2]
+            items[-2] = temp
+            return items
+        index = self.__size - 3
+        while index >= 0:
+            value = items[index]
+            partial = sorted(items[index:])
+            for n in range(1, len(partial)):
+                if partial[n] > value:
+                    if n != 0:
+                        temp = partial[n]
+                        x = n - 1
+                        while x >= 0:
+                            partial[x + 1] = partial[x]
+                            x -= 1
+                        partial[0] = temp
+                    items[index:] = partial
+                    return items
+            index -= 1
+        if index < 0: self.__complete = True
+        raise StopIteration()
+
 if __name__ == '__main__':
     import argparse, sys
     arguments = argparse.ArgumentParser()
@@ -28,7 +75,7 @@ if __name__ == '__main__':
 
     result = []
     unique_map = {}
-    for candidate in permuate(array=options.field_size):
+    for candidate in iter(PermutationIterator(items=options.field_size)):
         key = get_candicate_key(candidate)
         if key in unique_map: continue
         unique_map[key] = candidate
@@ -44,6 +91,18 @@ if __name__ == '__main__':
     if not options.debug: result = result[:5]
     for size, candidate in result:
         print(size, candidate)
+
+    # iter_count = 0
+    # for rank in iter(PermutationIterator(options.field_size)):
+    #     iter_count += 1
+    #     print('+', iter_count, rank)
+    # level = len(options.field_size)
+    # total_count = 1
+    # while level > 1:
+    #     total_count *= level
+    #     level -= 1
+    # assert iter_count == total_count, 'expect={} but={}'.format(total_count, iter_count)
+
 
 
 
