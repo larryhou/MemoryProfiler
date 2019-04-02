@@ -7,8 +7,12 @@
 //
 
 #include <iostream>
-#include "FieldDescription.h"
-using namespace std;
+#include <vector>
+#include "Models/snapshot.h"
+
+using std::cout;
+using std::endl;
+using std::vector;
 
 int main(int argc, const char * argv[])
 {
@@ -41,5 +45,15 @@ int main(int argc, const char * argv[])
     << " slotIndex=" << (uint64_t)&field.slotIndex - (uint64_t)&field
     << endl;
     
+    cout << "TypeDescription size=" << sizeof(TypeDescription) << endl;
+    
+    vector<FieldDescription*> fieldArray;
+    for (auto i = 0; i < 800000; ++i)
+    {
+        FieldDescription item;
+        fieldArray.push_back(&item);
+    }
+    
+    cout << "field count=" << fieldArray.size() << endl;
     return 0;
 }
