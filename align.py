@@ -64,15 +64,23 @@ if __name__ == '__main__':
     arguments.add_argument('--debug', '-d', action='store_true')
     options = arguments.parse_args(sys.argv[1:])
 
-    max_field_size = 0
+    MAX_FIELD_SIZE = 0
     for field_size in options.field_size:
-        if field_size > max_field_size: max_field_size = field_size
+        if field_size > MAX_FIELD_SIZE: MAX_FIELD_SIZE = field_size
+
+    def align_address(address:int, algin:int)->int:
+        return (address + algin - 1) & (~(algin - 1))
 
     def get_candicate_key(candidate):
         return '_'.join([str(x) for x in candidate])
 
-    def align_address(address:int, algin:int)->int:
-        return (address + algin - 1) & (~(algin - 1))
+    def get_candidate_memory(candidate):
+        address = 0
+        for size in candidate:
+            if address % size != 0:
+                address = align_address(address, size)  # align field
+            address += size
+        return align_address(address, MAX_FIELD_SIZE)  # align object
 
     result = []
     unique_map = {}
@@ -80,12 +88,7 @@ if __name__ == '__main__':
         key = get_candicate_key(candidate)
         if key in unique_map: continue
         unique_map[key] = candidate
-        address = 0
-        for size in candidate:
-            if address % size != 0:
-                address = align_address(address, size) # align field
-            address += size
-        address = align_address(address, max_field_size) # align object
+        address = get_candidate_memory(candidate) # align object
         result.append((address, candidate))
     import operator
     result.sort(key=operator.itemgetter(0))
