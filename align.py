@@ -104,7 +104,7 @@ if __name__ == '__main__':
         print(size, candidate)
 
     # iter_count = 0
-    # for rank in iter(PermutationIterator(options.field_size)):
+    # for rank in iter(PermutationIterator(input_field_sizes)):
     #     iter_count += 1
     #     print('+', iter_count, rank)
     # level = len(options.field_size)
