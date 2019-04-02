@@ -13,6 +13,7 @@ if __name__ == '__main__':
     import argparse, sys
     arguments = argparse.ArgumentParser()
     arguments.add_argument('--field-size', '-s', nargs='+', type=int, required=True)
+    arguments.add_argument('--debug', '-d', action='store_true')
     options = arguments.parse_args(sys.argv[1:])
 
     max_field_size = 0
@@ -40,6 +41,7 @@ if __name__ == '__main__':
         result.append((address, candidate))
     import operator
     result.sort(key=operator.itemgetter(0))
+    if not options.debug: result = result[:5]
     for size, candidate in result:
         print(size, candidate)
 
