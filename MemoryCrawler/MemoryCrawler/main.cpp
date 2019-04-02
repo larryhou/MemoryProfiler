@@ -47,13 +47,20 @@ int main(int argc, const char * argv[])
     
     cout << "TypeDescription size=" << sizeof(TypeDescription) << endl;
     
-    vector<FieldDescription*> fieldArray;
-    for (auto i = 0; i < 800000; ++i)
+    size_t instanceCount = 8000000;
+    auto fieldArray = new FieldDescription[instanceCount];
+    for (auto i = 0; i < instanceCount; ++i)
     {
-        FieldDescription item;
-        fieldArray.push_back(&item);
+        fieldArray[i].typeIndex = i;
     }
     
-    cout << "field count=" << fieldArray.size() << endl;
+    cout << "field count=" << instanceCount
+    << "\nptr = " << &fieldArray
+    << "\n[0] = " << &fieldArray[0]
+    << "\n[1] = " << &fieldArray[1]
+    << "\n[2] = " << &fieldArray[2]
+    << "\n[3] = " << &fieldArray[3]
+    << "\n[4] = " << &*(fieldArray+4)
+    << endl;
     return 0;
 }

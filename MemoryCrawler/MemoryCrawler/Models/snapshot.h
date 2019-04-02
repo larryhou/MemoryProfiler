@@ -6,8 +6,6 @@
 //  Copyright © 2019 larryhou. All rights reserved.
 //
 #include <string>
-#include <vector>
-using std::vector;
 using std::string;
 
 #ifndef snapshot_h
@@ -27,9 +25,9 @@ struct TypeDescription
 {
     int64_t typeInfoAddress;
     string* assembly;
-    vector<FieldDescription>* fields;
+    FieldDescription* fields; // FieldDescription[]
     string* name;
-    const char* staticFieldBytes;
+    const char* staticFieldBytes; // Byte[]
     int32_t arrayRank;
     int32_t baseOrElementTypeIndex;
     int32_t size;
