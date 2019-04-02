@@ -14,29 +14,30 @@ class PermutationIterator(object):
         self.__items = items
         self.__size = len(items)
         assert self.__size >= 3
-        self.__columns = list(range(self.__size))
         self.__complete = False
-        self.__alias = items.copy()
+        self.__alias = list(range(self.__size))
         self.__first = True
 
+    def __transform(self, columns):
+        return [self.__items[x] for x in columns]
+
     def __iter__(self):
-        self.__columns = list(range(self.__size))
-        self.__alias = self.__items.copy()
+        self.__alias = list(range(self.__size))
         self.__first = True
         self.__complete = False
         return self
 
     def __next__(self):
+        items = self.__alias
         if self.__complete: raise StopIteration()
         if self.__first:
             self.__first = False
-            return self.__alias
-        items = self.__alias
+            return self.__transform(columns=items)
         if items[-1] > items[-2]:
             temp = items[-1]
             items[-1] = items[-2]
             items[-2] = temp
-            return items
+            return self.__transform(columns=items)
         index = self.__size - 3
         while index >= 0:
             value = items[index]
@@ -51,7 +52,7 @@ class PermutationIterator(object):
                             x -= 1
                         partial[0] = temp
                     items[index:] = partial
-                    return items
+                    return self.__transform(columns=items)
             index -= 1
         if index < 0: self.__complete = True
         raise StopIteration()
