@@ -68,8 +68,9 @@ if __name__ == '__main__':
     for field_size in options.field_size:
         if field_size > MAX_FIELD_SIZE: MAX_FIELD_SIZE = field_size
 
-    def align_address(address:int, algin:int)->int:
-        return (address + algin - 1) & (~(algin - 1))
+    def align_address(address:int, align:int)->int:
+        size = align - 1
+        return (address + size) & (~size)
 
     def get_candicate_key(candidate):
         return '_'.join([str(x) for x in candidate])
