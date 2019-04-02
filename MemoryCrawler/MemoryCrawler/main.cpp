@@ -14,8 +14,48 @@ using std::cout;
 using std::endl;
 using std::vector;
 
+void checkEndian()
+{
+    int16_t num = 0x01;
+    auto ptr = &num;
+    auto btr = (byte*)ptr;
+    bool isLittleEndian = *btr == 0x01;
+    cout << std::hex << "num=0x" << num
+    << " [0]=0x" << (int)*btr
+    << " [2]=0x" << (int)*(btr+1)
+    << " [3]=0x" << (int)*(btr+2)
+    << " [4]=0x" << (int)*(btr+3)
+    << " isLittleEndian=" << isLittleEndian
+    << endl;
+}
+
+void decodeFloat()
+{
+    int32_t num = 0x4047e313;
+    auto ptr = (float*)&num;
+    cout << std::hex << "float from int32_t bytes=0x" << num << " value=" << *ptr << endl;
+    
+    byte data[4] = {0x13, 0xe3, 0x47, 0x40};
+    ptr = (float*)data;
+    cout << std::hex << "float from byte[4] bytes=0x" << (int)data[0] << " value=" << *ptr << endl;
+}
+
+void decodeDouble()
+{
+    byte data[] = {0x6e, 0xa7, 0x75, 0x67, 0x62, 0xfc, 0x08, 0x40, 0x00};
+    auto ptr = (double *)data;
+    auto asign = (byte *)data;
+    cout << std::hex << "double from byte[8] bytes=0x" << (int)data[0] << " value=" << *ptr
+    << " size=" << sizeof(data) << " ptr_size=" << sizeof(asign)
+    << endl;
+}
+
 int main(int argc, const char * argv[])
 {
+    checkEndian();
+    decodeFloat();
+    decodeDouble();
+    
     // insert code here...
     cout << "Hello, World!\n";
     int intType = 0;
