@@ -19,7 +19,7 @@ using std::ifstream;
 class FileStream
 {
 public:
-    void open();
+    void open(const char* filepath);
     
     size_t tell() const;
     void seek(size_t offset, seekdir_t whence);
@@ -29,11 +29,11 @@ public:
     float readFloat();
     double readDouble();
     
-    string* readString();
-    string* readString(size_t size);
+    string readString();
+    string readString(size_t size);
     
-    string* readUnicodeString();
-    string* readUnicodeString(size_t size);
+    string readUnicodeString();
+    string readUnicodeString(size_t size);
     
     uint64_t readUInt64();
     uint32_t readUInt32();
@@ -47,10 +47,13 @@ public:
     
     bool readBoolean();
     
+    FileStream();
+    
     ~FileStream();
 private:
     size_t position;
-    ifstream* input;
+    ifstream* stream;
+    char buffer[1024*1024];
 };
 
 #endif /* stream_h */
