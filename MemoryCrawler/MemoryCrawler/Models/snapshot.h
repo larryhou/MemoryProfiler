@@ -7,7 +7,9 @@
 //
 #include <string>
 using std::string;
-using byte = unsigned char;
+
+using byte_t = unsigned char;
+using address_t = int64_t;
 
 #ifndef snapshot_h
 #define snapshot_h
@@ -30,15 +32,16 @@ struct FieldDescription
 
 struct TypeDescription
 {
-    int64_t typeInfoAddress;
+    address_t typeInfoAddress;
     string* assembly;
     FieldDescription* fields; // FieldDescription[]
     string* name;
-    const byte* staticFieldBytes; // byte[]
+    const byte_t* staticFieldBytes; // byte[]
     int32_t arrayRank;
     int32_t baseOrElementTypeIndex;
     int32_t size;
     int32_t typeIndex;
+    
     int32_t instanceCount;
     int32_t managedMemory;
     int32_t nativeMemory;
@@ -51,15 +54,15 @@ struct TypeDescription
 
 struct MemorySection
 {
-    int32_t offset;
-    int32_t length;
-    int64_t startAddress;
+    byte_t* bytes;
+    address_t startAddress;
     int32_t heapArrayIndex;
 };
 
 struct PackedGCHandle
 {
     int32_t gcHandleArrayIndex;
+    
     int32_t managedObjectArrayIndex;
 };
 
@@ -71,7 +74,7 @@ struct PackedNativeUnityEngineObject
     bool isManager;
     bool isPersistent;
     string* name;
-    int64_t nativeObjectAddress;
+    address_t nativeObjectAddress;
     int32_t nativeTypeArrayIndex;
     int32_t size;
     
@@ -83,6 +86,7 @@ struct PackedNativeType
 {
     string* name;
     int32_t nativeBaseTypeArrayIndex;
+    
     int32_t typeIndex;
     int32_t managedTypeArrayIndex;
     int32_t instanceCount;
