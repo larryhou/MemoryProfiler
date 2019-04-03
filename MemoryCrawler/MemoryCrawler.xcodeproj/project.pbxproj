@@ -75,8 +75,8 @@
 			children = (
 				6B74B76D2254748200A69BC0 /* stream.cpp */,
 				6B74B76E2254748200A69BC0 /* stream.h */,
-				6B51B439225470A000E05EAE /* snapshot.h */,
 				6B74B77122548A0900A69BC0 /* snapshot.cpp */,
+				6B51B439225470A000E05EAE /* snapshot.h */,
 				6B74B7702254838500A69BC0 /* types.h */,
 			);
 			path = Crawler;
