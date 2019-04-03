@@ -18,6 +18,8 @@ struct Connection
 {
     int32_t from;
     int32_t to;
+    
+    ~Connection() { }
 };
 
 struct FieldDescription
@@ -28,6 +30,8 @@ struct FieldDescription
     int32_t typeIndex;
     int32_t hostTypeIndex;
     string* name;
+    
+    ~FieldDescription() { }
 };
 
 struct TypeDescription
@@ -50,6 +54,12 @@ struct TypeDescription
     bool isArray;
     bool isValueType;
     bool isUnityEngineObjectType;
+    
+    ~TypeDescription()
+    {
+        delete [] fields;
+        delete [] staticFieldBytes;
+    }
 };
 
 struct MemorySection
@@ -57,6 +67,11 @@ struct MemorySection
     byte_t* bytes;
     address_t startAddress;
     int32_t heapArrayIndex;
+    
+    ~MemorySection()
+    {
+        delete [] bytes;
+    }
 };
 
 struct PackedGCHandle
@@ -64,6 +79,8 @@ struct PackedGCHandle
     int32_t gcHandleArrayIndex;
     
     int32_t managedObjectArrayIndex;
+    
+    ~PackedGCHandle() { }
 };
 
 struct PackedNativeUnityEngineObject
@@ -80,6 +97,8 @@ struct PackedNativeUnityEngineObject
     
     int32_t managedObjectArrayIndex;
     int32_t nativeObjectArrayIndex;
+    
+    ~PackedNativeUnityEngineObject() { }
 };
 
 struct PackedNativeType
@@ -91,6 +110,8 @@ struct PackedNativeType
     int32_t managedTypeArrayIndex;
     int32_t instanceCount;
     int32_t nativeMemory;
+    
+    ~PackedNativeType() { }
 };
 
 struct VirtualMachineInformation
@@ -102,6 +123,8 @@ struct VirtualMachineInformation
     int32_t heapFormatVersion;
     int32_t objectHeaderSize;
     int32_t pointerSize;
+    
+    ~VirtualMachineInformation() { }
 };
 
 struct PackedMemorySnapshot
@@ -116,6 +139,17 @@ struct PackedMemorySnapshot
     
     FieldDescription* cached_ptr;
     string* uuid;
+    
+    ~PackedMemorySnapshot()
+    {
+        delete [] connections;
+        delete [] gcHandles;
+        delete [] managedHeapSections;
+        delete [] nativeObjects;
+        delete [] nativeTypes;
+        delete [] typeDescriptions;
+        delete virtualMachineInformation;
+    }
 };
 
 #endif /* snapshot_h */
