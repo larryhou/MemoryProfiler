@@ -8,7 +8,8 @@
 
 #include <iostream>
 #include <vector>
-#include "Models/snapshot.h"
+#include "Headers/snapshot.h"
+#include "Headers/stream.h"
 
 using std::cout;
 using std::endl;
