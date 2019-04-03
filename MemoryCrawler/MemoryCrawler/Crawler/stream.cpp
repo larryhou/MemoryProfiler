@@ -18,6 +18,11 @@ void FileStream::seek(size_t offset, seekdir_t whence)
     
 }
 
+size_t FileStream::tell() const
+{
+    return 0;
+}
+
 float FileStream::readFloat()
 {
     return 0.0;
