@@ -5,21 +5,21 @@
 //  Created by larryhou on 2019/4/2.
 //  Copyright © 2019 larryhou. All rights reserved.
 //
-#include <string>
-using std::string;
-
-using byte_t = unsigned char;
-using address_t = int64_t;
 
 #ifndef snapshot_h
 #define snapshot_h
+
+#include <string>
+#include "types.h"
+
+using std::string;
 
 struct Connection
 {
     int32_t from;
     int32_t to;
     
-    ~Connection() { }
+    ~Connection();
 };
 
 struct FieldDescription
@@ -29,18 +29,18 @@ struct FieldDescription
     int32_t offset;
     int32_t typeIndex;
     int32_t hostTypeIndex;
-    string* name;
+    string *name;
     
-    ~FieldDescription() { }
+    ~FieldDescription();
 };
 
 struct TypeDescription
 {
     address_t typeInfoAddress;
-    string* assembly;
+    string *assembly;
     FieldDescription* fields; // FieldDescription[]
-    string* name;
-    const byte_t* staticFieldBytes; // byte[]
+    string *name;
+    const byte_t *staticFieldBytes; // byte[]
     int32_t arrayRank;
     int32_t baseOrElementTypeIndex;
     int32_t size;
@@ -55,23 +55,16 @@ struct TypeDescription
     bool isValueType;
     bool isUnityEngineObjectType;
     
-    ~TypeDescription()
-    {
-        delete [] fields;
-        delete [] staticFieldBytes;
-    }
+    ~TypeDescription();
 };
 
 struct MemorySection
 {
-    byte_t* bytes;
+    byte_t *bytes; // byte[]
     address_t startAddress;
     int32_t heapArrayIndex;
     
-    ~MemorySection()
-    {
-        delete [] bytes;
-    }
+    ~MemorySection();
 };
 
 struct PackedGCHandle
@@ -80,7 +73,7 @@ struct PackedGCHandle
     
     int32_t managedObjectArrayIndex;
     
-    ~PackedGCHandle() { }
+    ~PackedGCHandle();
 };
 
 struct PackedNativeUnityEngineObject
@@ -90,7 +83,7 @@ struct PackedNativeUnityEngineObject
     bool isDontDestroyOnLoad;
     bool isManager;
     bool isPersistent;
-    string* name;
+    string *name;
     address_t nativeObjectAddress;
     int32_t nativeTypeArrayIndex;
     int32_t size;
@@ -98,12 +91,12 @@ struct PackedNativeUnityEngineObject
     int32_t managedObjectArrayIndex;
     int32_t nativeObjectArrayIndex;
     
-    ~PackedNativeUnityEngineObject() { }
+    ~PackedNativeUnityEngineObject();
 };
 
 struct PackedNativeType
 {
-    string* name;
+    string *name;
     int32_t nativeBaseTypeArrayIndex;
     
     int32_t typeIndex;
@@ -111,7 +104,7 @@ struct PackedNativeType
     int32_t instanceCount;
     int32_t nativeMemory;
     
-    ~PackedNativeType() { }
+    ~PackedNativeType();
 };
 
 struct VirtualMachineInformation
@@ -124,32 +117,23 @@ struct VirtualMachineInformation
     int32_t objectHeaderSize;
     int32_t pointerSize;
     
-    ~VirtualMachineInformation() { }
+    ~VirtualMachineInformation();
 };
 
 struct PackedMemorySnapshot
 {
-    Connection* connections; // Connection[]
-    PackedGCHandle* gcHandles; // PackedGCHandle[]
-    MemorySection* managedHeapSections; // MemorySection[]
-    PackedNativeUnityEngineObject* nativeObjects; // PackedNativeUnityEngineObject[]
-    PackedNativeType* nativeTypes; // PackedNativeType[]
-    TypeDescription* typeDescriptions; // TypeDescription[]
-    VirtualMachineInformation* virtualMachineInformation;
+    Connection *connections; // Connection[]
+    PackedGCHandle *gcHandles; // PackedGCHandle[]
+    MemorySection *managedHeapSections; // MemorySection[]
+    PackedNativeUnityEngineObject *nativeObjects; // PackedNativeUnityEngineObject[]
+    PackedNativeType *nativeTypes; // PackedNativeType[]
+    TypeDescription *typeDescriptions; // TypeDescription[]
+    VirtualMachineInformation *virtualMachineInformation;
     
-    FieldDescription* cached_ptr;
-    string* uuid;
+    FieldDescription *cached_ptr;
+    string *uuid;
     
-    ~PackedMemorySnapshot()
-    {
-        delete [] connections;
-        delete [] gcHandles;
-        delete [] managedHeapSections;
-        delete [] nativeObjects;
-        delete [] nativeTypes;
-        delete [] typeDescriptions;
-        delete virtualMachineInformation;
-    }
+    ~PackedMemorySnapshot();
 };
 
 #endif /* snapshot_h */

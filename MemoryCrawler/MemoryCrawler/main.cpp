@@ -8,8 +8,7 @@
 
 #include <iostream>
 #include <vector>
-#include "Headers/snapshot.h"
-#include "Headers/stream.h"
+#include "Crawler/snapshot.h"
 
 using std::cout;
 using std::endl;
