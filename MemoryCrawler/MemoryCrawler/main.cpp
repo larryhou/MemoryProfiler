@@ -82,7 +82,7 @@ void testStream(const char * filepath)
 
 int main(int argc, const char * argv[])
 {
-    TimeSampler<std::nano> profiler;
+    TimeSampler<> profiler;
     
     profiler.begin("Crawler");
     profiler.begin("argv");

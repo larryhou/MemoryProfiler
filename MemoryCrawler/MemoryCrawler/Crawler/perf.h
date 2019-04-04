@@ -39,7 +39,7 @@ using std::cout;
 // std::ratio<60>
 // std::ratio<3600>
 
-template <class T>
+template <class T = std::micro>
 class TimeSampler
 {
     vector<const char *> __events;
