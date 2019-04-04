@@ -8,6 +8,7 @@
 
 #include <iostream>
 #include <vector>
+#include <ratio>
 #include "Crawler/snapshot.h"
 #include "Crawler/stream.h"
 #include "Crawler/perf.h"
@@ -81,7 +82,8 @@ void testStream(const char * filepath)
 
 int main(int argc, const char * argv[])
 {
-    TimeSampler profiler;
+    TimeSampler<std::nano> profiler;
+    
     profiler.begin("Crawler");
     profiler.begin("argv");
     cout << "argc=" << argc << endl;
