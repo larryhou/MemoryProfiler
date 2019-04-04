@@ -61,6 +61,12 @@
             ReferencedContainer = "container:MemoryCrawler.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
+      <CommandLineArguments>
+         <CommandLineArgument
+            argument = "/Users/larryhou/Documents/MemoryProfiler/__capture/03_language/lobby_cn.pms"
+            isEnabled = "YES">
+         </CommandLineArgument>
+      </CommandLineArguments>
       <AdditionalOptions>
       </AdditionalOptions>
    </LaunchAction>

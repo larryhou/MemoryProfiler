@@ -14,6 +14,9 @@
 #include "types.h"
 
 using std::string;
+using std::u16string;
+using std::u32string;
+
 using std::ifstream;
 
 class FileStream
@@ -29,11 +32,12 @@ public:
     float readFloat();
     double readDouble();
     
+    string readUUID();
     string readString();
     string readString(size_t size);
     
-    string readUnicodeString();
-    string readUnicodeString(size_t size);
+    unicode_t readUnicodeString();
+    unicode_t readUnicodeString(size_t size);
     
     uint64_t readUInt64();
     uint32_t readUInt32();
@@ -45,15 +49,16 @@ public:
     int16_t readInt16();
     int8_t readInt8();
     
+    int32_t swap(int32_t value);
+    
     bool readBoolean();
     
     FileStream();
     
     ~FileStream();
 private:
-    size_t position;
-    ifstream* stream;
-    char buffer[1024*1024];
+    ifstream* __fs;
+    char __buf[64*1024];
 };
 
 #endif /* stream_h */

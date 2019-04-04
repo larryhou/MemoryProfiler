@@ -9,6 +9,7 @@
 #include <iostream>
 #include <vector>
 #include "Crawler/snapshot.h"
+#include "Crawler/stream.h"
 
 using std::cout;
 using std::endl;
@@ -50,7 +51,52 @@ void decodeDouble()
     << endl;
 }
 
+int32_t swap(int32_t value)
+{
+    int32_t v;
+    auto raw = (char *)&value;
+    auto ptr = (char *)&v;
+    ptr[0] = raw[3];
+    ptr[1] = raw[2];
+    ptr[2] = raw[1];
+    ptr[3] = raw[0];
+    return v;
+}
+
+void testStream(const char * filepath)
+{
+    FileStream fs;
+    fs.open(filepath);
+    auto mime = fs.readString(3);
+    cout << "MIME=" << mime << endl
+    << "description=" << fs.readString(swap(fs.readUInt32())) << endl
+    << "unity_version=" << fs.readString(swap(fs.readUInt32())) << endl
+    << "system_version=" << fs.readString(swap(fs.readUInt32())) << endl
+    << "uuid=" << fs.readUUID() << endl;
+    
+    cout << "size=" << swap(fs.readUInt32())
+    << endl;
+}
+
 int main(int argc, const char * argv[])
+{
+    cout << "argc=" << argc << endl;
+    for (auto i = 0; i < argc; i++)
+    {
+        cout << "argv[" << i << "]=" << argv[i] << endl;
+    }
+    cout << "==================" << endl;
+    if (argc > 1)
+    {
+        testStream(argv[1]);
+    }
+    
+//    playground();
+    
+    return 0;
+}
+
+void playground()
 {
     checkEndian();
     decodeFloat();
@@ -66,6 +112,7 @@ int main(int argc, const char * argv[])
     << ", uint=" << sizeof(uintType)
     << ", int64_t=" << sizeof(int64Type)
     << ", int32_t=" << sizeof(int32Type)
+    << ", wchar_t=" << sizeof(char16_t)
     << endl;
     
     FieldDescription field;
@@ -102,5 +149,4 @@ int main(int argc, const char * argv[])
     << "\n[3] = " << &fieldArray[3]
     << "\n[4] = " << &*(fieldArray+4)
     << endl;
-    return 0;
 }
