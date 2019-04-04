@@ -15,7 +15,7 @@ int TimeSampler::begin(const char *event)
     auto sequence = (int)__events.size();
     
     __events.push_back(event);
-    __timestamps.insert(pair<int, int64_t>(sequence, timestamp));
+    __timestamps.insert(pair<int, clocktime_t>(sequence, timestamp));
     
     auto cursorCount = __cursors.size();
     if (cursorCount == 0)
@@ -39,10 +39,10 @@ int64_t TimeSampler::end()
     if (cursorCount == 0) {return 0;}
     
     auto sequence = __cursors[cursorCount - 1];
-    __records.insert(pair<int, int64_t>(sequence, timestamp));
+    __records.insert(pair<int, clocktime_t>(sequence, timestamp));
     __cursors.pop_back();
     
-    return timestamp - __timestamps[sequence];
+    return duration(timestamp, __timestamps[sequence]);
 }
 
 void TimeSampler::summary()
@@ -76,7 +76,8 @@ void TimeSampler::summary()
 
 void TimeSampler::dump(map<int, vector<int>> &connections, int index, const char *indent)
 {
-    printf("%s[%d] %s=%lld\n", indent, index, __events[index], __records.at(index) - __timestamps.at(index));
+    printf("%s[%d] %s=%lld\n", indent, index, __events[index], duration(__records.at(index), __timestamps.at(index)));
+    
     auto iter = connections.find(index);
     if (iter != connections.end())
     {

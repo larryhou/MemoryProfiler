@@ -20,7 +20,9 @@ using std::string;
 using std::map;
 using std::pair;
 
-using std::chrono::system_clock;
+using std::chrono::high_resolution_clock;
+using clocktime_t = std::chrono::time_point<high_resolution_clock>;
+
 using std::cout;
 
 
@@ -28,8 +30,8 @@ class TimeSampler
 {
     vector<const char *> __events;
     
-    map<int, int64_t> __timestamps;
-    map<int, int64_t> __records;
+    map<int, clocktime_t> __timestamps;
+    map<int, clocktime_t> __records;
     
     vector<int> __entities;
     map<int, int> __bridges;
@@ -42,9 +44,14 @@ public:
     void summary();
     
 private:
-    int64_t clock()
+    clocktime_t clock()
     {
-        return system_clock::now().time_since_epoch() / std::chrono::microseconds(1);
+        return high_resolution_clock::now();
+    }
+    
+    int64_t duration(clocktime_t time, clocktime_t base)
+    {
+        return std::chrono::duration_cast<std::chrono::nanoseconds>(time - base).count();
     }
     
     void dump(map<int, vector<int>> &connections, int index, const char *indent);
