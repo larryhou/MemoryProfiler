@@ -43,8 +43,12 @@ public static class CodeGenerator
 		stream.Write(string.Format("void read{0}({0} &item, FileStream &fs)\n", type.Name));
 		stream.Write("{\n");
 		var typeProperties = type.GetProperties();
+		stream.Write(string.Format("    profiler.begin(\"read{0}\");\n", type.Name));
+		stream.Write("    profiler.begin(\"readType\");\n");
 		stream.Write("    auto classType = fs.readString(swap(fs.readUInt32()));\n");
 		stream.Write(string.Format("    assert(endsWith(&classType, &s{0}));\n\n", type.Name));
+		stream.Write("    profiler.end();\n\n");
+		stream.Write("    profiler.begin(\"readFields\");\n");
 		stream.Write(string.Format("    auto fieldCount = fs.readUInt8();\n"));
 		stream.Write(string.Format("    assert(fieldCount == {0});\n\n", typeProperties.Length));
 		foreach (var property in typeProperties)
@@ -113,7 +117,10 @@ public static class CodeGenerator
 				stream.Write(string.Format("    item.{0} = new {1};\n", property.Name, property.PropertyType.Name));
 			}
 		}
+		stream.Write("    profiler.end();\n");
+		stream.Write("    profiler.end();\n");
 		stream.Write("}\n\n");
+		
 	}
 }
 }

@@ -157,12 +157,14 @@ void TimeSampler<T>::dump(map<int, vector<int>> &connections, int index, const c
     if (iter != connections.end())
     {
         auto children = iter->second;
+        
+        char nestIndent[strlen(indent) + 4];
+        strcpy(nestIndent, indent);
+        strcat(nestIndent, "    ");
+        
         for (auto i = 0; i < children.size(); i++)
         {
-            char nestIndent[strlen(indent) + 4];
-            strcpy(nestIndent, indent);
-            
-            dump(connections, children[i], strcat(nestIndent, "    "));
+            dump(connections, children[i], nestIndent);
         }
     }
 }
