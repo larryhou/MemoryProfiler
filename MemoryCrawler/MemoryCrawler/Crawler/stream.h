@@ -23,6 +23,9 @@ class FileStream
 {
 public:
     void open(const char* filepath);
+    void close();
+    
+    bool byteAvailable();
     
     size_t tell() const;
     void seek(size_t offset, seekdir_t whence);

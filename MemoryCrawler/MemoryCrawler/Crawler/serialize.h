@@ -27,7 +27,18 @@ public:
     string *systemVersion;
     string *uuid;
     size_t size;
+    int64_t createTime;
     PackedMemorySnapshot *snapshot;
+    
+    void read(const char *filepath);
+    
+    ~MemorySnapshotReader();
+    
+private:
+    void readHeader(FileStream &fs);
+    void readSnapshot(FileStream &fs);
+    void readObject(FileStream &fs);
+    void readArray(FileStream &fs);
 };
 
 #endif /* serialize_h */

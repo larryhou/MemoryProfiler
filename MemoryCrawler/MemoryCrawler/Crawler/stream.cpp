@@ -23,6 +23,16 @@ void FileStream::open(const char* filepath)
     __fs->open(filepath, ifstream::in | ifstream::binary);
 }
 
+void FileStream::close()
+{
+    __fs->close();
+}
+
+bool FileStream::byteAvailable()
+{
+    return !__fs->eof();
+}
+
 void FileStream::seek(size_t offset, seekdir_t whence)
 {
     __fs->seekg(offset, whence);

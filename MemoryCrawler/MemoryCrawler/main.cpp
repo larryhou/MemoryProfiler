@@ -12,25 +12,26 @@
 #include "Crawler/snapshot.h"
 #include "Crawler/stream.h"
 #include "Crawler/perf.h"
+#include "Crawler/serialize.h"
 
 using std::cout;
 using std::endl;
 using std::vector;
 
-void checkEndian()
-{
-    int16_t num = 0x01;
-    auto ptr = &num;
-    auto btr = (byte_t*)ptr;
-    bool isLittleEndian = *btr == 0x01;
-    cout << std::hex << "num=0x" << num
-    << " [0]=0x" << (int)*btr
-    << " [2]=0x" << (int)*(btr+1)
-    << " [3]=0x" << (int)*(btr+2)
-    << " [4]=0x" << (int)*(btr+3)
-    << " isLittleEndian=" << isLittleEndian
-    << endl;
-}
+//void checkEndian()
+//{
+//    int16_t num = 0x01;
+//    auto ptr = &num;
+//    auto btr = (byte_t*)ptr;
+//    bool isLittleEndian = *btr == 0x01;
+//    cout << std::hex << "num=0x" << num
+//    << " [0]=0x" << (int)*btr
+//    << " [2]=0x" << (int)*(btr+1)
+//    << " [3]=0x" << (int)*(btr+2)
+//    << " [4]=0x" << (int)*(btr+3)
+//    << " isLittleEndian=" << isLittleEndian
+//    << endl;
+//}
 
 void decodeFloat()
 {
@@ -53,31 +54,39 @@ void decodeDouble()
     << endl;
 }
 
-int32_t swap(int32_t value)
-{
-    int32_t v;
-    auto raw = (char *)&value;
-    auto ptr = (char *)&v;
-    ptr[0] = raw[3];
-    ptr[1] = raw[2];
-    ptr[2] = raw[1];
-    ptr[3] = raw[0];
-    return v;
-}
+//int32_t swap(int32_t value)
+//{
+//    int32_t v;
+//    auto raw = (char *)&value;
+//    auto ptr = (char *)&v;
+//    ptr[0] = raw[3];
+//    ptr[1] = raw[2];
+//    ptr[2] = raw[1];
+//    ptr[3] = raw[0];
+//    return v;
+//}
 
 void testStream(const char * filepath)
 {
-    FileStream fs;
-    fs.open(filepath);
-    auto mime = fs.readString(3);
-    cout << "MIME=" << mime << endl
-    << "description=" << fs.readString(swap(fs.readUInt32())) << endl
-    << "unity_version=" << fs.readString(swap(fs.readUInt32())) << endl
-    << "system_version=" << fs.readString(swap(fs.readUInt32())) << endl
-    << "uuid=" << fs.readUUID() << endl;
+//    FileStream fs;
+//    fs.open(filepath);
+//    auto mime = fs.readString(3);
+//    cout << "MIME=" << mime << endl
+//    << "description=" << fs.readString(swap(fs.readUInt32())) << endl
+//    << "unity_version=" << fs.readString(swap(fs.readUInt32())) << endl
+//    << "system_version=" << fs.readString(swap(fs.readUInt32())) << endl
+//    << "uuid=" << fs.readUUID() << endl;
+//
+//    cout << "size=" << swap(fs.readUInt32())
+//    << endl;
+//    fs.close();
     
-    cout << "size=" << swap(fs.readUInt32())
-    << endl;
+    MemorySnapshotReader reader;
+    reader.read(filepath);
+    
+    string s("123456");
+    auto iter = s.rbegin();
+    printf("*iter=%c\n",  *iter);
 }
 
 int main(int argc, const char * argv[])
@@ -112,7 +121,7 @@ int main(int argc, const char * argv[])
 
 void playground()
 {
-    checkEndian();
+//    checkEndian();
     decodeFloat();
     decodeDouble();
     
