@@ -10,10 +10,12 @@
 
 int TimeSampler::begin(const char *event)
 {
-    auto sequence = (int)__events.size();
-    __events.push_back(event);
+    auto timestamp = clock();
     
-    __timestamps.insert(pair<int, int64_t>(sequence, clock()));
+    auto sequence = (int)__events.size();
+    
+    __events.push_back(event);
+    __timestamps.insert(pair<int, int64_t>(sequence, timestamp));
     
     auto cursorCount = __cursors.size();
     if (cursorCount == 0)
@@ -31,15 +33,16 @@ int TimeSampler::begin(const char *event)
 
 int64_t TimeSampler::end()
 {
+    auto timestamp = clock();
+    
     auto cursorCount = __cursors.size();
     if (cursorCount == 0) {return 0;}
     
     auto sequence = __cursors[cursorCount - 1];
-    auto timeCost = clock();
-    __records.insert(pair<int, int64_t>(sequence, timeCost));
+    __records.insert(pair<int, int64_t>(sequence, timestamp));
     __cursors.pop_back();
     
-    return timeCost;
+    return timestamp - __timestamps[sequence];
 }
 
 void TimeSampler::summary()
