@@ -9,6 +9,7 @@
 #ifndef types_h
 #define types_h
 #include <ios>
+#include <string>
 
 using byte_t = unsigned char;
 using address_t = int64_t;

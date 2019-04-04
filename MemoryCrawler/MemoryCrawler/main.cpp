@@ -10,6 +10,7 @@
 #include <vector>
 #include "Crawler/snapshot.h"
 #include "Crawler/stream.h"
+#include "Crawler/perf.h"
 
 using std::cout;
 using std::endl;
@@ -80,17 +81,28 @@ void testStream(const char * filepath)
 
 int main(int argc, const char * argv[])
 {
+    TimeSampler profiler;
+    profiler.begin("Crawler");
+    profiler.begin("argv");
     cout << "argc=" << argc << endl;
     for (auto i = 0; i < argc; i++)
     {
         cout << "argv[" << i << "]=" << argv[i] << endl;
     }
+    profiler.end();
+    profiler.begin("serialize");
+    profiler.begin("log");
     cout << "==================" << endl;
+    profiler.end();
     if (argc > 1)
     {
+        profiler.begin("read");
         testStream(argv[1]);
+        profiler.end();
     }
-    
+    profiler.end();
+    profiler.end();
+    profiler.summary();
 //    playground();
     
     return 0;
