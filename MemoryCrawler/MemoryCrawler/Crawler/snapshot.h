@@ -69,6 +69,8 @@ struct MemorySection
 
 struct PackedGCHandle
 {
+    address_t target;
+    
     int32_t gcHandleArrayIndex;
     
     int32_t managedObjectArrayIndex;
@@ -87,6 +89,7 @@ struct PackedNativeUnityEngineObject
     address_t nativeObjectAddress;
     int32_t nativeTypeArrayIndex;
     int32_t size;
+    int32_t classId;
     
     int32_t managedObjectArrayIndex;
     int32_t nativeObjectArrayIndex;
@@ -98,6 +101,7 @@ struct PackedNativeType
 {
     string *name;
     int32_t nativeBaseTypeArrayIndex;
+    int32_t baseClassId;
     
     int32_t typeIndex;
     int32_t managedTypeArrayIndex;

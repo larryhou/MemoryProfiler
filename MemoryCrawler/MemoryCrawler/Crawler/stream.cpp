@@ -43,6 +43,11 @@ size_t FileStream::tell() const
     return __fs->tellg();
 }
 
+void FileStream::read(char *buffer, size_t size)
+{
+    __fs->read(buffer, size);
+}
+
 float FileStream::readFloat()
 {
     __fs->read(__buf, 4);
@@ -148,6 +153,12 @@ unicode_t FileStream::readUnicodeString(size_t size)
     __fs->read(__buf, size << 1);
     unicode_t s((char16_t *)__buf, size);
     return s;
+}
+
+bool FileStream::readBoolean()
+{
+    __fs->read(__buf, 1);
+    return __buf[0] != 0;
 }
 
 int32_t FileStream::swap(int32_t value)

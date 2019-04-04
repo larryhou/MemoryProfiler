@@ -30,7 +30,7 @@ public:
     size_t tell() const;
     void seek(size_t offset, seekdir_t whence);
     
-    byte_t* read(size_t size);
+    void read(char *buffer, size_t size);
     
     float readFloat();
     double readDouble();

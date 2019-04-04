@@ -49,7 +49,7 @@ void MemorySnapshotReader::read(const char *filepath)
         {
             case '0':
                 readSnapshot(*fs);
-                break;
+                return;
             
             default:
                 fs->seek(offset + length, seekdir_t::beg);
@@ -84,62 +84,273 @@ bool endsWith(const string *s, const string *with)
     return true;
 }
 
-static const string sPackedMemorySnapshot("PackedMemorySnapshot");
-static const string sVirtualMachineInformation("VirtualMachineInformation");
-static const string sPackedNativeType("PackedNativeType");
-static const string sPackedNativeUnityEngineObject("PackedNativeUnityEngineObject");
-static const string sPackedGCHandle("PackedGCHandle");
-static const string sMemorySection("MemorySection");
-static const string sTypeDescription("TypeDescription");
-static const string sFieldDescription("FieldDescription");
-static const string sConnection("Connection");
-static const string sArray("[]");
-static const string sByteArray("Byte[]");
-
 void readField(FileStream &fs)
 {
     auto fieldName = fs.readString(swap(fs.readUInt32()));
     auto fieldType = fs.readString(swap(fs.readUInt32()));
-    printf("%s %s\n", fieldType.c_str(), fieldName.c_str());
+//    printf("%s %s\n", fieldType.c_str(), fieldName.c_str());
 }
 
-void readVirtualMachineInformation(VirtualMachineInformation &vm, FileStream &fs)
+//MARK: read object
+static const string sPackedNativeUnityEngineObject("PackedNativeUnityEngineObject");
+void readPackedNativeUnityEngineObject(PackedNativeUnityEngineObject &item, FileStream &fs)
 {
+    auto classType = fs.readString(swap(fs.readUInt32()));
+    assert(endsWith(&classType, &sPackedNativeUnityEngineObject));
+    
     auto fieldCount = fs.readUInt8();
+    assert(fieldCount == 10);
+    
     readField(fs);
-    vm.pointerSize = swap(fs.readInt32());
+    item.isPersistent = swap(fs.readBoolean());
     readField(fs);
-    vm.objectHeaderSize = swap(fs.readInt32());
+    item.isDontDestroyOnLoad = swap(fs.readBoolean());
     readField(fs);
-    vm.arrayHeaderSize = swap(fs.readInt32());
+    item.isManager = swap(fs.readBoolean());
     readField(fs);
-    vm.arrayBoundsOffsetInHeader = swap(fs.readInt32());
+    item.name = new string(fs.readString(swap(fs.readUInt32())));
     readField(fs);
-    vm.arraySizeOffsetInHeader = swap(fs.readInt32());
+    item.instanceId = swap(fs.readInt32());
     readField(fs);
-    vm.allocationGranularity = swap(fs.readInt32());
+    item.size = swap(fs.readInt32());
     readField(fs);
-    vm.heapFormatVersion = swap(fs.readInt32());
+    item.classId = swap(fs.readInt32());
+    readField(fs);
+    item.nativeTypeArrayIndex = swap(fs.readInt32());
+    readField(fs);
+    item.hideFlags = swap(fs.readUInt32());
+    readField(fs);
+    item.nativeObjectAddress = swap(fs.readInt64());
+}
+
+static const string sPackedNativeType("PackedNativeType");
+void readPackedNativeType(PackedNativeType &item, FileStream &fs)
+{
+    auto classType = fs.readString(swap(fs.readUInt32()));
+    assert(endsWith(&classType, &sPackedNativeType));
+    
+    auto fieldCount = fs.readUInt8();
+    assert(fieldCount == 3);
+    
+    readField(fs);
+    item.name = new string(fs.readString(swap(fs.readUInt32())));
+    readField(fs);
+    item.baseClassId = swap(fs.readInt32());
+    readField(fs);
+    item.nativeBaseTypeArrayIndex = swap(fs.readInt32());
+}
+
+static const string sPackedGCHandle("PackedGCHandle");
+void readPackedGCHandle(PackedGCHandle &item, FileStream &fs)
+{
+    auto classType = fs.readString(swap(fs.readUInt32()));
+    assert(endsWith(&classType, &sPackedGCHandle));
+    
+    auto fieldCount = fs.readUInt8();
+    assert(fieldCount == 1);
+    
+    readField(fs);
+    item.target = swap(fs.readUInt64());
+}
+
+static const string sConnection("Connection");
+void readConnection(Connection &item, FileStream &fs)
+{
+    auto classType = fs.readString(swap(fs.readUInt32()));
+    assert(endsWith(&classType, &sConnection));
+    
+    auto fieldCount = fs.readUInt8();
+    assert(fieldCount == 2);
+    
+    readField(fs);
+    item.from = swap(fs.readInt32());
+    readField(fs);
+    item.to = swap(fs.readInt32());
+}
+
+static const string sMemorySection("MemorySection");
+void readMemorySection(MemorySection &item, FileStream &fs)
+{
+    auto classType = fs.readString(swap(fs.readUInt32()));
+    assert(endsWith(&classType, &sMemorySection));
+    
+    auto fieldCount = fs.readUInt8();
+    assert(fieldCount == 2);
+    
+    readField(fs);
+    {
+        auto size = swap(fs.readUInt32());
+        char *data = new char[size];
+        fs.read(data, size);
+        item.bytes = (unsigned char *)data;
+    }
+    readField(fs);
+    item.startAddress = swap(fs.readUInt64());
+}
+
+static const string sFieldDescription("FieldDescription");
+void readFieldDescription(FieldDescription &item, FileStream &fs)
+{
+    auto classType = fs.readString(swap(fs.readUInt32()));
+    assert(endsWith(&classType, &sFieldDescription));
+    
+    auto fieldCount = fs.readUInt8();
+    assert(fieldCount == 4);
+    
+    readField(fs);
+    item.name = new string(fs.readString(swap(fs.readUInt32())));
+    readField(fs);
+    item.offset = swap(fs.readInt32());
+    readField(fs);
+    item.typeIndex = swap(fs.readInt32());
+    readField(fs);
+    item.isStatic = swap(fs.readBoolean());
+}
+
+static const string sTypeDescription("TypeDescription");
+void readTypeDescription(TypeDescription &item, FileStream &fs)
+{
+    auto classType = fs.readString(swap(fs.readUInt32()));
+    assert(endsWith(&classType, &sTypeDescription));
+    
+    auto fieldCount = fs.readUInt8();
+    assert(fieldCount == 11);
+    
+    readField(fs);
+    item.isValueType = swap(fs.readBoolean());
+    readField(fs);
+    item.isArray = swap(fs.readBoolean());
+    readField(fs);
+    item.arrayRank = swap(fs.readInt32());
+    readField(fs);
+    item.name = new string(fs.readString(swap(fs.readUInt32())));
+    readField(fs);
+    item.assembly = new string(fs.readString(swap(fs.readUInt32())));
+    readField(fs);
+    {
+        auto size = swap(fs.readUInt32());
+        item.fields = new FieldDescription[size];
+        for (auto i = 0; i < size; i++)
+        {
+            readFieldDescription(item.fields[i], fs);
+        }
+    }
+    readField(fs);
+    {
+        auto size = swap(fs.readUInt32());
+        char *data = new char[size];
+        fs.read(data, size);
+        item.staticFieldBytes = (unsigned char *)data;
+    }
+    readField(fs);
+    item.baseOrElementTypeIndex = swap(fs.readInt32());
+    readField(fs);
+    item.size = swap(fs.readInt32());
+    readField(fs);
+    item.typeInfoAddress = swap(fs.readUInt64());
+    readField(fs);
+    item.typeIndex = swap(fs.readInt32());
+}
+
+static const string sVirtualMachineInformation("VirtualMachineInformation");
+void readVirtualMachineInformation(VirtualMachineInformation &item, FileStream &fs)
+{
+    auto classType = fs.readString(swap(fs.readUInt32()));
+    assert(endsWith(&classType, &sVirtualMachineInformation));
+    
+    auto fieldCount = fs.readUInt8();
+    assert(fieldCount == 7);
+    
+    readField(fs);
+    item.pointerSize = swap(fs.readInt32());
+    readField(fs);
+    item.objectHeaderSize = swap(fs.readInt32());
+    readField(fs);
+    item.arrayHeaderSize = swap(fs.readInt32());
+    readField(fs);
+    item.arrayBoundsOffsetInHeader = swap(fs.readInt32());
+    readField(fs);
+    item.arraySizeOffsetInHeader = swap(fs.readInt32());
+    readField(fs);
+    item.allocationGranularity = swap(fs.readInt32());
+    readField(fs);
+    item.heapFormatVersion = swap(fs.readInt32());
+}
+
+static const string sPackedMemorySnapshot("PackedMemorySnapshot");
+void readPackedMemorySnapshot(PackedMemorySnapshot &item, FileStream &fs)
+{
+    auto classType = fs.readString(swap(fs.readUInt32()));
+    assert(endsWith(&classType, &sPackedMemorySnapshot));
+    
+    auto fieldCount = fs.readUInt8();
+    assert(fieldCount == 7);
+    
+    readField(fs);
+    {
+        auto size = swap(fs.readUInt32());
+        item.nativeTypes = new PackedNativeType[size];
+        for (auto i = 0; i < size; i++)
+        {
+            readPackedNativeType(item.nativeTypes[i], fs);
+        }
+    }
+    readField(fs);
+    {
+        auto size = swap(fs.readUInt32());
+        item.nativeObjects = new PackedNativeUnityEngineObject[size];
+        for (auto i = 0; i < size; i++)
+        {
+            readPackedNativeUnityEngineObject(item.nativeObjects[i], fs);
+        }
+    }
+    readField(fs);
+    {
+        auto size = swap(fs.readUInt32());
+        item.gcHandles = new PackedGCHandle[size];
+        for (auto i = 0; i < size; i++)
+        {
+            readPackedGCHandle(item.gcHandles[i], fs);
+        }
+    }
+    readField(fs);
+    {
+        auto size = swap(fs.readUInt32());
+        item.connections = new Connection[size];
+        for (auto i = 0; i < size; i++)
+        {
+            readConnection(item.connections[i], fs);
+        }
+    }
+    readField(fs);
+    {
+        auto size = swap(fs.readUInt32());
+        item.managedHeapSections = new MemorySection[size];
+        for (auto i = 0; i < size; i++)
+        {
+            readMemorySection(item.managedHeapSections[i], fs);
+        }
+    }
+    readField(fs);
+    {
+        auto size = swap(fs.readUInt32());
+        item.typeDescriptions = new TypeDescription[size];
+        for (auto i = 0; i < size; i++)
+        {
+            readTypeDescription(item.typeDescriptions[i], fs);
+        }
+    }
+    readField(fs);
+    item.virtualMachineInformation = new VirtualMachineInformation;
 }
 
 void MemorySnapshotReader::readSnapshot(FileStream &fs)
 {
-    readObject(fs);
-}
-
-void MemorySnapshotReader::readObject(FileStream &fs)
-{
-    auto classType = fs.readString(swap(fs.readUInt32()));
-    if (endsWith(&classType, &sVirtualMachineInformation))
-    {
-        vm = new VirtualMachineInformation;
-        readVirtualMachineInformation(*vm, fs);
-    }
-}
-
-void MemorySnapshotReader::readArray(FileStream &fs)
-{
+    vm = new VirtualMachineInformation;
+    readVirtualMachineInformation(*vm, fs);
     
+    snapshot = new PackedMemorySnapshot;
+    readPackedMemorySnapshot(*snapshot, fs);
 }
 
 MemorySnapshotReader::~MemorySnapshotReader()
