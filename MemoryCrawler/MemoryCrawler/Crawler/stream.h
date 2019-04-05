@@ -36,9 +36,16 @@ public:
     double readDouble();
     
     string readUUID();
+    
+    void skipString();
+    void skipString(bool reverseEndian);
+    
     string readString();
     string readString(bool reverseEndian);
     string readString(size_t size);
+    
+    void skipUnicodeString();
+    void skipUnicodeString(bool reverseEndian);
     
     unicode_t readUnicodeString();
     unicode_t readUnicodeString(bool reverseEndian);

@@ -129,6 +129,18 @@ string FileStream::readUUID()
     return s;
 }
 
+void FileStream::skipString()
+{
+    size_t size = readUInt32();
+    seek(size, seekdir_t::cur);
+}
+
+void FileStream::skipString(bool reverseEndian)
+{
+    size_t size = readUInt32(reverseEndian);
+    seek(size, seekdir_t::cur);
+}
+
 string FileStream::readString(bool reverseEndian)
 {
     size_t size = readUInt32(reverseEndian);
@@ -146,6 +158,18 @@ string FileStream::readString(size_t size)
     __fs->read(__buf, size);
     string s(__buf, size);
     return s;
+}
+
+void FileStream::skipUnicodeString()
+{
+    size_t size = readUInt32();
+    seek(size << 1, seekdir_t::cur);
+}
+
+void FileStream::skipUnicodeString(bool reverseEndian)
+{
+    size_t size = readUInt32(reverseEndian);
+    seek(size << 1, seekdir_t::cur);
 }
 
 unicode_t FileStream::readUnicodeString(bool reverseEndian)

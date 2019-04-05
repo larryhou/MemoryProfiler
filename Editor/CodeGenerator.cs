@@ -55,8 +55,17 @@ public static class CodeGenerator
 		var typeProperties = type.GetProperties();
 		if (samplerEnabled) {stream.Write(string.Format("    sampler.begin(\"read{0}\");\n", type.Name));}
 		if (samplerEnabled) {stream.Write("    sampler.begin(\"readType\");\n");}
-		stream.Write("    auto classType = fs.readString(true);\n");
-		stream.Write(string.Format("    assert(endsWith(&classType, &s{0}));\n\n", type.Name));
+
+		if (samplerEnabled)
+		{
+			stream.Write("    auto classType = fs.readString(true);\n");
+			stream.Write(string.Format("    assert(endsWith(&classType, &s{0}));\n\n", type.Name));
+		}
+		else
+		{
+			stream.Write("    fs.skipString(true);\n");
+		}
+		
 		if (samplerEnabled) {stream.Write("    sampler.end();\n\n");}
 		if (samplerEnabled) {stream.Write("    sampler.begin(\"readFields\");\n");}
 		stream.Write(string.Format("    auto fieldCount = fs.readUInt8();\n"));
