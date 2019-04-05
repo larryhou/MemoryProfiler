@@ -10,7 +10,7 @@
 #include "perf.h"
 #include <new>
 
-static TimeSampler<std::micro> sampler;
+static TimeSampler<std::nano> sampler;
 
 void MemorySnapshotReader::read(const char *filepath, bool memoryCache)
 {
