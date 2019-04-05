@@ -19,19 +19,18 @@ void MemorySnapshotReader::read(const char *filepath, bool memoryCache)
     readHeader(*__fs);
     while (__fs->byteAvailable())
     {
-        auto offset = __fs->tell();
         auto length = __fs->readUInt32(true);
         auto type = __fs->readUInt8();
         switch (type)
         {
             case '0':
                 readSnapshot(*__fs);
-                return;
             
             default:
-                __fs->seek(offset + length, seekdir_t::beg);
+                __fs->ignore(length - 5);
                 break;
         }
+        __fs->ignore(8);
     }
 }
 
@@ -71,7 +70,6 @@ void readField(FileStream &fs)
 }
 
 //MARK: read object
-
 static const string sPackedNativeUnityEngineObject("PackedNativeUnityEngineObject");
 void readPackedNativeUnityEngineObject(PackedNativeUnityEngineObject &item, FileStream &fs)
 {
@@ -355,6 +353,7 @@ void readPackedMemorySnapshot(PackedMemorySnapshot &item, FileStream &fs)
     readField(fs);
     sampler.begin("read_virtual_machine_information");
     item.virtualMachineInformation = new VirtualMachineInformation;
+    readVirtualMachineInformation(*item.virtualMachineInformation, fs);
     sampler.end();
     sampler.end();
 }

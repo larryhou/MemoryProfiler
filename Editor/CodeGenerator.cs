@@ -30,8 +30,6 @@ public static class CodeGenerator
 	static void GenerateCPlusPlusCode ()
 	{
 		var stream = new MemoryStream();
-		stream.Write("static TimeSampler<> sampler;\n\n");
-		
 		encode<PackedNativeUnityEngineObject>(stream);
 		encode<PackedNativeType>(stream);
 		encode<PackedGCHandle>(stream);
