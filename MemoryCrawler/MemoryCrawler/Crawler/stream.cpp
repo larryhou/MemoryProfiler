@@ -60,11 +60,11 @@ bool FileStream::byteAvailable()
 
 void FileStream::ignore(size_t size)
 {
-    auto segment = sizeof(__buf);
-    while (size >= segment)
+    auto block = sizeof(__buf);
+    while (size >= block)
     {
-        __is->read(__buf, segment);
-        size -= segment;
+        __is->read(__buf, block);
+        size -= block;
     }
     
     if (size > 0)
