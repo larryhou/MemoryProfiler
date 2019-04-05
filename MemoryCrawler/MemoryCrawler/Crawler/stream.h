@@ -11,6 +11,7 @@
 
 #include <fstream>
 #include <string>
+#include <streambuf>
 #include "types.h"
 
 using std::string;
@@ -19,10 +20,18 @@ using std::u32string;
 
 using std::ifstream;
 
+struct MemoryBuffer: std::streambuf
+{
+    MemoryBuffer(char *begin, char *end)
+    {
+        this->setg(begin, begin, end);
+    }
+};
+
 class FileStream
 {
 public:
-    void open(const char* filepath);
+    void open(const char* filepath, bool memoryCache = false);
     void close();
     
     bool byteAvailable();
@@ -78,8 +87,10 @@ public:
     
     ~FileStream();
 private:
-    ifstream* __fs;
+    std::istream *__is;
+    char *__bytes;
     char __buf[64*1024];
+    MemoryBuffer *__memory;
     
     template <typename T>
     T readValue(int size, bool reverseEndian);
@@ -88,7 +99,7 @@ private:
 template <typename T>
 T FileStream::readValue(int size, bool reverseEndian)
 {
-    __fs->read(__buf, size);
+    __is->read(__buf, size);
     if (!reverseEndian)
     {
         return *(T *)__buf;

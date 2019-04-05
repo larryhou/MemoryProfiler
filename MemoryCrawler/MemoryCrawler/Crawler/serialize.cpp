@@ -10,10 +10,10 @@
 #include "perf.h"
 #include <new>
 
-void MemorySnapshotReader::read(const char *filepath)
+void MemorySnapshotReader::read(const char *filepath, bool memoryCache)
 {
     fs = new FileStream;
-    fs->open(filepath);
+    fs->open(filepath, memoryCache);
     readHeader(*fs);
     while (fs->byteAvailable())
     {

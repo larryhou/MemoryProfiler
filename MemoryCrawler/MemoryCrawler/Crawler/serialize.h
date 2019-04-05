@@ -30,7 +30,7 @@ public:
     int64_t createTime;
     PackedMemorySnapshot *snapshot;
     
-    void read(const char *filepath);
+    void read(const char *filepath, bool memoryCache = false);
     
     ~MemorySnapshotReader();
     
