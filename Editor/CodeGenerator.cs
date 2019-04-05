@@ -16,11 +16,21 @@ namespace Moobyte.MemoryProfiler
 
 public static class CodeGenerator
 {
+	private static bool samplerEnabled = false;
+	
+	[MenuItem("内存/代码/生成C++反序列化代码[性能采样]")]
+	static void GenerateCPlusPlusCodeSampler()
+	{
+		samplerEnabled = true;
+		GenerateCPlusPlusCode();
+		samplerEnabled = false;
+	}
 
 	[MenuItem("内存/代码/生成C++反序列化代码")]
 	static void GenerateCPlusPlusCode ()
 	{
 		var stream = new MemoryStream();
+		stream.Write("static TimeSampler<> sampler;\n\n");
 		
 		encode<PackedNativeUnityEngineObject>(stream);
 		encode<PackedNativeType>(stream);
@@ -43,12 +53,12 @@ public static class CodeGenerator
 		stream.Write(string.Format("void read{0}({0} &item, FileStream &fs)\n", type.Name));
 		stream.Write("{\n");
 		var typeProperties = type.GetProperties();
-		stream.Write(string.Format("    profiler.begin(\"read{0}\");\n", type.Name));
-		stream.Write("    profiler.begin(\"readType\");\n");
+		if (samplerEnabled) {stream.Write(string.Format("    sampler.begin(\"read{0}\");\n", type.Name));}
+		if (samplerEnabled) {stream.Write("    sampler.begin(\"readType\");\n");}
 		stream.Write("    auto classType = fs.readString(true);\n");
 		stream.Write(string.Format("    assert(endsWith(&classType, &s{0}));\n\n", type.Name));
-		stream.Write("    profiler.end();\n\n");
-		stream.Write("    profiler.begin(\"readFields\");\n");
+		if (samplerEnabled) {stream.Write("    sampler.end();\n\n");}
+		if (samplerEnabled) {stream.Write("    sampler.begin(\"readFields\");\n");}
 		stream.Write(string.Format("    auto fieldCount = fs.readUInt8();\n"));
 		stream.Write(string.Format("    assert(fieldCount == {0});\n\n", typeProperties.Length));
 		foreach (var property in typeProperties)
@@ -103,11 +113,13 @@ public static class CodeGenerator
 				}
 				else
 				{
+					if (samplerEnabled) {stream.Write(string.Format("        sampler.begin(\"{0}:{1}\");\n", property.Name, property.PropertyType.Name));}
 					stream.Write(string.Format("        item.{0} = new {1}[size];\n", property.Name, typeName));
 					stream.Write("        for (auto i = 0; i < size; i++)\n");
 					stream.Write("        {\n");
 					stream.Write(string.Format("        	read{0}(item.{1}[i], fs);\n", typeName, property.Name));
 					stream.Write("        }\n");
+					if (samplerEnabled) {stream.Write("        sampler.end();\n");}
 				}
 				
 				stream.Write("    }\n");
@@ -117,8 +129,8 @@ public static class CodeGenerator
 				stream.Write(string.Format("    item.{0} = new {1};\n", property.Name, property.PropertyType.Name));
 			}
 		}
-		stream.Write("    profiler.end();\n");
-		stream.Write("    profiler.end();\n");
+		if (samplerEnabled) {stream.Write("    sampler.end();\n");}
+		if (samplerEnabled) {stream.Write("    sampler.end();\n");}
 		stream.Write("}\n\n");
 		
 	}
