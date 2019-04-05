@@ -9,7 +9,7 @@ class BridgeKind(enum.Enum):
     none, handle, native, managed, static = range(5)
 
 
-class ActiveJoint(object):
+class MemberJoint(object):
     __instance_sequence: int = 0
 
     def __init__(self, object_type_index: int = -1, object_index: int = -1, object_address: int = 0,
@@ -28,13 +28,13 @@ class ActiveJoint(object):
         self.field_address: int = field_address
         self.array_index: int = array_index
         self.is_static = is_static
-        self.id = ActiveJoint.__instance_sequence
-        ActiveJoint.__instance_sequence += 1
+        self.id = MemberJoint.__instance_sequence
+        MemberJoint.__instance_sequence += 1
 
     def clone(self, object_type_index: int = -1, object_index: int = -1, object_address: int = 0,
               field_type_index: int = -1, field_index: int = -1, field_offset: int = -1, field_address: int = 0,
-              array_index: int = -1, handle_index: int = -1) -> 'ActiveJoint':
-        rj = ActiveJoint()
+              array_index: int = -1, handle_index: int = -1) -> 'MemberJoint':
+        rj = MemberJoint()
         rj.handle_index = handle_index if handle_index >= 0 else self.handle_index
         rj.object_type_index = object_type_index if object_type_index >= 0 else self.object_type_index
         rj.object_index = object_index if object_index >= 0 else self.object_index
@@ -55,12 +55,12 @@ class ActiveJoint(object):
 
 
 class JointBridge(object):
-    def __init__(self, src=0, src_kind=BridgeKind.none, dst=0, dst_kind=BridgeKind.none, joint: ActiveJoint = None):
+    def __init__(self, src=0, src_kind=BridgeKind.none, dst=0, dst_kind=BridgeKind.none, joint: MemberJoint = None):
         self.src: int = src
         self.dst: int = dst
         self.src_kind: BridgeKind = src_kind
         self.dst_kind: BridgeKind = dst_kind
-        self.joint: ActiveJoint = joint
+        self.joint: MemberJoint = joint
 
     def __repr__(self):
         return '[JointBridge] from={} from_kind={} to={} to_kind={}'.format(
@@ -78,7 +78,7 @@ class UnityManagedObject(object):
         self.is_value_type: bool = False
         self.size: int = 0
         self.native_size: int = 0
-        self.joint: ActiveJoint = None
+        self.joint: MemberJoint = None
 
     def __repr__(self):
         return '[UnityManagedObject] address={:08x} type_index={} native_object_index={} managed_object_index={} handle_index={} size={} native_size={:,}'.format(
@@ -406,7 +406,7 @@ class MemorySnapshotCrawler(object):
         return not type.isValueType or type.size > 8  # self.vm.pointerSize
 
     def crawl_managed_array_address(self, address: int, type: TypeDescription, memory_reader: HeapReader,
-                                    joint: ActiveJoint, depth: int):
+                                    joint: MemberJoint, depth: int):
         is_static_crawling = isinstance(memory_reader, StaticFieldReader)
         if address < 0 or not is_static_crawling and address == 0: return
         element_type = self.snapshot.typeDescriptions[type.baseOrElementTypeIndex]
@@ -422,7 +422,7 @@ class MemorySnapshotCrawler(object):
                                              joint=joint.clone(array_index=n), depth=depth + 1)
 
     def crawl_managed_entry_address(self, address: int, type: TypeDescription, memory_reader: HeapReader,
-                                    joint: ActiveJoint, is_real_type: bool = False, depth=0):
+                                    joint: MemberJoint, is_real_type: bool = False, depth=0):
         is_static_crawling = isinstance(memory_reader, StaticFieldReader)
         if address < 0 or not is_static_crawling and address == 0: return
         if depth >= 512:
@@ -470,7 +470,7 @@ class MemorySnapshotCrawler(object):
             self.crawl_managed_array_address(address=address, type=entry_type, memory_reader=memory_reader, joint=joint,
                                              depth=depth + 1)
             return
-        mother_joint = ActiveJoint(object_type_index=type_index, object_index=mo.managed_object_index,
+        mother_joint = MemberJoint(object_type_index=type_index, object_index=mo.managed_object_index,
                                    object_address=mo.address)
         dive_type = entry_type
         while dive_type:
@@ -506,7 +506,7 @@ class MemorySnapshotCrawler(object):
         self.sampler.begin('crawl_handles')
         for item in self.snapshot.gcHandles:
             self.crawl_managed_entry_address(address=item.target,
-                                             joint=ActiveJoint(handle_index=item.gcHandleArrayIndex),
+                                             joint=MemberJoint(handle_index=item.gcHandleArrayIndex),
                                              memory_reader=self.heap_memory, type=None)
         self.sampler.end()
 
@@ -532,7 +532,7 @@ class MemorySnapshotCrawler(object):
                         continue
                     memory_reader = self.heap_memory
                 self.crawl_managed_entry_address(address=field_address, type=field_type, memory_reader=memory_reader,
-                                                 joint=ActiveJoint(object_type_index=mt.typeIndex,
+                                                 joint=MemberJoint(object_type_index=mt.typeIndex,
                                                                    field_index=field.fieldSlotIndex,
                                                                    field_type_index=field.typeIndex, is_static=True))
         self.sampler.end()

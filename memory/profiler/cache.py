@@ -199,7 +199,7 @@ class CrawlerCache(object):
         joint_map = {}
         self.sampler.begin(table_names.joints)
         for item in storage.execute('SELECT * FROM {} ORDER BY id ASC'.format(table_names.joints)).fetchall():
-            joint = ActiveJoint(*item[1:])
+            joint = MemberJoint(*item[1:])
             joint.id = item[0]
             joint_map[joint.id] = joint
         self.sampler.end()
