@@ -33,7 +33,10 @@ public:
     void read(char *buffer, size_t size);
     
     float readFloat();
+    float readFloat(bool reverseEndian) { return readValue<float>(4, reverseEndian); }
+    
     double readDouble();
+    double readDouble(bool reverseEndian) { return readValue<double>(8, reverseEndian); }
     
     string readUUID();
     
