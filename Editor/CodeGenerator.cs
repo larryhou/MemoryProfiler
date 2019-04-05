@@ -45,7 +45,7 @@ public static class CodeGenerator
 		var typeProperties = type.GetProperties();
 		stream.Write(string.Format("    profiler.begin(\"read{0}\");\n", type.Name));
 		stream.Write("    profiler.begin(\"readType\");\n");
-		stream.Write("    auto classType = fs.readString(swap(fs.readUInt32()));\n");
+		stream.Write("    auto classType = fs.readString(true);\n");
 		stream.Write(string.Format("    assert(endsWith(&classType, &s{0}));\n\n", type.Name));
 		stream.Write("    profiler.end();\n\n");
 		stream.Write("    profiler.begin(\"readFields\");\n");
@@ -56,37 +56,37 @@ public static class CodeGenerator
 			stream.Write("    readField(fs);\n");
 			if (property.PropertyType == typeof(string))
 			{
-				stream.Write(string.Format("    item.{0} = new string(fs.readString(swap(fs.readUInt32())));\n", property.Name));
+				stream.Write(string.Format("    item.{0} = new string(fs.readString(true));\n", property.Name));
 			}
 			else if (property.PropertyType == typeof(ulong))
 			{
-				stream.Write(string.Format("    item.{0} = swap(fs.readUInt64());\n", property.Name));
+				stream.Write(string.Format("    item.{0} = fs.readUInt64(true);\n", property.Name));
 			}
 			else if (property.PropertyType == typeof(long))
 			{
-				stream.Write(string.Format("    item.{0} = swap(fs.readInt64());\n", property.Name));
+				stream.Write(string.Format("    item.{0} = fs.readInt64(true);\n", property.Name));
 			}
 			else if (property.PropertyType == typeof(int))
 			{
-				stream.Write(string.Format("    item.{0} = swap(fs.readInt32());\n", property.Name));
+				stream.Write(string.Format("    item.{0} = fs.readInt32(true);\n", property.Name));
 			}
 			else if (property.PropertyType == typeof(uint))
 			{
-				stream.Write(string.Format("    item.{0} = swap(fs.readUInt32());\n", property.Name));
+				stream.Write(string.Format("    item.{0} = fs.readUInt32(true);\n", property.Name));
 			}
 			else if (property.PropertyType == typeof(bool))
 			{
-				stream.Write(string.Format("    item.{0} = swap(fs.readBoolean());\n", property.Name));
+				stream.Write(string.Format("    item.{0} = fs.readBoolean();\n", property.Name));
 			}
 			else if (property.PropertyType.IsEnum)
 			{
-				stream.Write(string.Format("    item.{0} = swap(fs.readUInt32());\n", property.Name));
+				stream.Write(string.Format("    item.{0} = fs.readUInt32(true);\n", property.Name));
 			}
 			else if (property.PropertyType.IsArray)
 			{
 				stream.Write("    {\n");
 				
-				stream.Write("        auto size = swap(fs.readUInt32());\n");
+				stream.Write("        auto size = fs.readUInt32(true);\n");
 				var typeName = property.PropertyType.Name.Replace("[]", "");
 				bool isByteArray = false;
 				if (typeName == "Byte")

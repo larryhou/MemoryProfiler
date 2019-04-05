@@ -129,9 +129,15 @@ string FileStream::readUUID()
     return s;
 }
 
+string FileStream::readString(bool reverseEndian)
+{
+    size_t size = readUInt32(reverseEndian);
+    return readString(size);
+}
+
 string FileStream::readString()
 {
-    auto size = readUInt32();
+    size_t size = readUInt32();
     return readString(size);
 }
 
@@ -142,9 +148,15 @@ string FileStream::readString(size_t size)
     return s;
 }
 
+unicode_t FileStream::readUnicodeString(bool reverseEndian)
+{
+    size_t size = readUInt32(reverseEndian);
+    return readUnicodeString(size);
+}
+
 unicode_t FileStream::readUnicodeString()
 {
-    auto size = readUInt32();
+    size_t size = readUInt32();
     return readUnicodeString(size);
 }
 
@@ -159,18 +171,6 @@ bool FileStream::readBoolean()
 {
     __fs->read(__buf, 1);
     return __buf[0] != 0;
-}
-
-int32_t FileStream::swap(int32_t value)
-{
-    int32_t v;
-    auto raw = (char *)&value;
-    auto ptr = (char *)&v;
-    ptr[0] = raw[3];
-    ptr[1] = raw[2];
-    ptr[2] = raw[1];
-    ptr[3] = raw[0];
-    return v;
 }
 
 FileStream::~FileStream()

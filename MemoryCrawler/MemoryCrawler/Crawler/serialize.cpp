@@ -10,32 +10,7 @@
 #include "perf.h"
 #include <new>
 
-static char buffer[8]; // warning: multi-threading
 TimeSampler<> profiler;
-
-template <typename T>
-T swap(T &value, int size)
-{
-    T *v = new(buffer) T;
-    auto ptr = (char *)&value;
-    for (auto i = 0; i < size; i++)
-    {
-        buffer[i] = ptr[size - i - 1];
-    }
-    
-    return *v;
-}
-
-int16_t swap(int16_t value) { return swap<int16_t>(value, 2); }
-int32_t swap(int32_t value) { return swap<int32_t>(value, 4); }
-int64_t swap(int64_t value) { return swap<int64_t>(value, 8); }
-
-uint16_t swap(uint16_t value) { return swap<uint16_t>(value, 2); }
-uint32_t swap(uint32_t value) { return swap<uint32_t>(value, 4); }
-uint64_t swap(uint64_t value) { return swap<uint64_t>(value, 8); }
-
-double swap(double value) { return swap<double>(value, 8); }
-float swap(float value) { return swap<float>(value, 4); }
 
 void MemorySnapshotReader::read(const char *filepath)
 {
@@ -45,7 +20,7 @@ void MemorySnapshotReader::read(const char *filepath)
     while (fs->byteAvailable())
     {
         auto offset = fs->tell();
-        auto length = swap(fs->readUInt32());
+        auto length = fs->readUInt32(true);
         auto type = fs->readUInt8();
         switch (type)
         {
@@ -62,13 +37,13 @@ void MemorySnapshotReader::read(const char *filepath)
 
 void MemorySnapshotReader::readHeader(FileStream &fs)
 {
-    mime = new string(fs.readString(3));
-    description = new string(fs.readString(swap(fs.readUInt32())));
-    unityVersion = new string(fs.readString(swap(fs.readUInt32())));
-    systemVersion = new string(fs.readString(swap(fs.readUInt32())));
+    mime = new string(fs.readString((size_t)3));
+    description = new string(fs.readString(true));
+    unityVersion = new string(fs.readString(true));
+    systemVersion = new string(fs.readString(true));
     uuid = new string(fs.readUUID());
-    size = swap(fs.readUInt32());
-    createTime = swap(fs.readUInt64());
+    size = fs.readUInt32(true);
+    createTime = fs.readUInt64(true);
 }
 
 bool endsWith(const string *s, const string *with)
@@ -88,8 +63,8 @@ bool endsWith(const string *s, const string *with)
 
 void readField(FileStream &fs)
 {
-    auto fieldName = fs.readString(swap(fs.readUInt32()));
-    auto fieldType = fs.readString(swap(fs.readUInt32()));
+    auto fieldName = fs.readString(true);
+    auto fieldType = fs.readString(true);
 //    printf("%s %s\n", fieldType.c_str(), fieldName.c_str());
 }
 
@@ -99,7 +74,7 @@ void readPackedNativeUnityEngineObject(PackedNativeUnityEngineObject &item, File
 {
     profiler.begin("readPackedNativeUnityEngineObject");
     profiler.begin("readType");
-    auto classType = fs.readString(swap(fs.readUInt32()));
+    auto classType = fs.readString(true);
     assert(endsWith(&classType, &sPackedNativeUnityEngineObject));
     
     profiler.end();
@@ -109,25 +84,25 @@ void readPackedNativeUnityEngineObject(PackedNativeUnityEngineObject &item, File
     assert(fieldCount == 10);
     
     readField(fs);
-    item.isPersistent = swap(fs.readBoolean());
+    item.isPersistent = fs.readBoolean();
     readField(fs);
-    item.isDontDestroyOnLoad = swap(fs.readBoolean());
+    item.isDontDestroyOnLoad = fs.readBoolean();
     readField(fs);
-    item.isManager = swap(fs.readBoolean());
+    item.isManager = fs.readBoolean();
     readField(fs);
-    item.name = new string(fs.readString(swap(fs.readUInt32())));
+    item.name = new string(fs.readString(true));
     readField(fs);
-    item.instanceId = swap(fs.readInt32());
+    item.instanceId = fs.readInt32(true);
     readField(fs);
-    item.size = swap(fs.readInt32());
+    item.size = fs.readInt32(true);
     readField(fs);
-    item.classId = swap(fs.readInt32());
+    item.classId = fs.readInt32(true);
     readField(fs);
-    item.nativeTypeArrayIndex = swap(fs.readInt32());
+    item.nativeTypeArrayIndex = fs.readInt32(true);
     readField(fs);
-    item.hideFlags = swap(fs.readUInt32());
+    item.hideFlags = fs.readUInt32(true);
     readField(fs);
-    item.nativeObjectAddress = swap(fs.readInt64());
+    item.nativeObjectAddress = fs.readInt64(true);
     profiler.end();
     profiler.end();
 }
@@ -137,7 +112,7 @@ void readPackedNativeType(PackedNativeType &item, FileStream &fs)
 {
     profiler.begin("readPackedNativeType");
     profiler.begin("readType");
-    auto classType = fs.readString(swap(fs.readUInt32()));
+    auto classType = fs.readString(true);
     assert(endsWith(&classType, &sPackedNativeType));
     
     profiler.end();
@@ -147,11 +122,11 @@ void readPackedNativeType(PackedNativeType &item, FileStream &fs)
     assert(fieldCount == 3);
     
     readField(fs);
-    item.name = new string(fs.readString(swap(fs.readUInt32())));
+    item.name = new string(fs.readString(true));
     readField(fs);
-    item.baseClassId = swap(fs.readInt32());
+    item.baseClassId = fs.readInt32(true);
     readField(fs);
-    item.nativeBaseTypeArrayIndex = swap(fs.readInt32());
+    item.nativeBaseTypeArrayIndex = fs.readInt32(true);
     profiler.end();
     profiler.end();
 }
@@ -161,7 +136,7 @@ void readPackedGCHandle(PackedGCHandle &item, FileStream &fs)
 {
     profiler.begin("readPackedGCHandle");
     profiler.begin("readType");
-    auto classType = fs.readString(swap(fs.readUInt32()));
+    auto classType = fs.readString(true);
     assert(endsWith(&classType, &sPackedGCHandle));
     
     profiler.end();
@@ -171,7 +146,7 @@ void readPackedGCHandle(PackedGCHandle &item, FileStream &fs)
     assert(fieldCount == 1);
     
     readField(fs);
-    item.target = swap(fs.readUInt64());
+    item.target = fs.readUInt64(true);
     profiler.end();
     profiler.end();
 }
@@ -181,7 +156,7 @@ void readConnection(Connection &item, FileStream &fs)
 {
     profiler.begin("readConnection");
     profiler.begin("readType");
-    auto classType = fs.readString(swap(fs.readUInt32()));
+    auto classType = fs.readString(true);
     assert(endsWith(&classType, &sConnection));
     
     profiler.end();
@@ -191,9 +166,9 @@ void readConnection(Connection &item, FileStream &fs)
     assert(fieldCount == 2);
     
     readField(fs);
-    item.from = swap(fs.readInt32());
+    item.from = fs.readInt32(true);
     readField(fs);
-    item.to = swap(fs.readInt32());
+    item.to = fs.readInt32(true);
     profiler.end();
     profiler.end();
 }
@@ -203,7 +178,7 @@ void readMemorySection(MemorySection &item, FileStream &fs)
 {
     profiler.begin("readMemorySection");
     profiler.begin("readType");
-    auto classType = fs.readString(swap(fs.readUInt32()));
+    auto classType = fs.readString(true);
     assert(endsWith(&classType, &sMemorySection));
     
     profiler.end();
@@ -214,13 +189,13 @@ void readMemorySection(MemorySection &item, FileStream &fs)
     
     readField(fs);
     {
-        auto size = swap(fs.readUInt32());
+        auto size = fs.readUInt32(true);
         char *data = new char[size];
         fs.read(data, size);
         item.bytes = (unsigned char *)data;
     }
     readField(fs);
-    item.startAddress = swap(fs.readUInt64());
+    item.startAddress = fs.readUInt64(true);
     profiler.end();
     profiler.end();
 }
@@ -230,7 +205,7 @@ void readFieldDescription(FieldDescription &item, FileStream &fs)
 {
     profiler.begin("readFieldDescription");
     profiler.begin("readType");
-    auto classType = fs.readString(swap(fs.readUInt32()));
+    auto classType = fs.readString(true);
     assert(endsWith(&classType, &sFieldDescription));
     
     profiler.end();
@@ -240,13 +215,13 @@ void readFieldDescription(FieldDescription &item, FileStream &fs)
     assert(fieldCount == 4);
     
     readField(fs);
-    item.name = new string(fs.readString(swap(fs.readUInt32())));
+    item.name = new string(fs.readString(true));
     readField(fs);
-    item.offset = swap(fs.readInt32());
+    item.offset = fs.readInt32(true);
     readField(fs);
-    item.typeIndex = swap(fs.readInt32());
+    item.typeIndex = fs.readInt32(true);
     readField(fs);
-    item.isStatic = swap(fs.readBoolean());
+    item.isStatic = fs.readBoolean();
     profiler.end();
     profiler.end();
 }
@@ -256,7 +231,7 @@ void readTypeDescription(TypeDescription &item, FileStream &fs)
 {
     profiler.begin("readTypeDescription");
     profiler.begin("readType");
-    auto classType = fs.readString(swap(fs.readUInt32()));
+    auto classType = fs.readString(true);
     assert(endsWith(&classType, &sTypeDescription));
     
     profiler.end();
@@ -266,18 +241,18 @@ void readTypeDescription(TypeDescription &item, FileStream &fs)
     assert(fieldCount == 11);
     
     readField(fs);
-    item.isValueType = swap(fs.readBoolean());
+    item.isValueType = fs.readBoolean();
     readField(fs);
-    item.isArray = swap(fs.readBoolean());
+    item.isArray = fs.readBoolean();
     readField(fs);
-    item.arrayRank = swap(fs.readInt32());
+    item.arrayRank = fs.readInt32(true);
     readField(fs);
-    item.name = new string(fs.readString(swap(fs.readUInt32())));
+    item.name = new string(fs.readString(true));
     readField(fs);
-    item.assembly = new string(fs.readString(swap(fs.readUInt32())));
+    item.assembly = new string(fs.readString(true));
     readField(fs);
     {
-        auto size = swap(fs.readUInt32());
+        auto size = fs.readUInt32(true);
         item.fields = new FieldDescription[size];
         for (auto i = 0; i < size; i++)
         {
@@ -286,19 +261,19 @@ void readTypeDescription(TypeDescription &item, FileStream &fs)
     }
     readField(fs);
     {
-        auto size = swap(fs.readUInt32());
+        auto size = fs.readUInt32(true);
         char *data = new char[size];
         fs.read(data, size);
         item.staticFieldBytes = (unsigned char *)data;
     }
     readField(fs);
-    item.baseOrElementTypeIndex = swap(fs.readInt32());
+    item.baseOrElementTypeIndex = fs.readInt32(true);
     readField(fs);
-    item.size = swap(fs.readInt32());
+    item.size = fs.readInt32(true);
     readField(fs);
-    item.typeInfoAddress = swap(fs.readUInt64());
+    item.typeInfoAddress = fs.readUInt64(true);
     readField(fs);
-    item.typeIndex = swap(fs.readInt32());
+    item.typeIndex = fs.readInt32(true);
     profiler.end();
     profiler.end();
 }
@@ -308,7 +283,7 @@ void readVirtualMachineInformation(VirtualMachineInformation &item, FileStream &
 {
     profiler.begin("readVirtualMachineInformation");
     profiler.begin("readType");
-    auto classType = fs.readString(swap(fs.readUInt32()));
+    auto classType = fs.readString(true);
     assert(endsWith(&classType, &sVirtualMachineInformation));
     
     profiler.end();
@@ -318,19 +293,19 @@ void readVirtualMachineInformation(VirtualMachineInformation &item, FileStream &
     assert(fieldCount == 7);
     
     readField(fs);
-    item.pointerSize = swap(fs.readInt32());
+    item.pointerSize = fs.readInt32(true);
     readField(fs);
-    item.objectHeaderSize = swap(fs.readInt32());
+    item.objectHeaderSize = fs.readInt32(true);
     readField(fs);
-    item.arrayHeaderSize = swap(fs.readInt32());
+    item.arrayHeaderSize = fs.readInt32(true);
     readField(fs);
-    item.arrayBoundsOffsetInHeader = swap(fs.readInt32());
+    item.arrayBoundsOffsetInHeader = fs.readInt32(true);
     readField(fs);
-    item.arraySizeOffsetInHeader = swap(fs.readInt32());
+    item.arraySizeOffsetInHeader = fs.readInt32(true);
     readField(fs);
-    item.allocationGranularity = swap(fs.readInt32());
+    item.allocationGranularity = fs.readInt32(true);
     readField(fs);
-    item.heapFormatVersion = swap(fs.readInt32());
+    item.heapFormatVersion = fs.readInt32(true);
     profiler.end();
     profiler.end();
 }
@@ -340,7 +315,7 @@ void readPackedMemorySnapshot(PackedMemorySnapshot &item, FileStream &fs)
 {
     profiler.begin("readPackedMemorySnapshot");
     profiler.begin("readType");
-    auto classType = fs.readString(swap(fs.readUInt32()));
+    auto classType = fs.readString(true);
     assert(endsWith(&classType, &sPackedMemorySnapshot));
     
     profiler.end();
@@ -351,7 +326,7 @@ void readPackedMemorySnapshot(PackedMemorySnapshot &item, FileStream &fs)
     
     readField(fs);
     {
-        auto size = swap(fs.readUInt32());
+        auto size = fs.readUInt32(true);
         item.nativeTypes = new PackedNativeType[size];
         for (auto i = 0; i < size; i++)
         {
@@ -360,7 +335,7 @@ void readPackedMemorySnapshot(PackedMemorySnapshot &item, FileStream &fs)
     }
     readField(fs);
     {
-        auto size = swap(fs.readUInt32());
+        auto size = fs.readUInt32(true);
         item.nativeObjects = new PackedNativeUnityEngineObject[size];
         for (auto i = 0; i < size; i++)
         {
@@ -369,7 +344,7 @@ void readPackedMemorySnapshot(PackedMemorySnapshot &item, FileStream &fs)
     }
     readField(fs);
     {
-        auto size = swap(fs.readUInt32());
+        auto size = fs.readUInt32(true);
         item.gcHandles = new PackedGCHandle[size];
         for (auto i = 0; i < size; i++)
         {
@@ -378,7 +353,7 @@ void readPackedMemorySnapshot(PackedMemorySnapshot &item, FileStream &fs)
     }
     readField(fs);
     {
-        auto size = swap(fs.readUInt32());
+        auto size = fs.readUInt32(true);
         item.connections = new Connection[size];
         for (auto i = 0; i < size; i++)
         {
@@ -387,7 +362,7 @@ void readPackedMemorySnapshot(PackedMemorySnapshot &item, FileStream &fs)
     }
     readField(fs);
     {
-        auto size = swap(fs.readUInt32());
+        auto size = fs.readUInt32(true);
         item.managedHeapSections = new MemorySection[size];
         for (auto i = 0; i < size; i++)
         {
@@ -396,7 +371,7 @@ void readPackedMemorySnapshot(PackedMemorySnapshot &item, FileStream &fs)
     }
     readField(fs);
     {
-        auto size = swap(fs.readUInt32());
+        auto size = fs.readUInt32(true);
         item.typeDescriptions = new TypeDescription[size];
         for (auto i = 0; i < size; i++)
         {
