@@ -203,13 +203,13 @@ string FileStream::readString(size_t size)
 void FileStream::skipUnicodeString()
 {
     size_t size = readUInt32();
-    __is->ignore(size << 1);
+    __is->read(__buf, size << 1);
 }
 
 void FileStream::skipUnicodeString(bool reverseEndian)
 {
     size_t size = readUInt32(reverseEndian);
-    __is->ignore(size << 1);
+    __is->read(__buf, size << 1);
 }
 
 unicode_t FileStream::readUnicodeString(bool reverseEndian)
