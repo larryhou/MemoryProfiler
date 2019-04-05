@@ -28,7 +28,7 @@ struct FieldDescription
     int16_t slotIndex;
     int32_t offset;
     int32_t typeIndex;
-    int32_t hostTypeIndex;
+    int32_t hostTypeIndex = -1;
     string *name;
     
     ~FieldDescription();
@@ -46,10 +46,10 @@ struct TypeDescription
     int32_t size;
     int32_t typeIndex;
     
-    int32_t instanceCount;
-    int32_t managedMemory;
-    int32_t nativeMemory;
-    int32_t nativeTypeArrayIndex;
+    int32_t instanceCount = 0;
+    int32_t managedMemory = 0;
+    int32_t nativeMemory = 0;
+    int32_t nativeTypeArrayIndex = -1;
     
     bool isArray;
     bool isValueType;
@@ -62,7 +62,7 @@ struct MemorySection
 {
     byte_t *bytes; // byte[]
     address_t startAddress;
-    int32_t heapArrayIndex;
+    int32_t heapArrayIndex = -1;
     
     ~MemorySection();
 };
@@ -71,9 +71,8 @@ struct PackedGCHandle
 {
     address_t target;
     
-    int32_t gcHandleArrayIndex;
-    
-    int32_t managedObjectArrayIndex;
+    int32_t gcHandleArrayIndex = -1;
+    int32_t managedObjectArrayIndex = -1;
     
     ~PackedGCHandle();
 };
@@ -91,8 +90,8 @@ struct PackedNativeUnityEngineObject
     int32_t size;
     int32_t classId;
     
-    int32_t managedObjectArrayIndex;
-    int32_t nativeObjectArrayIndex;
+    int32_t managedObjectArrayIndex = -1;
+    int32_t nativeObjectArrayIndex = -1;
     
     ~PackedNativeUnityEngineObject();
 };
@@ -103,10 +102,10 @@ struct PackedNativeType
     int32_t nativeBaseTypeArrayIndex;
     int32_t baseClassId;
     
-    int32_t typeIndex;
-    int32_t managedTypeArrayIndex;
-    int32_t instanceCount;
-    int32_t nativeMemory;
+    int32_t typeIndex = -1;
+    int32_t managedTypeArrayIndex = -1;
+    int32_t instanceCount = 0;
+    int32_t nativeMemory = 0;
     
     ~PackedNativeType();
 };
