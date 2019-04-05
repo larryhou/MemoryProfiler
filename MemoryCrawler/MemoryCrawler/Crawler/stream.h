@@ -41,6 +41,8 @@ public:
     
     void read(char *buffer, size_t size);
     
+    void ignore(size_t size);
+    
     float readFloat();
     float readFloat(bool reverseEndian) { return readValue<float>(4, reverseEndian); }
     

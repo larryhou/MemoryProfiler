@@ -58,6 +58,21 @@ bool FileStream::byteAvailable()
     return !__is->eof();
 }
 
+void FileStream::ignore(size_t size)
+{
+    auto segment = sizeof(__buf);
+    while (size >= segment)
+    {
+        __is->read(__buf, segment);
+        size -= segment;
+    }
+    
+    if (size > 0)
+    {
+        __is->read(__buf, size);
+    }
+}
+
 void FileStream::seek(size_t offset, seekdir_t whence)
 {
     __is->seekg(offset, whence);
@@ -188,13 +203,13 @@ string FileStream::readString(size_t size)
 void FileStream::skipUnicodeString()
 {
     size_t size = readUInt32();
-    __is->read(__buf, size << 1);
+    __is->ignore(size << 1);
 }
 
 void FileStream::skipUnicodeString(bool reverseEndian)
 {
     size_t size = readUInt32(reverseEndian);
-    __is->read(__buf, size << 1);
+    __is->ignore(size << 1);
 }
 
 unicode_t FileStream::readUnicodeString(bool reverseEndian)

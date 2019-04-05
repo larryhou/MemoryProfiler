@@ -16,7 +16,7 @@
 
 class MemorySnapshotReader
 {
-    FileStream *fs;
+    FileStream *__fs;
     VirtualMachineInformation *vm;
     FieldDescription *cachedPtr;
     

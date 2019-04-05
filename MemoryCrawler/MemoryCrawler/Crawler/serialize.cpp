@@ -10,24 +10,26 @@
 #include "perf.h"
 #include <new>
 
+static TimeSampler<std::micro> sampler;
+
 void MemorySnapshotReader::read(const char *filepath, bool memoryCache)
 {
-    fs = new FileStream;
-    fs->open(filepath, memoryCache);
-    readHeader(*fs);
-    while (fs->byteAvailable())
+    __fs = new FileStream;
+    __fs->open(filepath, memoryCache);
+    readHeader(*__fs);
+    while (__fs->byteAvailable())
     {
-        auto offset = fs->tell();
-        auto length = fs->readUInt32(true);
-        auto type = fs->readUInt8();
+        auto offset = __fs->tell();
+        auto length = __fs->readUInt32(true);
+        auto type = __fs->readUInt8();
         switch (type)
         {
             case '0':
-                readSnapshot(*fs);
+                readSnapshot(*__fs);
                 return;
             
             default:
-                fs->seek(offset + length, seekdir_t::beg);
+                __fs->seek(offset + length, seekdir_t::beg);
                 break;
         }
     }
@@ -69,7 +71,6 @@ void readField(FileStream &fs)
 }
 
 //MARK: read object
-static TimeSampler<> sampler;
 
 static const string sPackedNativeUnityEngineObject("PackedNativeUnityEngineObject");
 void readPackedNativeUnityEngineObject(PackedNativeUnityEngineObject &item, FileStream &fs)
@@ -220,33 +221,69 @@ void readTypeDescription(TypeDescription &item, FileStream &fs)
 static const string sVirtualMachineInformation("VirtualMachineInformation");
 void readVirtualMachineInformation(VirtualMachineInformation &item, FileStream &fs)
 {
+    sampler.begin("readVirtualMachineInformation");
+    sampler.begin("read_type");
     fs.skipString(true);
+    sampler.end();
+    sampler.begin("read_field_count");
     auto fieldCount = fs.readUInt8();
+    sampler.end();
+    sampler.begin("assert field_count");
     assert(fieldCount == 7);
+    sampler.end();
     
     readField(fs);
+    sampler.begin("read_pointer_size");
     item.pointerSize = fs.readInt32(true);
+    sampler.end();
+    
     readField(fs);
+    sampler.begin("read_object_header_size");
     item.objectHeaderSize = fs.readInt32(true);
+    sampler.end();
+    
     readField(fs);
+    sampler.begin("read_array_header_size");
     item.arrayHeaderSize = fs.readInt32(true);
+    sampler.end();
+    
     readField(fs);
+    sampler.begin("read_array_bounds_offset_in_header");
     item.arrayBoundsOffsetInHeader = fs.readInt32(true);
+    sampler.end();
+    
     readField(fs);
+    sampler.begin("read_array_size_offset_in_header");
     item.arraySizeOffsetInHeader = fs.readInt32(true);
+    sampler.end();
+    
     readField(fs);
+    sampler.begin("read_allocation_granularity");
     item.allocationGranularity = fs.readInt32(true);
+    sampler.end();
+    
     readField(fs);
+    sampler.begin("read_heap_format_version");
     item.heapFormatVersion = fs.readInt32(true);
+    sampler.end();
+    sampler.end();
 }
 
 static const string sPackedMemorySnapshot("PackedMemorySnapshot");
 void readPackedMemorySnapshot(PackedMemorySnapshot &item, FileStream &fs)
 {
+    sampler.begin("readPackedMemorySnapshot");
+    sampler.begin("read_type");
     fs.skipString(true);
+    sampler.end();
+    sampler.begin("read_field_count");
     auto fieldCount = fs.readUInt8();
+    sampler.end();
+    sampler.begin("assert_field_count");
     assert(fieldCount == 7);
+    sampler.end();
     
+    sampler.begin("read_native_types");
     readField(fs);
     {
         auto size = fs.readUInt32(true);
@@ -256,6 +293,8 @@ void readPackedMemorySnapshot(PackedMemorySnapshot &item, FileStream &fs)
             readPackedNativeType(item.nativeTypes[i], fs);
         }
     }
+    sampler.end();
+    sampler.begin("read_native_objects");
     readField(fs);
     {
         auto size = fs.readUInt32(true);
@@ -265,6 +304,8 @@ void readPackedMemorySnapshot(PackedMemorySnapshot &item, FileStream &fs)
             readPackedNativeUnityEngineObject(item.nativeObjects[i], fs);
         }
     }
+    sampler.end();
+    sampler.begin("read_gc_handles");
     readField(fs);
     {
         auto size = fs.readUInt32(true);
@@ -274,15 +315,22 @@ void readPackedMemorySnapshot(PackedMemorySnapshot &item, FileStream &fs)
             readPackedGCHandle(item.gcHandles[i], fs);
         }
     }
+    sampler.end();
+    sampler.begin("read_connections");
     readField(fs);
     {
         auto size = fs.readUInt32(true);
-        item.connections = new Connection[size];
-        for (auto i = 0; i < size; i++)
-        {
-            readConnection(item.connections[i], fs);
-        }
+        
+        item.connections = new Connection[1];
+        
+        auto offset = fs.tell();
+        readConnection(item.connections[0], fs);
+        auto length = fs.tell() - offset;
+        
+        fs.ignore(length * (size - 1));
     }
+    sampler.end();
+    sampler.begin("read_managed_heap_sections");
     readField(fs);
     {
         auto size = fs.readUInt32(true);
@@ -292,6 +340,8 @@ void readPackedMemorySnapshot(PackedMemorySnapshot &item, FileStream &fs)
             readMemorySection(item.managedHeapSections[i], fs);
         }
     }
+    sampler.end();
+    sampler.begin("read_type_descriptions");
     readField(fs);
     {
         auto size = fs.readUInt32(true);
@@ -301,8 +351,12 @@ void readPackedMemorySnapshot(PackedMemorySnapshot &item, FileStream &fs)
             readTypeDescription(item.typeDescriptions[i], fs);
         }
     }
+    sampler.end();
     readField(fs);
+    sampler.begin("read_virtual_machine_information");
     item.virtualMachineInformation = new VirtualMachineInformation;
+    sampler.end();
+    sampler.end();
 }
 
 void MemorySnapshotReader::readSnapshot(FileStream &fs)
@@ -316,5 +370,6 @@ void MemorySnapshotReader::readSnapshot(FileStream &fs)
 
 MemorySnapshotReader::~MemorySnapshotReader()
 {
-    delete fs;
+    sampler.summary();
+    delete __fs;
 }
