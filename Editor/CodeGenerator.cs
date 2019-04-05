@@ -56,15 +56,7 @@ public static class CodeGenerator
 		if (samplerEnabled) {stream.Write(string.Format("    sampler.begin(\"read{0}\");\n", type.Name));}
 		if (samplerEnabled) {stream.Write("    sampler.begin(\"readType\");\n");}
 
-		if (samplerEnabled)
-		{
-			stream.Write("    auto classType = fs.readString(true);\n");
-			stream.Write(string.Format("    assert(endsWith(&classType, &s{0}));\n\n", type.Name));
-		}
-		else
-		{
-			stream.Write("    fs.skipString(true);\n");
-		}
+		stream.Write("    fs.skipString(true);\n");
 		
 		if (samplerEnabled) {stream.Write("    sampler.end();\n\n");}
 		if (samplerEnabled) {stream.Write("    sampler.begin(\"readFields\");\n");}
