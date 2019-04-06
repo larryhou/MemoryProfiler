@@ -106,19 +106,18 @@ public static class CodeGenerator
 				
 				if (isByteArray)
 				{
-					stream.Write(string.Format("        char *data = new char[size];\n"));
-					stream.Write(string.Format("        fs.read(data, size);\n"));
-					stream.Write(string.Format(string.Format("        item.{0} = (unsigned char *)data;\n", property.Name)));
+					stream.Write(string.Format(string.Format("        item.{0} = new Array<byte_t>(size);\n", property.Name)));
+					stream.Write(string.Format(string.Format("        fs.read((char *)(item.{0}->items), size);\n", property.Name)));
 				}
 				else
 				{
-					if (samplerEnabled) {stream.Write(string.Format("        sampler.begin(\"{0}:{1}\");\n", property.Name, property.PropertyType.Name));}
-					stream.Write(string.Format("        item.{0} = new {1}[size];\n", property.Name, typeName));
+					if (samplerEnabled){stream.Write(string.Format("        sampler.begin(\"{0}:{1}\");\n", property.Name, property.PropertyType.Name));}
+					stream.Write(string.Format("        item.{0} = new Array<{1}>(size);\n", property.Name, typeName));
 					stream.Write("        for (auto i = 0; i < size; i++)\n");
 					stream.Write("        {\n");
-					stream.Write(string.Format("        	read{0}(item.{1}[i], fs);\n", typeName, property.Name));
+					stream.Write(string.Format("        	read{0}(item.{1}->items[i], fs);\n", typeName, property.Name));
 					stream.Write("        }\n");
-					if (samplerEnabled) {stream.Write("        sampler.end();\n");}
+					if (samplerEnabled){stream.Write("        sampler.end();\n");}
 				}
 				
 				stream.Write("    }\n");
@@ -126,6 +125,7 @@ public static class CodeGenerator
 			else
 			{
 				stream.Write(string.Format("    item.{0} = new {1};\n", property.Name, property.PropertyType.Name));
+				stream.Write(string.Format("    read{0}(*item.{1}, fs);\n", property.PropertyType.Name, property.Name));
 			}
 		}
 		if (samplerEnabled) {stream.Write("    sampler.end();\n");}

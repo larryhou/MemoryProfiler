@@ -38,9 +38,9 @@ struct TypeDescription
 {
     address_t typeInfoAddress;
     string *assembly;
-    FieldDescription* fields; // FieldDescription[]
+    Array<FieldDescription>* fields; // FieldDescription[]
     string *name;
-    const byte_t *staticFieldBytes; // byte[]
+    Array<byte_t> *staticFieldBytes; // byte[]
     int32_t arrayRank;
     int32_t baseOrElementTypeIndex;
     int32_t size;
@@ -60,9 +60,10 @@ struct TypeDescription
 
 struct MemorySection
 {
-    byte_t *bytes; // byte[]
+    Array<byte_t> *bytes; // byte[]
     address_t startAddress;
     int32_t heapArrayIndex = -1;
+    int32_t size;
     
     ~MemorySection();
 };
@@ -125,12 +126,12 @@ struct VirtualMachineInformation
 
 struct PackedMemorySnapshot
 {
-    Connection *connections; // Connection[]
-    PackedGCHandle *gcHandles; // PackedGCHandle[]
-    MemorySection *managedHeapSections; // MemorySection[]
-    PackedNativeUnityEngineObject *nativeObjects; // PackedNativeUnityEngineObject[]
-    PackedNativeType *nativeTypes; // PackedNativeType[]
-    TypeDescription *typeDescriptions; // TypeDescription[]
+    Array<Connection> *connections; // Connection[]
+    Array<PackedGCHandle> *gcHandles; // PackedGCHandle[]
+    Array<MemorySection> *managedHeapSections; // MemorySection[]
+    Array<PackedNativeUnityEngineObject> *nativeObjects; // PackedNativeUnityEngineObject[]
+    Array<PackedNativeType> *nativeTypes; // PackedNativeType[]
+    Array<TypeDescription> *typeDescriptions; // TypeDescription[]
     VirtualMachineInformation *virtualMachineInformation;
     
     FieldDescription *cached_ptr;

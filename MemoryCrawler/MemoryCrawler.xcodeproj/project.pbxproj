@@ -12,6 +12,7 @@
 		6B74B76F2254748200A69BC0 /* stream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6B74B76D2254748200A69BC0 /* stream.cpp */; };
 		6B74B77222548A0900A69BC0 /* snapshot.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6B74B77122548A0900A69BC0 /* snapshot.cpp */; };
 		6BCA665022575EE100A4C96A /* crawler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6BCA664F22575EE100A4C96A /* crawler.cpp */; };
+		6BCA665322584B6100A4C96A /* heap.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6BCA665222584B6100A4C96A /* heap.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -39,6 +40,8 @@
 		6B74B77122548A0900A69BC0 /* snapshot.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = snapshot.cpp; sourceTree = "<group>"; };
 		6BCA664E22575EE100A4C96A /* crawler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = crawler.h; sourceTree = "<group>"; };
 		6BCA664F22575EE100A4C96A /* crawler.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = crawler.cpp; sourceTree = "<group>"; };
+		6BCA665122584B6100A4C96A /* heap.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = heap.h; sourceTree = "<group>"; };
+		6BCA665222584B6100A4C96A /* heap.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = heap.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -90,6 +93,8 @@
 				6B5343732255B61C003CDBD0 /* perf.h */,
 				6BCA664E22575EE100A4C96A /* crawler.h */,
 				6BCA664F22575EE100A4C96A /* crawler.cpp */,
+				6BCA665122584B6100A4C96A /* heap.h */,
+				6BCA665222584B6100A4C96A /* heap.cpp */,
 			);
 			path = Crawler;
 			sourceTree = "<group>";
@@ -155,6 +160,7 @@
 				6B0AC7432252FC5D00B58C69 /* main.cpp in Sources */,
 				6B5343722255B43F003CDBD0 /* serialize.cpp in Sources */,
 				6B74B76F2254748200A69BC0 /* stream.cpp in Sources */,
+				6BCA665322584B6100A4C96A /* heap.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

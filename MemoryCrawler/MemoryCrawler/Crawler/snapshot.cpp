@@ -52,12 +52,12 @@ VirtualMachineInformation::~VirtualMachineInformation()
 
 PackedMemorySnapshot::~PackedMemorySnapshot()
 {
-    delete [] connections;
-    delete [] gcHandles;
-    delete [] managedHeapSections;
-    delete [] nativeObjects;
-    delete [] nativeTypes;
-    delete [] typeDescriptions;
+    delete connections;
+    delete gcHandles;
+    delete managedHeapSections;
+    delete nativeObjects;
+    delete nativeTypes;
+    delete typeDescriptions;
     delete virtualMachineInformation;
 }
 

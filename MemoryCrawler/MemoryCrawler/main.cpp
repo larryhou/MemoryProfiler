@@ -13,6 +13,7 @@
 #include "Crawler/stream.h"
 #include "Crawler/perf.h"
 #include "Crawler/serialize.h"
+#include "Crawler/crawler.h"
 
 using std::cout;
 using std::endl;
@@ -89,6 +90,11 @@ void testStream(const char * filepath)
     printf("*iter=%c\n",  *iter);
 }
 
+struct SimpleObject
+{
+    int32_t index;
+};
+
 int main(int argc, const char * argv[])
 {
     TimeSampler<> profiler;
@@ -114,6 +120,26 @@ int main(int argc, const char * argv[])
     profiler.end();
     profiler.end();
     profiler.summary();
+    
+    InstanceManager<SimpleObject> manager(10);
+    for (auto i = 0; i < 100; i++)
+    {
+        SimpleObject &obj = manager.add();
+        obj.index = i;
+    }
+    
+    assert(manager.size() == 100);
+    for (auto i = 0; i < manager.size(); i++)
+    {
+        SimpleObject &obj = manager[i];
+        printf("%d ", obj.index);
+    }
+    printf("\n");
+    
+//    int64_t data[10];
+//    auto ptr = data;
+//    printf("%d %d [0]=%d\n", sizeof(ptr), sizeof(data), *(int *)(ptr-4));
+    
 //    playground();
     
     return 0;

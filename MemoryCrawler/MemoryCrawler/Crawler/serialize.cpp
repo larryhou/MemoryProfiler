@@ -148,9 +148,8 @@ void readMemorySection(MemorySection &item, FileStream &fs)
     readField(fs);
     {
         auto size = fs.readUInt32(true);
-        char *data = new char[size];
-        fs.read(data, size);
-        item.bytes = (unsigned char *)data;
+        item.bytes = new Array<byte_t>(size);
+        fs.read((char *)(item.bytes->items), size);
     }
     readField(fs);
     item.startAddress = fs.readUInt64(true);
@@ -193,18 +192,17 @@ void readTypeDescription(TypeDescription &item, FileStream &fs)
     readField(fs);
     {
         auto size = fs.readUInt32(true);
-        item.fields = new FieldDescription[size];
+        item.fields = new Array<FieldDescription>(size);
         for (auto i = 0; i < size; i++)
         {
-            readFieldDescription(item.fields[i], fs);
+            readFieldDescription(item.fields->items[i], fs);
         }
     }
     readField(fs);
     {
         auto size = fs.readUInt32(true);
-        char *data = new char[size];
-        fs.read(data, size);
-        item.staticFieldBytes = (unsigned char *)data;
+        item.staticFieldBytes = new Array<byte_t>(size);
+        fs.read((char *)(item.staticFieldBytes->items), size);
     }
     readField(fs);
     item.baseOrElementTypeIndex = fs.readInt32(true);
@@ -219,143 +217,90 @@ void readTypeDescription(TypeDescription &item, FileStream &fs)
 static const string sVirtualMachineInformation("VirtualMachineInformation");
 void readVirtualMachineInformation(VirtualMachineInformation &item, FileStream &fs)
 {
-    sampler.begin("readVirtualMachineInformation");
-    sampler.begin("read_type");
     fs.skipString(true);
-    sampler.end();
-    sampler.begin("read_field_count");
     auto fieldCount = fs.readUInt8();
-    sampler.end();
-    sampler.begin("assert field_count");
     assert(fieldCount == 7);
-    sampler.end();
     
     readField(fs);
-    sampler.begin("read_pointer_size");
     item.pointerSize = fs.readInt32(true);
-    sampler.end();
-    
     readField(fs);
-    sampler.begin("read_object_header_size");
     item.objectHeaderSize = fs.readInt32(true);
-    sampler.end();
-    
     readField(fs);
-    sampler.begin("read_array_header_size");
     item.arrayHeaderSize = fs.readInt32(true);
-    sampler.end();
-    
     readField(fs);
-    sampler.begin("read_array_bounds_offset_in_header");
     item.arrayBoundsOffsetInHeader = fs.readInt32(true);
-    sampler.end();
-    
     readField(fs);
-    sampler.begin("read_array_size_offset_in_header");
     item.arraySizeOffsetInHeader = fs.readInt32(true);
-    sampler.end();
-    
     readField(fs);
-    sampler.begin("read_allocation_granularity");
     item.allocationGranularity = fs.readInt32(true);
-    sampler.end();
-    
     readField(fs);
-    sampler.begin("read_heap_format_version");
     item.heapFormatVersion = fs.readInt32(true);
-    sampler.end();
-    sampler.end();
 }
 
 static const string sPackedMemorySnapshot("PackedMemorySnapshot");
 void readPackedMemorySnapshot(PackedMemorySnapshot &item, FileStream &fs)
 {
-    sampler.begin("readPackedMemorySnapshot");
-    sampler.begin("read_type");
     fs.skipString(true);
-    sampler.end();
-    sampler.begin("read_field_count");
     auto fieldCount = fs.readUInt8();
-    sampler.end();
-    sampler.begin("assert_field_count");
     assert(fieldCount == 7);
-    sampler.end();
     
-    sampler.begin("read_native_types");
     readField(fs);
     {
         auto size = fs.readUInt32(true);
-        item.nativeTypes = new PackedNativeType[size];
+        item.nativeTypes = new Array<PackedNativeType>(size);
         for (auto i = 0; i < size; i++)
         {
-            readPackedNativeType(item.nativeTypes[i], fs);
+            readPackedNativeType(item.nativeTypes->items[i], fs);
         }
     }
-    sampler.end();
-    sampler.begin("read_native_objects");
     readField(fs);
     {
         auto size = fs.readUInt32(true);
-        item.nativeObjects = new PackedNativeUnityEngineObject[size];
+        item.nativeObjects = new Array<PackedNativeUnityEngineObject>(size);
         for (auto i = 0; i < size; i++)
         {
-            readPackedNativeUnityEngineObject(item.nativeObjects[i], fs);
+            readPackedNativeUnityEngineObject(item.nativeObjects->items[i], fs);
         }
     }
-    sampler.end();
-    sampler.begin("read_gc_handles");
     readField(fs);
     {
         auto size = fs.readUInt32(true);
-        item.gcHandles = new PackedGCHandle[size];
+        item.gcHandles = new Array<PackedGCHandle>(size);
         for (auto i = 0; i < size; i++)
         {
-            readPackedGCHandle(item.gcHandles[i], fs);
+            readPackedGCHandle(item.gcHandles->items[i], fs);
         }
     }
-    sampler.end();
-    sampler.begin("read_connections");
     readField(fs);
     {
         auto size = fs.readUInt32(true);
-        
-        item.connections = new Connection[1];
-        
-        auto offset = fs.tell();
-        readConnection(item.connections[0], fs);
-        auto length = fs.tell() - offset;
-        
-        fs.ignore(length * (size - 1));
-    }
-    sampler.end();
-    sampler.begin("read_managed_heap_sections");
-    readField(fs);
-    {
-        auto size = fs.readUInt32(true);
-        item.managedHeapSections = new MemorySection[size];
+        item.connections = new Array<Connection>(size);
         for (auto i = 0; i < size; i++)
         {
-            readMemorySection(item.managedHeapSections[i], fs);
+            readConnection(item.connections->items[i], fs);
         }
     }
-    sampler.end();
-    sampler.begin("read_type_descriptions");
     readField(fs);
     {
         auto size = fs.readUInt32(true);
-        item.typeDescriptions = new TypeDescription[size];
+        item.managedHeapSections = new Array<MemorySection>(size);
         for (auto i = 0; i < size; i++)
         {
-            readTypeDescription(item.typeDescriptions[i], fs);
+            readMemorySection(item.managedHeapSections->items[i], fs);
         }
     }
-    sampler.end();
     readField(fs);
-    sampler.begin("read_virtual_machine_information");
+    {
+        auto size = fs.readUInt32(true);
+        item.typeDescriptions = new Array<TypeDescription>(size);
+        for (auto i = 0; i < size; i++)
+        {
+            readTypeDescription(item.typeDescriptions->items[i], fs);
+        }
+    }
+    readField(fs);
     item.virtualMachineInformation = new VirtualMachineInformation;
     readVirtualMachineInformation(*item.virtualMachineInformation, fs);
-    sampler.end();
-    sampler.end();
 }
 
 void MemorySnapshotReader::readSnapshot(FileStream &fs)
@@ -365,6 +310,12 @@ void MemorySnapshotReader::readSnapshot(FileStream &fs)
     
     snapshot = new PackedMemorySnapshot;
     readPackedMemorySnapshot(*snapshot, fs);
+    
+    for (auto i = 0; i < snapshot->managedHeapSections->size; i++)
+    {
+        MemorySection &heap = snapshot->managedHeapSections->items[i];
+        heap.size = heap.bytes->size;
+    }
 }
 
 MemorySnapshotReader::~MemorySnapshotReader()

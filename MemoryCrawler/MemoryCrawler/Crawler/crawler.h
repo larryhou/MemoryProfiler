@@ -11,6 +11,7 @@
 
 #include <vector>
 #include "snapshot.h"
+#include "heap.h"
 
 enum BridgeKind:uint8_t { None, gcHandle, Native, Managed, Static };
 
@@ -25,8 +26,6 @@ struct MemberJoint
     int32_t fieldOffset = 0;
     address_t fieldAddress = 0;
     int32_t arrayIndex = -1;
-    uint32_t uid = 0;
-    
     bool isStatic = false;
 };
 
@@ -37,7 +36,6 @@ struct JointBridge
     BridgeKind fromKind = BridgeKind::None;
     BridgeKind toKind = BridgeKind::None;
     int32_t jointArrayIndex = -1;
-    uint32_t uid = 0;
 };
 
 struct ManagedObject
@@ -53,9 +51,77 @@ struct ManagedObject
     bool isValueType = false;
 };
 
-class ManagedObjectManager
+template <class T>
+class InstanceManager
 {
+    std::vector<T *> __manager;
+    int32_t __cursor;
+    int32_t __deltaCount;
+    T *__current;
+    int32_t __nestCursor;
     
+public:
+    InstanceManager(): InstanceManager(1000) {}
+    InstanceManager(int32_t deltaCount);
+    
+    T &add();
+    T &operator[](const int32_t index);
+    int32_t size();
+    
+    ~InstanceManager();
 };
+
+class MemorySnapshotCrawler
+{
+    InstanceManager<ManagedObject> managedObjects;
+    InstanceManager<JointBridge> bridges;
+    InstanceManager<MemberJoint> joints;
+};
+
+template<class T>
+InstanceManager<T>::InstanceManager(int32_t deltaCount)
+{
+    __deltaCount = deltaCount;
+    __current = new T[__deltaCount];
+    __manager.push_back(__current);
+    __nestCursor = 0;
+    __cursor = 0;
+}
+
+template<class T>
+T &InstanceManager<T>::add()
+{
+    if (__nestCursor == __deltaCount)
+    {
+        __current = new T[__deltaCount];
+        __manager.push_back(__current);
+        __nestCursor = 0;
+    }
+    
+    __cursor += 1;
+    return __current[__nestCursor++];
+}
+
+template<class T>
+int32_t InstanceManager<T>::size()
+{
+    return __cursor;
+}
+
+template<class T>
+T &InstanceManager<T>::operator[](const int32_t index)
+{
+    auto entity = index / __deltaCount;
+    return __manager[entity][index % __deltaCount];
+}
+
+template<class T>
+InstanceManager<T>::~InstanceManager<T>()
+{
+    for (auto i  = 0; i < __manager.size(); i++)
+    {
+        delete [] __manager[i];
+    }
+}
 
 #endif /* crawler_h */
