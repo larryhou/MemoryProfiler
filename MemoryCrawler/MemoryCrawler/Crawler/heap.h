@@ -28,23 +28,23 @@ struct HeapSegment
 
 class HeapMemoryReader
 {
-    PackedMemorySnapshot &snapshot;
-    VirtualMachineInformation *vm;
-    Array<MemorySection> *managedHeapSections;
+    PackedMemorySnapshot &__snapshot;
+    Array<MemorySection> *__managedHeapSections;
+    VirtualMachineInformation *__vm;
     
 protected:
-    address_t startAddress;
-    address_t stopAddress;
-    const byte_t *memory;
-    int32_t size;
+    address_t __startAddress;
+    address_t __stopAddress;
+    const byte_t *__memory;
+    int32_t __size;
     
     virtual int32_t seekOffset(address_t address);
     
 public:
-    HeapMemoryReader(PackedMemorySnapshot &snapshot): snapshot(snapshot)
+    HeapMemoryReader(PackedMemorySnapshot &snapshot): __snapshot(snapshot)
     {
-        managedHeapSections = snapshot.managedHeapSections;
-        vm = snapshot.virtualMachineInformation;
+        __managedHeapSections = snapshot.managedHeapSections;
+        __vm = snapshot.virtualMachineInformation;
     }
     
     int8_t readInt8(address_t address) { return readScalar<int8_t>(address); }
@@ -85,7 +85,7 @@ T HeapMemoryReader::readScalar(address_t address)
     auto offset = seekOffset(address);
     if (offset == -1) {return 0;}
     
-    return *(T *)(memory + offset);
+    return *(T *)(__memory + offset);
 }
 
 class StaticMemoryReader: public HeapMemoryReader
