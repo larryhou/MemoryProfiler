@@ -106,8 +106,11 @@ public static class CodeGenerator
 				
 				if (isByteArray)
 				{
-					stream.Write(string.Format(string.Format("        item.{0} = new Array<byte_t>(size);\n", property.Name)));
-					stream.Write(string.Format(string.Format("        fs.read((char *)(item.{0}->items), size);\n", property.Name)));
+					stream.Write("        if (size > 0)\n");
+					stream.Write("        {\n");
+					stream.Write(string.Format(string.Format("            item.{0} = new Array<byte_t>(size);\n", property.Name)));
+					stream.Write(string.Format(string.Format("            fs.read((char *)(item.{0}->items), size);\n", property.Name)));
+					stream.Write("        }\n");
 				}
 				else
 				{
@@ -117,6 +120,7 @@ public static class CodeGenerator
 					stream.Write("        {\n");
 					stream.Write(string.Format("        	read{0}(item.{1}->items[i], fs);\n", typeName, property.Name));
 					stream.Write("        }\n");
+					
 					if (samplerEnabled){stream.Write("        sampler.end();\n");}
 				}
 				

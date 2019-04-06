@@ -8,7 +8,7 @@
 
 #include "heap.h"
 
-int32_t HeapMemoryReader::tryRead(address_t address)
+int32_t HeapMemoryReader::seekOffset(address_t address)
 {
     if (address == 0) {return -1;}
     if (address >= startAddress && address < stopAddress)
@@ -23,13 +23,14 @@ int32_t HeapMemoryReader::tryRead(address_t address)
     memory = heap.bytes->items;
     startAddress = heap.startAddress;
     stopAddress = heap.startAddress + heap.bytes->size;
+    size = heap.bytes->size;
     
     return (int32_t)(address - startAddress);
 }
 
 uint32_t HeapMemoryReader::readStringLength(address_t address)
 {
-    auto offset = tryRead(address);
+    auto offset = seekOffset(address);
     if (offset == -1) {return 0;}
     
     auto length = readInt32(address);
@@ -38,7 +39,7 @@ uint32_t HeapMemoryReader::readStringLength(address_t address)
 
 int32_t HeapMemoryReader::readString(address_t address, char16_t *buffer)
 {
-    auto offset = tryRead(address);
+    auto offset = seekOffset(address);
     if (offset == -1) {return -1;}
     
     auto length = readInt32(address);
@@ -49,10 +50,69 @@ int32_t HeapMemoryReader::readString(address_t address, char16_t *buffer)
     return length;
 }
 
-//uint32_t HeapMemoryReader::readArrayLength(address_t address)
-//{
-//
-//}
+uint32_t HeapMemoryReader::readArrayLength(address_t address, TypeDescription &type)
+{
+    auto offset = seekOffset(address);
+    if (offset == -1) {return 0;}
+    
+    auto bounds = readPointer(address + vm->arrayBoundsOffsetInHeader);
+    if (bounds == 0)
+    {
+        return (uint32_t)readPointer(address + vm->arraySizeOffsetInHeader);
+    }
+    
+    auto length = (uint64_t)1;
+    auto cursor = bounds;
+    for (auto i = 0; i < type.arrayRank; i++)
+    {
+        length *= readPointer(cursor);
+        cursor += vm->pointerSize;
+    }
+    return (uint32_t)length;
+}
+
+static string sTypeString("System.String");
+uint32_t HeapMemoryReader::readObjectSize(address_t address, TypeDescription &type)
+{
+    auto offset = seekOffset(address);
+    if (offset == -1) {return 0;}
+    if (type.isArray)
+    {
+        if (type.baseOrElementTypeIndex < 0 || type.baseOrElementTypeIndex >= snapshot.typeDescriptions->size)
+        {
+            return 0;
+        }
+        auto elementCount = readArrayLength(address, type);
+        auto elementType = snapshot.typeDescriptions->items[type.baseOrElementTypeIndex];
+        auto elementSize = elementType.isValueType ? elementType.size : vm->pointerSize;
+        return vm->arrayHeaderSize + elementSize * elementCount;
+    }
+    
+    if (sTypeString.compare(*type.name) == 0)
+    {
+        auto size = vm->objectHeaderSize;
+        size += 4; // string length
+        size += readStringLength(address + vm->objectHeaderSize) * 2; // char16_t
+        size += 2; // \x00\x00
+        return size;
+    }
+    
+    return type.size;
+}
+
+HeapSegment HeapMemoryReader::readObjectMemory(address_t address, TypeDescription &type)
+{
+    HeapSegment segment;
+    auto size = readObjectSize(address, type);
+    if (size <= 0) { return segment; }
+    
+    auto offset = seekOffset(address);
+    if (offset < 0) { return segment; }
+    
+    segment.begin = (char *)memory + offset;
+    segment.end = segment.begin + size;
+    return segment;
+}
 
 int32_t HeapMemoryReader::findHeapOfAddress(address_t address)
 {
@@ -78,4 +138,18 @@ int32_t HeapMemoryReader::findHeapOfAddress(address_t address)
     }
     
     return -1;
+}
+
+void StaticMemoryReader::load(const byte_t *bytes, int32_t size)
+{
+    memory = bytes;
+    startAddress = 0;
+    stopAddress = size;
+    this->size = size;
+}
+
+int32_t StaticMemoryReader::seekOffset(address_t address)
+{
+    if (address < 0 || size == 0 || address >= size) {return -1;}
+    return (int32_t)address;
 }

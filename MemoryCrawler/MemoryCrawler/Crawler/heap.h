@@ -12,12 +12,14 @@
 #include "types.h"
 #include "snapshot.h"
 
-struct MemorySegment
+struct HeapSegment
 {
     char *begin;
     char *end;
     
-    MemorySegment(char *begin, char *end)
+    HeapSegment(): HeapSegment(0, 0) {}
+    
+    HeapSegment(char *begin, char *end)
     {
         this->begin = begin;
         this->end = end;
@@ -29,10 +31,14 @@ class HeapMemoryReader
     PackedMemorySnapshot &snapshot;
     VirtualMachineInformation *vm;
     Array<MemorySection> *managedHeapSections;
-    byte_t *memory;
+    
+protected:
     address_t startAddress;
     address_t stopAddress;
-    uint32_t sectionCount;
+    const byte_t *memory;
+    int32_t size;
+    
+    virtual int32_t seekOffset(address_t address);
     
 public:
     HeapMemoryReader(PackedMemorySnapshot &snapshot): snapshot(snapshot)
@@ -40,8 +46,6 @@ public:
         managedHeapSections = snapshot.managedHeapSections;
         vm = snapshot.virtualMachineInformation;
     }
-    
-    int32_t tryRead(address_t address);
     
     int8_t readInt8(address_t address) { return readScalar<int8_t>(address); }
     int16_t readInt16(address_t address)  { return readScalar<int16_t>(address); }
@@ -63,12 +67,13 @@ public:
     uint32_t readStringLength(address_t address);
     int32_t readString(address_t address, char16_t *buffer);
     
-    uint32_t readArrayLength(address_t address);
+    uint32_t readArrayLength(address_t address, TypeDescription &type);
     
-    uint32_t readObjectSize(address_t address);
-    MemorySegment readObjectMemory(address_t address);
+    uint32_t readObjectSize(address_t address, TypeDescription &type);
+    HeapSegment readObjectMemory(address_t address, TypeDescription &type);
     
     int32_t findHeapOfAddress(address_t address);
+    
 private:
     template <typename T>
     T readScalar(address_t address);
@@ -77,10 +82,20 @@ private:
 template <typename T>
 T HeapMemoryReader::readScalar(address_t address)
 {
-    auto offset = tryRead(address);
+    auto offset = seekOffset(address);
     if (offset == -1) {return 0;}
     
     return *(T *)(memory + offset);
 }
+
+class StaticMemoryReader: public HeapMemoryReader
+{
+protected:
+    virtual int32_t seekOffset(address_t address) override;
+    
+public:
+    StaticMemoryReader(PackedMemorySnapshot &snapshot): HeapMemoryReader(snapshot) {}
+    void load(const byte_t *bytes, int32_t size);
+};
 
 #endif /* heap_h */

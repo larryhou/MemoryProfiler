@@ -148,8 +148,11 @@ void readMemorySection(MemorySection &item, FileStream &fs)
     readField(fs);
     {
         auto size = fs.readUInt32(true);
-        item.bytes = new Array<byte_t>(size);
-        fs.read((char *)(item.bytes->items), size);
+        if (size > 0)
+        {
+            item.bytes = new Array<byte_t>(size);
+            fs.read((char *)(item.bytes->items), size);
+        }
     }
     readField(fs);
     item.startAddress = fs.readUInt64(true);
@@ -201,8 +204,11 @@ void readTypeDescription(TypeDescription &item, FileStream &fs)
     readField(fs);
     {
         auto size = fs.readUInt32(true);
-        item.staticFieldBytes = new Array<byte_t>(size);
-        fs.read((char *)(item.staticFieldBytes->items), size);
+        if (size > 0)
+        {
+            item.staticFieldBytes = new Array<byte_t>(size);
+            fs.read((char *)(item.staticFieldBytes->items), size);
+        }
     }
     readField(fs);
     item.baseOrElementTypeIndex = fs.readInt32(true);
