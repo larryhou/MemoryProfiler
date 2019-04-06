@@ -28,7 +28,7 @@ struct FieldDescription
     int16_t slotIndex;
     int32_t offset;
     int32_t typeIndex;
-    int32_t hostTypeIndex = -1;
+    int32_t hookTypeIndex = -1;
     string *name;
     
     ~FieldDescription();
@@ -133,6 +133,9 @@ struct PackedMemorySnapshot
     Array<PackedNativeType> *nativeTypes; // PackedNativeType[]
     Array<TypeDescription> *typeDescriptions; // TypeDescription[]
     VirtualMachineInformation *virtualMachineInformation;
+    
+    ManagedTypeIndex managedTypeIndex;
+    NativeTypeIndex nativeTypeIndex;
     
     FieldDescription *cached_ptr;
     string *uuid;

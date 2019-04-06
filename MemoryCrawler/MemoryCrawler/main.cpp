@@ -177,7 +177,7 @@ void playground()
     << " isStatic=" << (uint64_t)&field.isStatic - (uint64_t)&field
     << " offset=" << (uint64_t)&field.offset - (uint64_t)&field
     << " typeIndex=" << (uint64_t)&field.typeIndex - (uint64_t)&field
-    << " hostTypeIndex=" << (uint64_t)&field.hostTypeIndex - (uint64_t)&field
+    << " hostTypeIndex=" << (uint64_t)&field.hookTypeIndex - (uint64_t)&field
     << " slotIndex=" << (uint64_t)&field.slotIndex - (uint64_t)&field
     << endl;
     

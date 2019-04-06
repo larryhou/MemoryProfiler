@@ -21,13 +21,13 @@ FieldDescription::~FieldDescription()
 
 TypeDescription::~TypeDescription()
 {
-    delete [] fields;
-    delete [] staticFieldBytes;
+    delete fields;
+    delete staticFieldBytes;
 }
 
 MemorySection::~MemorySection()
 {
-     delete [] bytes;
+     delete bytes;
 }
 
 PackedGCHandle::~PackedGCHandle()

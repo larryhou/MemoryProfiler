@@ -37,6 +37,7 @@ public:
 private:
     void readHeader(FileStream &fs);
     void readSnapshot(FileStream &fs);
+    void postSnapshot();
 };
 
 #endif /* serialize_h */

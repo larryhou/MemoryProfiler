@@ -71,7 +71,7 @@ uint32_t HeapMemoryReader::readArrayLength(address_t address, TypeDescription &t
     return (uint32_t)length;
 }
 
-static string sTypeString("System.String");
+static const string sSystemString("System.String");
 uint32_t HeapMemoryReader::readObjectSize(address_t address, TypeDescription &type)
 {
     auto offset = seekOffset(address);
@@ -88,7 +88,8 @@ uint32_t HeapMemoryReader::readObjectSize(address_t address, TypeDescription &ty
         return __vm->arrayHeaderSize + elementSize * elementCount;
     }
     
-    if (sTypeString.compare(*type.name) == 0)
+    if ((type.typeIndex >= 0 && type.typeIndex == __snapshot.managedTypeIndex.system_String)
+        || sSystemString == *type.name)
     {
         auto size = __vm->objectHeaderSize;
         size += 4; // string length

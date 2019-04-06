@@ -8,7 +8,7 @@
 
 #include "serialize.h"
 #include "perf.h"
-#include <new>
+#include <map>
 
 static TimeSampler<std::nano> sampler;
 
@@ -43,21 +43,6 @@ void MemorySnapshotReader::readHeader(FileStream &fs)
     uuid = new string(fs.readUUID());
     size = fs.readUInt32(true);
     createTime = fs.readUInt64(true);
-}
-
-bool endsWith(const string *s, const string *with)
-{
-    auto its = s->rbegin();
-    auto itw = with->rbegin();
-    
-    while (itw != with->rend())
-    {
-        if (*itw != *its) {return false;}
-        ++its;
-        ++itw;
-    }
-    
-    return true;
 }
 
 void readField(FileStream &fs)
@@ -321,6 +306,95 @@ void MemorySnapshotReader::readSnapshot(FileStream &fs)
     {
         MemorySection &heap = snapshot->managedHeapSections->items[i];
         heap.size = heap.bytes->size;
+    }
+    
+    postSnapshot();
+}
+
+bool endsWith(const string *s, const string *with)
+{
+    auto its = s->rbegin();
+    auto itw = with->rbegin();
+    
+    while (itw != with->rend())
+    {
+        if (*itw != *its) {return false;}
+        ++its;
+        ++itw;
+    }
+    
+    return true;
+}
+
+inline bool readTypeIndex(int32_t &index, const TypeDescription &type, const string *pattern)
+{
+    if (index == -1 && endsWith(type.name, pattern))
+    {
+        index = type.typeIndex;
+        return true;
+    }
+    
+    return false;
+}
+
+void MemorySnapshotReader::postSnapshot()
+{
+    string sUnityEngineObject("UnityEngine.Object");
+    string sSystemString("System.String");
+    string sSystemTextGenerator("UnityEngine.TextGenerator");
+    string sCachedPtr("m_CachedPtr");
+    
+    ManagedTypeIndex &managedTypeIndex = snapshot->managedTypeIndex;
+    
+    bool isUnityEngineObject = false;
+    Array<TypeDescription> &typeDescriptions = *snapshot->typeDescriptions;
+    for (auto i = 0; i < typeDescriptions.size; i++)
+    {
+        isUnityEngineObject = false;
+        TypeDescription &type = typeDescriptions[i];
+        if (readTypeIndex(managedTypeIndex.unityengine_Object, type, &sUnityEngineObject))
+        {
+            isUnityEngineObject = true;
+        }
+        else if (readTypeIndex(managedTypeIndex.system_String, type, &sSystemString)) {}
+        else if (readTypeIndex(managedTypeIndex.unityengine_TextGenerator, type, &sSystemTextGenerator)) {}
+        
+        Array<FieldDescription> &fieldDescriptions = *type.fields;
+        for (auto n = 0; n < fieldDescriptions.size; n++)
+        {
+            FieldDescription &field = fieldDescriptions[n];
+            if (isUnityEngineObject && endsWith(field.name, &sCachedPtr))
+            {
+                snapshot->cached_ptr = &field;
+            }
+            
+            field.hookTypeIndex = type.typeIndex;
+            field.slotIndex = n;
+        }
+    }
+    
+    Array<PackedNativeType> &nativeTypes = *snapshot->nativeTypes;
+    for (auto i = 0; i < nativeTypes.size; i++)
+    {
+        nativeTypes[i].typeIndex = i;
+    }
+    
+    Array<PackedGCHandle> &gcHandles = *snapshot->gcHandles;
+    for (auto i = 0; i < gcHandles.size; i++)
+    {
+        gcHandles[i].gcHandleArrayIndex = i;
+    }
+    
+    Array<MemorySection> &managedHeapSections = *snapshot->managedHeapSections;
+    for (auto i = 0; i < managedHeapSections.size; i++)
+    {
+        managedHeapSections[i].heapArrayIndex = i;
+    }
+    
+    Array<PackedNativeUnityEngineObject> &nativeObjects = *snapshot->nativeObjects;
+    for (auto i = 0; i < nativeObjects.size; i++)
+    {
+        nativeObjects[i].nativeObjectArrayIndex = i;
     }
 }
 
