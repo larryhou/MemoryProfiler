@@ -413,10 +413,10 @@ void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
             fj.hookTypeIndex = entryType.typeIndex;
             
             // set field info
+            fj.fieldAddress = fieldAddress;
             fj.fieldTypeIndex = field.typeIndex;
             fj.fieldSlotIndex = field.fieldSlotIndex;
             fj.fieldOffset = field.offset;
-            fj.fieldAddress = fieldAddress;
             
             crawlManagedEntryAddress(fieldAddress, fieldType, *reader, fj, true, depth + 1);
         }
