@@ -237,6 +237,39 @@ void MemorySnapshotCrawler::setObjectSize(ManagedObject &mo, TypeDescription &ty
     mo.size = memoryReader.readObjectSize(mo.address, type);
 }
 
+uint32_t MemorySnapshotCrawler::readObjectHierachySize(address_t address, TypeDescription &type)
+{
+    if (type.isArray)
+    {
+        if (type.baseOrElementTypeIndex < 0 || type.baseOrElementTypeIndex >= __snapshot.typeDescriptions->size)
+        {
+            return 0;
+        }
+        auto elementCount = __memoryReader->readArrayLength(address, type);
+        auto elementType = __snapshot.typeDescriptions->items[type.baseOrElementTypeIndex];
+        //        auto elementSize = elementType.isValueType ? elementType.size : __vm->pointerSize;
+        //        return __vm->arrayHeaderSize + elementSize * elementCount;
+        int32_t size = __vm->arrayHeaderSize;
+        if (elementType.isValueType)
+        {
+            size += elementType.size * elementCount;
+        }
+        else
+        {
+            for (auto i = 0; i < elementCount; i++)
+            {
+                size += __vm->pointerSize;
+            }
+        }
+    }
+    else
+    {
+        __memoryReader->readObjectSize(address, type);
+    }
+    
+    return type.size;
+}
+
 ManagedObject &MemorySnapshotCrawler::createManagedObject(address_t address, int32_t typeIndex)
 {
     auto &mo = managedObjects.add();
@@ -278,13 +311,13 @@ void MemorySnapshotCrawler::crawlManagedArrayAddress(address_t address, TypeDesc
         elementJoint.jointArrayIndex = joints.size() - 1;
         
         // set element info
-        elementJoint.arrayIndex = i;
+        elementJoint.elementArrayIndex = i;
         
         crawlManagedEntryAddress(elementAddress, &elementType, memoryReader, elementJoint, false, depth + 1);
     }
 }
 
-void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDescription *type, HeapMemoryReader &memoryReader, MemberJoint &joint, bool isRealType, int32_t depth)
+void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDescription *type, HeapMemoryReader &memoryReader, MemberJoint &joint, bool isActualType, int32_t depth)
 {
     auto isStaticCrawling = memoryReader.isStatic();
     if (address < 0 || (!isStaticCrawling && address == 0)){return;}
@@ -297,7 +330,7 @@ void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
     }
     else
     {
-        if (isRealType)
+        if (isActualType)
         {
             typeIndex = type->typeIndex;
         }

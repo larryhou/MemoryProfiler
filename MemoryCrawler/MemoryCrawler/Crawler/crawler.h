@@ -27,7 +27,7 @@ struct MemberJoint
     int32_t fieldSlotIndex = -1;
     int32_t fieldOffset = 0;
     address_t fieldAddress = 0;
-    int32_t arrayIndex = -1;
+    int32_t elementArrayIndex = -1;
     int32_t jointArrayIndex = -1;
     bool isStatic = false;
 };
@@ -138,7 +138,9 @@ private:
     void crawlStatic();
     
     void tryConnectWithNativeObject(ManagedObject &mo);
+    
     void setObjectSize(ManagedObject &mo, TypeDescription &type, HeapMemoryReader &memoryReader);
+    uint32_t readObjectHierachySize(address_t address, TypeDescription &type);
     
     ManagedObject &createManagedObject(address_t address, int32_t typeIndex);
     
