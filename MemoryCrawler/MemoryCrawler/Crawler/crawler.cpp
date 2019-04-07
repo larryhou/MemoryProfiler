@@ -310,8 +310,9 @@ void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
     if (typeIndex == -1){return;}
     
     auto &entryType = __snapshot.typeDescriptions->items[typeIndex];
-    auto iter = __visit.find(address);
+    
     ManagedObject *mo;
+    auto iter = __visit.find(address);
     if (entryType.isValueType || iter == __visit.end())
     {
         mo = &createManagedObject(address, typeIndex);
