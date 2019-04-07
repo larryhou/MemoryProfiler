@@ -17,11 +17,11 @@ void MemorySnapshotCrawler::crawl()
 
 void MemorySnapshotCrawler::initManagedTypes()
 {
-    Array<TypeDescription> &typeDescriptions = *snapshot.typeDescriptions;
+    Array<TypeDescription> &typeDescriptions = *__snapshot.typeDescriptions;
     for (auto i = 0; i < typeDescriptions.size; i++)
     {
         TypeDescription &type = typeDescriptions[i];
-        type.isUnityEngineObjectType = isSubclassOfManagedType(type, snapshot.managedTypeIndex.unityengine_Object);
+        type.isUnityEngineObjectType = isSubclassOfManagedType(type, __snapshot.managedTypeIndex.unityengine_Object);
     }
 }
 
@@ -33,7 +33,7 @@ bool MemorySnapshotCrawler::isSubclassOfManagedType(TypeDescription &type, int32
     TypeDescription *iter = &type;
     while (iter->baseOrElementTypeIndex != -1)
     {
-        iter = &snapshot.typeDescriptions->items[iter->baseOrElementTypeIndex];
+        iter = &__snapshot.typeDescriptions->items[iter->baseOrElementTypeIndex];
         if (iter->typeIndex == baseTypeIndex) { return true; }
     }
     
@@ -48,7 +48,7 @@ bool MemorySnapshotCrawler::isSubclassOfNativeType(PackedNativeType &type, int32
     PackedNativeType *iter = &type;
     while (iter->nativeBaseTypeArrayIndex != -1)
     {
-        iter = &snapshot.nativeTypes->items[iter->nativeBaseTypeArrayIndex];
+        iter = &__snapshot.nativeTypes->items[iter->nativeBaseTypeArrayIndex];
         if (iter->typeIndex == baseTypeIndex) { return true; }
     }
     
@@ -60,12 +60,12 @@ void MemorySnapshotCrawler::tryAcceptConnection(JointConnection &jc)
     if (jc.from >= 0)
     {
         ManagedObject &fromObject = managedObjects[jc.from];
-        auto iter = connectionVisit.find(fromObject.address);
-        if (iter != connectionVisit.end())
+        auto iter = __connectionVisit.find(fromObject.address);
+        if (iter != __connectionVisit.end())
         {
             ManagedObject &toObject = managedObjects[jc.to];
             if (iter->second == toObject.address) { return; }
-            connectionVisit.insert(pair<address_t, address_t>(fromObject.address, toObject.address));
+            __connectionVisit.insert(pair<address_t, address_t>(fromObject.address, toObject.address));
         }
     }
     
@@ -107,27 +107,27 @@ int64_t MemorySnapshotCrawler::getConnectionKey(JointConnection &jc)
 int32_t MemorySnapshotCrawler::findTypeAtTypeInfoAddress(address_t address)
 {
     if (address == 0) {return -1;}
-    if (typeAddressMap.size() == 0)
+    if (__typeAddressMap.size() == 0)
     {
-        Array<TypeDescription> &typeDescriptions = *snapshot.typeDescriptions;
+        Array<TypeDescription> &typeDescriptions = *__snapshot.typeDescriptions;
         for (auto i = 0; i < typeDescriptions.size; i++)
         {
             auto &type = typeDescriptions[i];
-            typeAddressMap.insert(pair<address_t, int32_t>(type.typeInfoAddress, type.typeIndex));
+            __typeAddressMap.insert(pair<address_t, int32_t>(type.typeInfoAddress, type.typeIndex));
         }
     }
     
-    auto iter = typeAddressMap.find(address);
-    return iter != typeAddressMap.end() ? iter->second : -1;
+    auto iter = __typeAddressMap.find(address);
+    return iter != __typeAddressMap.end() ? iter->second : -1;
 }
 
 int32_t MemorySnapshotCrawler::findTypeOfAddress(address_t address)
 {
     auto typeIndex = findTypeAtTypeInfoAddress(address);
     if (typeIndex != -1) {return typeIndex;}
-    auto typePtr = memoryReader->readPointer(address);
+    auto typePtr = __memoryReader->readPointer(address);
     if (typePtr == 0) {return -1;}
-    auto vtablePtr = memoryReader->readPointer(typePtr);
+    auto vtablePtr = __memoryReader->readPointer(typePtr);
     if (vtablePtr != 0)
     {
         return findTypeAtTypeInfoAddress(vtablePtr);
@@ -138,95 +138,95 @@ int32_t MemorySnapshotCrawler::findTypeOfAddress(address_t address)
 int32_t MemorySnapshotCrawler::findManagedObjectOfNativeObject(address_t address)
 {
     if (address == 0){return -1;}
-    if (managedNativeAddressMap.size() == 0)
+    if (__managedNativeAddressMap.size() == 0)
     {
         for (auto i = 0; i < managedObjects.size(); i++)
         {
             auto &mo = managedObjects[i];
             if (mo.nativeObjectIndex >= 0)
             {
-                auto &no = snapshot.nativeObjects->items[mo.nativeObjectIndex];
-                managedNativeAddressMap.insert(pair<address_t, int32_t>(no.nativeObjectAddress, mo.managedObjectIndex));
+                auto &no = __snapshot.nativeObjects->items[mo.nativeObjectIndex];
+                __managedNativeAddressMap.insert(pair<address_t, int32_t>(no.nativeObjectAddress, mo.managedObjectIndex));
             }
         }
     }
     
-    auto iter = managedNativeAddressMap.find(address);
-    return iter != managedNativeAddressMap.end() ? iter->second : -1;
+    auto iter = __managedNativeAddressMap.find(address);
+    return iter != __managedNativeAddressMap.end() ? iter->second : -1;
 }
 
 int32_t MemorySnapshotCrawler::findManagedObjectAtAddress(address_t address)
 {
     if (address == 0){return -1;}
-    if (managedObjectAddressMap.size() == 0)
+    if (__managedObjectAddressMap.size() == 0)
     {
         for (auto i = 0; i < managedObjects.size(); i++)
         {
             auto &mo = managedObjects[i];
-            managedObjectAddressMap.insert(pair<address_t, int32_t>(mo.address, mo.managedObjectIndex));
+            __managedObjectAddressMap.insert(pair<address_t, int32_t>(mo.address, mo.managedObjectIndex));
         }
     }
     
-    auto iter = managedObjectAddressMap.find(address);
-    return iter != managedObjectAddressMap.end() ? iter->second : -1;
+    auto iter = __managedObjectAddressMap.find(address);
+    return iter != __managedObjectAddressMap.end() ? iter->second : -1;
 }
 
 int32_t MemorySnapshotCrawler::findNativeObjectAtAddress(address_t address)
 {
     if (address == 0){return -1;}
-    if (nativeObjectAddressMap.size() == 0)
+    if (__nativeObjectAddressMap.size() == 0)
     {
-        auto &nativeObjects = *snapshot.nativeObjects;
+        auto &nativeObjects = *__snapshot.nativeObjects;
         for (auto i = 0; i < nativeObjects.size; i++)
         {
             auto &no = nativeObjects[i];
-            nativeObjectAddressMap.insert(pair<address_t, int32_t>(no.nativeObjectAddress, no.nativeObjectArrayIndex));
+            __nativeObjectAddressMap.insert(pair<address_t, int32_t>(no.nativeObjectAddress, no.nativeObjectArrayIndex));
         }
     }
     
-    auto iter = nativeObjectAddressMap.find(address);
-    return iter != nativeObjectAddressMap.end() ? iter->second : -1;
+    auto iter = __nativeObjectAddressMap.find(address);
+    return iter != __nativeObjectAddressMap.end() ? iter->second : -1;
 }
 
 int32_t MemorySnapshotCrawler::findGCHandleWithTargetAddress(address_t address)
 {
     if (address == 0){return -1;}
-    if (gcHandleAddressMap.size() == 0)
+    if (__gcHandleAddressMap.size() == 0)
     {
-        auto &gcHandles = *snapshot.gcHandles;
+        auto &gcHandles = *__snapshot.gcHandles;
         for (auto i = 0; i < gcHandles.size; i++)
         {
             auto &no = gcHandles[i];
-            gcHandleAddressMap.insert(pair<address_t, int32_t>(no.target, no.gcHandleArrayIndex));
+            __gcHandleAddressMap.insert(pair<address_t, int32_t>(no.target, no.gcHandleArrayIndex));
         }
     }
     
-    auto iter = gcHandleAddressMap.find(address);
-    return iter != gcHandleAddressMap.end() ? iter->second : -1;
+    auto iter = __gcHandleAddressMap.find(address);
+    return iter != __gcHandleAddressMap.end() ? iter->second : -1;
 }
 
 void MemorySnapshotCrawler::tryConnectWithNativeObject(ManagedObject &mo)
 {
     if (mo.nativeObjectIndex >= 0){return;}
     
-    auto &type = snapshot.typeDescriptions->items[mo.typeIndex];
+    auto &type = __snapshot.typeDescriptions->items[mo.typeIndex];
     mo.isValueType = type.isValueType;
     if (mo.isValueType || type.isArray || !type.isUnityEngineObjectType) {return;}
     
-    auto nativeAddress = memoryReader->readPointer(mo.address + snapshot.cached_ptr->offset);
+    auto nativeAddress = __memoryReader->readPointer(mo.address + __snapshot.cached_ptr->offset);
     if (nativeAddress == 0){return;}
     
     auto nativeObjectIndex = findNativeObjectAtAddress(nativeAddress);
     if (nativeObjectIndex == -1){return;}
     
     // connect managed/native objects
-    auto &no = snapshot.nativeObjects->items[nativeObjectIndex];
+    auto &no = __snapshot.nativeObjects->items[nativeObjectIndex];
     mo.nativeObjectIndex = nativeObjectIndex;
     mo.nativeSize = no.size;
     no.managedObjectArrayIndex = mo.managedObjectIndex;
     
     // connect managed/native types
-    auto &nativeType = snapshot.nativeTypes->items[no.nativeTypeArrayIndex];
+    auto &nativeType = __snapshot.nativeTypes->items[no.nativeTypeArrayIndex];
     type.nativeTypeArrayIndex = nativeType.typeIndex;
     nativeType.managedTypeArrayIndex = type.typeIndex;
 }
@@ -257,7 +257,7 @@ void MemorySnapshotCrawler::crawlManagedArrayAddress(address_t address, TypeDesc
     auto isStaticCrawling = memoryReader.isStatic();
     if (address < 0 || (!isStaticCrawling && address == 0)){return;}
     
-    auto &elementType = snapshot.typeDescriptions->items[type.baseOrElementTypeIndex];
+    auto &elementType = __snapshot.typeDescriptions->items[type.baseOrElementTypeIndex];
     if (!isCrawlable(elementType)) {return;}
     
     address_t elementAddress = 0;
@@ -266,11 +266,11 @@ void MemorySnapshotCrawler::crawlManagedArrayAddress(address_t address, TypeDesc
     {
         if (elementType.isValueType)
         {
-            elementAddress = address + vm->arrayHeaderSize + i *elementType.size - vm->objectHeaderSize;
+            elementAddress = address + __vm->arrayHeaderSize + i *elementType.size - __vm->objectHeaderSize;
         }
         else
         {
-            auto ptrAddress = address + vm->arrayHeaderSize + i * vm->pointerSize;
+            auto ptrAddress = address + __vm->arrayHeaderSize + i * __vm->pointerSize;
             elementAddress = memoryReader.readPointer(ptrAddress);
         }
         
@@ -308,10 +308,11 @@ void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
         }
     }
     if (typeIndex == -1){return;}
-    auto &entryType = snapshot.typeDescriptions->items[typeIndex];
-    auto iter = visit.find(address);
+    
+    auto &entryType = __snapshot.typeDescriptions->items[typeIndex];
+    auto iter = __visit.find(address);
     ManagedObject *mo;
-    if (entryType.isValueType || iter == visit.end())
+    if (entryType.isValueType || iter == __visit.end())
     {
         mo = &createManagedObject(address, typeIndex);
         mo->jointArrayIndex = joint.jointArrayIndex;
@@ -351,8 +352,8 @@ void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
     
     if (!entryType.isValueType)
     {
-        if (iter != visit.end()) {return;}
-        visit.insert(pair<address_t, int32_t>(address, mo->managedObjectIndex));
+        if (iter != __visit.end()) {return;}
+        __visit.insert(pair<address_t, int32_t>(address, mo->managedObjectIndex));
     }
     
     if (entryType.isArray)
@@ -369,20 +370,20 @@ void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
             auto &field = iterType->fields->items[i];
             if (field.isStatic){continue;}
             
-            auto *fieldType = &snapshot.typeDescriptions->items[field.typeIndex];
+            auto *fieldType = &__snapshot.typeDescriptions->items[field.typeIndex];
             if (!isCrawlable(*fieldType)){continue;}
             
             address_t fieldAddress = 0;
             if (fieldType->isValueType)
             {
-                fieldAddress = address + field.offset - vm->objectHeaderSize;
+                fieldAddress = address + field.offset - __vm->objectHeaderSize;
             }
             else
             {
                 address_t ptrAddress = 0;
                 if (memoryReader.isStatic())
                 {
-                    ptrAddress = address + field.offset - vm->objectHeaderSize;
+                    ptrAddress = address + field.offset - __vm->objectHeaderSize;
                 }
                 else
                 {
@@ -392,14 +393,14 @@ void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
                 auto fieldTypeIndex = findTypeOfAddress(fieldAddress);
                 if (fieldTypeIndex == -1)
                 {
-                    fieldType = &snapshot.typeDescriptions->items[fieldTypeIndex];
+                    fieldType = &__snapshot.typeDescriptions->items[fieldTypeIndex];
                 }
             }
             
             auto *reader = &memoryReader;
             if (!fieldType->isValueType)
             {
-                reader = this->memoryReader;
+                reader = this->__memoryReader;
             }
             
             auto &fj = joints.add();
@@ -425,14 +426,14 @@ void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
         }
         else
         {
-            iterType = &snapshot.typeDescriptions->items[iterType->baseOrElementTypeIndex];
+            iterType = &__snapshot.typeDescriptions->items[iterType->baseOrElementTypeIndex];
         }
     }
 }
 
 void MemorySnapshotCrawler::crawlGCHandles()
 {
-    auto &gcHandles = *snapshot.gcHandles;
+    auto &gcHandles = *__snapshot.gcHandles;
     for (auto i = 0; i < gcHandles.size; i++)
     {
         auto &item = gcHandles[i];
@@ -443,14 +444,14 @@ void MemorySnapshotCrawler::crawlGCHandles()
         // set gcHandle info
         joint.gcHandleIndex = item.gcHandleArrayIndex;
         
-        crawlManagedEntryAddress(item.target, nullptr, *memoryReader, joint, false, 0);
+        crawlManagedEntryAddress(item.target, nullptr, *__memoryReader, joint, false, 0);
     }
 }
 
 void MemorySnapshotCrawler::crawlStatic()
 {
-    StaticMemoryReader staticMemoryReader(snapshot);
-    auto &typeDescriptions = *snapshot.typeDescriptions;
+    StaticMemoryReader staticMemoryReader(__snapshot);
+    auto &typeDescriptions = *__snapshot.typeDescriptions;
     for (auto i = 0; i < typeDescriptions.size; i++)
     {
         auto &type = typeDescriptions[i];
@@ -464,16 +465,16 @@ void MemorySnapshotCrawler::crawlStatic()
             
             HeapMemoryReader *reader;
             address_t fieldAddress = 0;
-            auto *fieldType = &snapshot.typeDescriptions->items[field.typeIndex];
+            auto *fieldType = &__snapshot.typeDescriptions->items[field.typeIndex];
             if (fieldType->isValueType)
             {
-                fieldAddress = field.offset - vm->objectHeaderSize;
+                fieldAddress = field.offset - __vm->objectHeaderSize;
                 reader = &staticMemoryReader;
             }
             else
             {
                 fieldAddress = staticMemoryReader.readPointer(field.offset);
-                reader = this->memoryReader;
+                reader = this->__memoryReader;
             }
             
             auto &joint = joints.add();

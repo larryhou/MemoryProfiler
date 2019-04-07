@@ -80,47 +80,41 @@ using std::map;
 using std::vector;
 class MemorySnapshotCrawler
 {
+public:
     // crawling result
     InstanceManager<ManagedObject> managedObjects;
     InstanceManager<JointConnection> connections;
     InstanceManager<MemberJoint> joints;
     
-    PackedMemorySnapshot &snapshot;
-    HeapMemoryReader *memoryReader;
-    VirtualMachineInformation *vm;
-    
-    TimeSampler<std::nano> sampler;
-    
-    // crawling map
-    map<address_t, int32_t> visit;
-    
-    // bridge map
-    map<address_t, address_t> connectionVisit;
     map<int32_t, vector<int32_t> *> fromConnections;
     map<int32_t, vector<int32_t> *> toConnections;
     
+private:
+    PackedMemorySnapshot &__snapshot;
+    HeapMemoryReader *__memoryReader;
+    VirtualMachineInformation *__vm;
+    
+    TimeSampler<std::nano> __sampler;
+    
+    // crawling map
+    map<address_t, address_t> __connectionVisit;
+    map<address_t, int32_t> __visit;
+    
     // address map
-    map<address_t, int32_t> typeAddressMap;
-    map<address_t, int32_t> nativeObjectAddressMap;
-    map<address_t, int32_t> managedObjectAddressMap;
-    map<address_t, int32_t> managedNativeAddressMap;
-    map<address_t, int32_t> gcHandleAddressMap;
+    map<address_t, int32_t> __typeAddressMap;
+    map<address_t, int32_t> __nativeObjectAddressMap;
+    map<address_t, int32_t> __managedObjectAddressMap;
+    map<address_t, int32_t> __managedNativeAddressMap;
+    map<address_t, int32_t> __gcHandleAddressMap;
+
 public:
-    MemorySnapshotCrawler(PackedMemorySnapshot &snapshot): snapshot(snapshot)
+    MemorySnapshotCrawler(PackedMemorySnapshot &snapshot): __snapshot(snapshot)
     {
-        memoryReader = new HeapMemoryReader(snapshot);
-        vm = snapshot.virtualMachineInformation;
+        __memoryReader = new HeapMemoryReader(snapshot);
+        __vm = snapshot.virtualMachineInformation;
     }
     
     void crawl();
-private:
-    void initManagedTypes();
-    
-    void crawlGCHandles();
-    void crawlStatic();
-    
-    template <typename K, typename V>
-    typename map<K, V>::iterator get(map<K, V> map, K key);
     
     void tryAcceptConnection(JointConnection &connection);
     int32_t getIndexKey(ConnectionKind kind, int32_t index);
@@ -137,6 +131,11 @@ private:
     
     bool isSubclassOfManagedType(TypeDescription &type, int32_t baseTypeIndex);
     bool isSubclassOfNativeType(PackedNativeType &type, int32_t baseTypeIndex);
+    
+private:
+    void initManagedTypes();
+    void crawlGCHandles();
+    void crawlStatic();
     
     void tryConnectWithNativeObject(ManagedObject &mo);
     void setObjectSize(ManagedObject &mo, TypeDescription &type, HeapMemoryReader &memoryReader);
@@ -158,14 +157,6 @@ private:
                                   bool isRealType,
                                   int32_t depth);
 };
-
-template <typename K, typename V>
-typename map<K, V>::iterator MemorySnapshotCrawler::get(map<K, V> map, K key)
-{
-    auto iter = map.find(key);
-    if (iter == map.end()) { return nullptr; }
-    return iter;
-}
 
 template<class T>
 InstanceManager<T>::InstanceManager(int32_t deltaCount)
