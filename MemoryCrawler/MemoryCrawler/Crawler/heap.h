@@ -73,6 +73,7 @@ public:
     HeapSegment readObjectMemory(address_t address, TypeDescription &type);
     
     int32_t findHeapOfAddress(address_t address);
+    virtual bool isStatic();
     
 private:
     template <typename T>
@@ -95,7 +96,8 @@ protected:
     
 public:
     StaticMemoryReader(PackedMemorySnapshot &snapshot): HeapMemoryReader(snapshot) {}
-    void load(const byte_t *bytes, int32_t size);
+    void load(const Array<byte_t> &data);
+    virtual bool isStatic() override;
 };
 
 #endif /* heap_h */

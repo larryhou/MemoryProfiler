@@ -141,12 +141,14 @@ int32_t HeapMemoryReader::findHeapOfAddress(address_t address)
     return -1;
 }
 
-void StaticMemoryReader::load(const byte_t *bytes, int32_t size)
+bool HeapMemoryReader::isStatic() {return false;}
+
+void StaticMemoryReader::load(const Array<byte_t> &data)
 {
-    __memory = bytes;
+    __memory = data.items;
     __startAddress = 0;
-    __stopAddress = size;
-    this->__size = size;
+    __stopAddress = data.size;
+    __size = data.size;
 }
 
 int32_t StaticMemoryReader::seekOffset(address_t address)
@@ -154,3 +156,5 @@ int32_t StaticMemoryReader::seekOffset(address_t address)
     if (address < 0 || __size == 0 || address >= __size) {return -1;}
     return (int32_t)address;
 }
+
+bool StaticMemoryReader::isStatic() {return true;}

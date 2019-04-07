@@ -109,7 +109,7 @@ class MemorySnapshotCrawler(object):
         self.__bridge_from: Dict[int, List[JointBridge]] = {}
         self.__bridge_to: Dict[int, List[JointBridge]] = {}
 
-        self.__bridge_visit: Dict[str, JointBridge] = {}
+        self.__bridge_visit: Dict[int, JointBridge] = {}
         self.__type_address_map: Dict[int, int] = {}
         self.__native_object_address_map: Dict[int, int] = {}
         self.__managed_object_address_map: Dict[int, int] = {}
@@ -465,6 +465,7 @@ class MemorySnapshotCrawler(object):
         if not entry_type.isValueType:
             if address in self.__visit: return
             self.__visit[mo.address] = mo.managed_object_index
+
 
         if entry_type.isArray:  # crawl array
             self.crawl_managed_array_address(address=address, type=entry_type, memory_reader=memory_reader, joint=joint,

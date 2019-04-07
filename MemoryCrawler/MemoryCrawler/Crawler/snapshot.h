@@ -25,7 +25,7 @@ struct Connection
 struct FieldDescription
 {
     bool isStatic;
-    int16_t slotIndex;
+    int16_t fieldSlotIndex;
     int32_t offset;
     int32_t typeIndex;
     int32_t hookTypeIndex = -1;

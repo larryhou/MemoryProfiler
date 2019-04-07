@@ -178,7 +178,7 @@ void playground()
     << " offset=" << (uint64_t)&field.offset - (uint64_t)&field
     << " typeIndex=" << (uint64_t)&field.typeIndex - (uint64_t)&field
     << " hostTypeIndex=" << (uint64_t)&field.hookTypeIndex - (uint64_t)&field
-    << " slotIndex=" << (uint64_t)&field.slotIndex - (uint64_t)&field
+    << " slotIndex=" << (uint64_t)&field.fieldSlotIndex - (uint64_t)&field
     << endl;
     
     cout << "TypeDescription size=" << sizeof(TypeDescription) << endl;

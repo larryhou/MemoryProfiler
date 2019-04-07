@@ -394,7 +394,7 @@ void MemorySnapshotReader::postSnapshot()
             }
             
             field.hookTypeIndex = type.typeIndex;
-            field.slotIndex = n;
+            field.fieldSlotIndex = n;
         }
     }
     sampler.end();
