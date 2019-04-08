@@ -12,7 +12,7 @@
 
 static TimeSampler<std::nano> sampler;
 
-PackedMemorySnapshot *MemorySnapshotReader::read(const char *filepath, bool memoryCache)
+PackedMemorySnapshot &MemorySnapshotReader::read(const char *filepath, bool memoryCache)
 {
     __fs = new FileStream;
     __fs->open(filepath, memoryCache);
@@ -33,7 +33,7 @@ PackedMemorySnapshot *MemorySnapshotReader::read(const char *filepath, bool memo
         __fs->ignore(8);
     }
     
-    return snapshot;
+    return *snapshot;
 }
 
 void MemorySnapshotReader::readHeader(FileStream &fs)
