@@ -235,7 +235,7 @@ void MemorySnapshotCrawler::tryConnectWithNativeObject(ManagedObject &mo)
     nativeType.managedTypeArrayIndex = type.typeIndex;
 }
 
-void MemorySnapshotCrawler::setObjectSize(ManagedObject &mo, TypeDescription &type, HeapMemoryReader &memoryReader)
+inline void MemorySnapshotCrawler::setObjectSize(ManagedObject &mo, TypeDescription &type, HeapMemoryReader &memoryReader)
 {
     if (mo.size != 0){return;}
     mo.size = memoryReader.readObjectSize(mo.address, type);
