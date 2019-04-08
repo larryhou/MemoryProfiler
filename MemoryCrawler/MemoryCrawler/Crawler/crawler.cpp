@@ -490,5 +490,18 @@ void MemorySnapshotCrawler::crawlStatic()
             crawlManagedEntryAddress(fieldAddress, fieldType, *reader, joint, false, 0);
         }
     }
+}
+
+MemorySnapshotCrawler::~MemorySnapshotCrawler()
+{
+    delete __memoryReader;
+    for (auto iter = toConnections.begin(); iter != toConnections.end(); ++iter)
+    {
+        delete iter->second;
+    }
     
+    for (auto iter = fromConnections.begin(); iter != fromConnections.end(); ++iter)
+    {
+        delete iter->second;
+    }
 }

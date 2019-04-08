@@ -132,6 +132,8 @@ public:
     bool isSubclassOfManagedType(TypeDescription &type, int32_t baseTypeIndex);
     bool isSubclassOfNativeType(PackedNativeType &type, int32_t baseTypeIndex);
     
+    ~MemorySnapshotCrawler();
+    
 private:
     void initManagedTypes();
     void crawlGCHandles();
