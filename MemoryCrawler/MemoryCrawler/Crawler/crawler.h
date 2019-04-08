@@ -140,7 +140,6 @@ private:
     void tryConnectWithNativeObject(ManagedObject &mo);
     
     void setObjectSize(ManagedObject &mo, TypeDescription &type, HeapMemoryReader &memoryReader);
-    uint32_t readObjectHierachySize(address_t address, TypeDescription &type);
     
     ManagedObject &createManagedObject(address_t address, int32_t typeIndex);
     

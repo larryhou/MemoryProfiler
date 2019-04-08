@@ -237,39 +237,6 @@ void MemorySnapshotCrawler::setObjectSize(ManagedObject &mo, TypeDescription &ty
     mo.size = memoryReader.readObjectSize(mo.address, type);
 }
 
-uint32_t MemorySnapshotCrawler::readObjectHierachySize(address_t address, TypeDescription &type)
-{
-    if (type.isArray)
-    {
-        if (type.baseOrElementTypeIndex < 0 || type.baseOrElementTypeIndex >= __snapshot.typeDescriptions->size)
-        {
-            return 0;
-        }
-        auto elementCount = __memoryReader->readArrayLength(address, type);
-        auto elementType = __snapshot.typeDescriptions->items[type.baseOrElementTypeIndex];
-        //        auto elementSize = elementType.isValueType ? elementType.size : __vm->pointerSize;
-        //        return __vm->arrayHeaderSize + elementSize * elementCount;
-        int32_t size = __vm->arrayHeaderSize;
-        if (elementType.isValueType)
-        {
-            size += elementType.size * elementCount;
-        }
-        else
-        {
-            for (auto i = 0; i < elementCount; i++)
-            {
-                size += __vm->pointerSize;
-            }
-        }
-    }
-    else
-    {
-        __memoryReader->readObjectSize(address, type);
-    }
-    
-    return type.size;
-}
-
 ManagedObject &MemorySnapshotCrawler::createManagedObject(address_t address, int32_t typeIndex)
 {
     auto &mo = managedObjects.add();
