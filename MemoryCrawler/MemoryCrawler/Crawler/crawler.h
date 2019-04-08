@@ -9,6 +9,7 @@
 #ifndef crawler_h
 #define crawler_h
 
+#include <fstream>
 #include <vector>
 #include <map>
 #include "snapshot.h"
@@ -92,9 +93,11 @@ public:
 private:
     PackedMemorySnapshot &__snapshot;
     HeapMemoryReader *__memoryReader;
+    StaticMemoryReader *__staticMemoryReader;
     VirtualMachineInformation *__vm;
     
     TimeSampler<std::nano> __sampler;
+    address_t *__mirror = nullptr;
     
     // crawling map
     map<address_t, address_t> __connectionVisit;
@@ -111,10 +114,13 @@ public:
     MemorySnapshotCrawler(PackedMemorySnapshot &snapshot): __snapshot(snapshot)
     {
         __memoryReader = new HeapMemoryReader(snapshot);
+        __staticMemoryReader = new StaticMemoryReader(snapshot);
         __vm = snapshot.virtualMachineInformation;
+        debug();
     }
     
     void crawl();
+    void debug();
     
     void tryAcceptConnection(EntityConnection &connection);
     int32_t getIndexKey(ConnectionKind kind, int32_t index);

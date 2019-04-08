@@ -148,11 +148,15 @@ class CrawlerCache(object):
                 joint_count, bridge.src, bridge.src_kind.value, bridge.dst, bridge.dst_kind.value, joint.id
             ))
             joint_count += 1
+        fp = open('address.bin', 'wb')
+        fp.write(struct.pack('@I', len(crawler.managed_objects)))
         for mo in crawler.managed_objects:
             object_rows.append((
                 mo.address, mo.type_index, mo.managed_object_index, mo.native_object_index, mo.handle_index,
                 mo.is_value_type, mo.size, mo.native_size, mo.joint.id
             ))
+            fp.write(struct.pack('@Q', mo.address))
+        fp.close()
 
         type_rows = []
         field_rows = []

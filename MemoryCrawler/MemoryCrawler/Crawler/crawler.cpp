@@ -17,6 +17,23 @@ void MemorySnapshotCrawler::crawl()
     __sampler.end();
 }
 
+using std::ifstream;
+void MemorySnapshotCrawler::debug()
+{
+#if USE_ADDRESS_MIRROR
+    ifstream fs;
+    fs.open("/Users/larryhou/Documents/MemoryProfiler/address.bin", ifstream::in | ifstream::binary);
+    
+    int32_t size = 0;
+    char *ptr = (char *)&size;
+    fs.read(ptr, 4);
+    
+    __mirror = new address_t[size];
+    fs.read((char *)__mirror, size * sizeof(address_t));
+    fs.close();
+#endif
+}
+
 void MemorySnapshotCrawler::initManagedTypes()
 {
     __sampler.begin("initManagedTypes");
@@ -248,6 +265,9 @@ ManagedObject &MemorySnapshotCrawler::createManagedObject(address_t address, int
     mo.typeIndex = typeIndex;
     mo.managedObjectIndex = managedObjects.size() - 1;
     tryConnectWithNativeObject(mo);
+#if USE_ADDRESS_MIRROR
+    assert(address == __mirror[mo.managedObjectIndex]);
+#endif
     return mo;
 }
 
@@ -396,7 +416,7 @@ void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
                 }
                 fieldAddress = memoryReader.readPointer(ptrAddress);
                 auto fieldTypeIndex = findTypeOfAddress(fieldAddress);
-                if (fieldTypeIndex == -1)
+                if (fieldTypeIndex != -1)
                 {
                     fieldType = &__snapshot.typeDescriptions->items[fieldTypeIndex];
                 }
@@ -458,7 +478,6 @@ void MemorySnapshotCrawler::crawlGCHandles()
 void MemorySnapshotCrawler::crawlStatic()
 {
     __sampler.begin("crawlStatic");
-    StaticMemoryReader staticMemoryReader(__snapshot);
     auto &typeDescriptions = *__snapshot.typeDescriptions;
     for (auto i = 0; i < typeDescriptions.size; i++)
     {
@@ -469,7 +488,7 @@ void MemorySnapshotCrawler::crawlStatic()
             auto &field = type.fields->items[n];
             if (!field.isStatic){continue;}
             
-            staticMemoryReader.load(*type.staticFieldBytes);
+            __staticMemoryReader->load(*type.staticFieldBytes);
             
             HeapMemoryReader *reader;
             address_t fieldAddress = 0;
@@ -477,12 +496,12 @@ void MemorySnapshotCrawler::crawlStatic()
             if (fieldType->isValueType)
             {
                 fieldAddress = field.offset - __vm->objectHeaderSize;
-                reader = &staticMemoryReader;
+                reader = __staticMemoryReader;
             }
             else
             {
-                fieldAddress = staticMemoryReader.readPointer(field.offset);
-                reader = this->__memoryReader;
+                fieldAddress = __staticMemoryReader->readPointer(field.offset);
+                reader = __memoryReader;
             }
             
             auto &joint = joints.add();
@@ -504,6 +523,7 @@ MemorySnapshotCrawler::~MemorySnapshotCrawler()
 {
     __sampler.summary();
     
+    delete __mirror;
     delete __memoryReader;
     for (auto iter = toConnections.begin(); iter != toConnections.end(); ++iter)
     {

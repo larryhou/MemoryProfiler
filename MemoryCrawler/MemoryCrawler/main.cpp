@@ -120,20 +120,20 @@ int main(int argc, const char * argv[])
     profiler.end();
     profiler.summary();
     
-    InstanceManager<SimpleObject> manager(10);
-    for (auto i = 0; i < 100; i++)
-    {
-        SimpleObject &obj = manager.add();
-        obj.index = i;
-    }
-    
-    assert(manager.size() == 100);
-    for (auto i = 0; i < manager.size(); i++)
-    {
-        SimpleObject &obj = manager[i];
-        printf("%d ", obj.index);
-    }
-    printf("\n");
+//    InstanceManager<SimpleObject> manager(10);
+//    for (auto i = 0; i < 100; i++)
+//    {
+//        SimpleObject &obj = manager.add();
+//        obj.index = i;
+//    }
+//    
+//    assert(manager.size() == 100);
+//    for (auto i = 0; i < manager.size(); i++)
+//    {
+//        SimpleObject &obj = manager[i];
+//        printf("%d ", obj.index);
+//    }
+//    printf("\n");
     
 //    int64_t data[10];
 //    auto ptr = data;

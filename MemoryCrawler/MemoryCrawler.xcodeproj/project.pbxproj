@@ -285,6 +285,11 @@
 				DEPLOYMENT_LOCATION = YES;
 				DEVELOPMENT_TEAM = PRLP6W5S32;
 				DSTROOT = /;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+					"USE_ADDRESS_MIRROR=1",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
