@@ -525,6 +525,7 @@ MemorySnapshotCrawler::~MemorySnapshotCrawler()
     
     delete __mirror;
     delete __memoryReader;
+    delete __staticMemoryReader;
     for (auto iter = toConnections.begin(); iter != toConnections.end(); ++iter)
     {
         delete iter->second;
