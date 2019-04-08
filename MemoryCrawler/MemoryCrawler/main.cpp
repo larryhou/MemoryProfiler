@@ -83,11 +83,10 @@ void testStream(const char * filepath)
 //    fs.close();
     
     MemorySnapshotReader reader;
-    reader.read(filepath);
+    auto &snapshot = reader.read(filepath);
     
-    string s("123456");
-    auto iter = s.rbegin();
-    printf("*iter=%c\n",  *iter);
+    MemorySnapshotCrawler crawler(snapshot);
+    crawler.crawl();
 }
 
 struct SimpleObject

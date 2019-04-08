@@ -7,6 +7,7 @@
 //
 
 #include "heap.h"
+#include <vector>
 
 int32_t HeapMemoryReader::seekOffset(address_t address)
 {
@@ -19,7 +20,7 @@ int32_t HeapMemoryReader::seekOffset(address_t address)
     auto heapIndex = findHeapOfAddress(address);
     if (heapIndex == -1) {return -1;}
     
-    MemorySection &heap = __managedHeapSections->items[heapIndex];
+    MemorySection &heap = *(*__sortedHeapSections)[heapIndex];
     __memory = heap.bytes->items;
     __startAddress = heap.startAddress;
     __stopAddress = heap.startAddress + heap.bytes->size;
@@ -83,7 +84,7 @@ uint32_t HeapMemoryReader::readObjectSize(address_t address, TypeDescription &ty
             return 0;
         }
         auto elementCount = readArrayLength(address, type);
-        auto elementType = __snapshot.typeDescriptions->items[type.baseOrElementTypeIndex];
+        auto &elementType = __snapshot.typeDescriptions->items[type.baseOrElementTypeIndex];
         auto elementSize = elementType.isValueType ? elementType.size : __vm->pointerSize;
         return __vm->arrayHeaderSize + elementSize * elementCount;
     }
@@ -117,13 +118,13 @@ HeapSegment HeapMemoryReader::readObjectMemory(address_t address, TypeDescriptio
 
 int32_t HeapMemoryReader::findHeapOfAddress(address_t address)
 {
-    int32_t min = 0, max = __managedHeapSections->size - 1;
-    Array<MemorySection> &heapSections = *__managedHeapSections;
+    std::vector<MemorySection *> &heapSections = *__sortedHeapSections;
+    int32_t min = 0, max = (int32_t)heapSections.size() - 1;
     
     while (min <= max)
     {
         auto mid = (min + max) >> 1;
-        MemorySection &heap = heapSections[mid];
+        MemorySection &heap = *heapSections[mid];
         if (heap.startAddress > address)
         {
             max = mid - 1;

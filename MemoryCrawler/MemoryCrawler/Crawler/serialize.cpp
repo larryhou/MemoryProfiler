@@ -421,9 +421,20 @@ void MemorySnapshotReader::postSnapshot()
     
     sampler.begin("set_heap_index");
     Array<MemorySection> &managedHeapSections = *snapshot->managedHeapSections;
+    
+    auto heapSections = new std::vector<MemorySection *>;
     for (auto i = 0; i < managedHeapSections.size; i++)
     {
-        managedHeapSections[i].heapArrayIndex = i;
+        heapSections->push_back(&managedHeapSections[i]);
+    }
+    std::sort(heapSections->begin(), heapSections->end(), [](const MemorySection *a, const MemorySection *b)
+              {
+                  return a->startAddress < b->startAddress;
+              });
+    snapshot->sortedHeapSections = heapSections;
+    for (auto i = 0; i < heapSections->size(); i++)
+    {
+        (*heapSections)[i]->heapArrayIndex = i;
     }
     sampler.end();
     

@@ -10,6 +10,7 @@
 #define snapshot_h
 
 #include <string>
+#include <vector>
 #include "types.h"
 
 using std::string;
@@ -133,6 +134,8 @@ struct PackedMemorySnapshot
     Array<PackedNativeType> *nativeTypes; // PackedNativeType[]
     Array<TypeDescription> *typeDescriptions; // TypeDescription[]
     VirtualMachineInformation *virtualMachineInformation;
+    
+    std::vector<MemorySection *> *sortedHeapSections;
     
     ManagedTypeIndex managedTypeIndex;
     NativeTypeIndex nativeTypeIndex;

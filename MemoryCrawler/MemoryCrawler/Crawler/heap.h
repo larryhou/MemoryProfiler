@@ -29,7 +29,7 @@ struct HeapSegment
 class HeapMemoryReader
 {
     PackedMemorySnapshot &__snapshot;
-    Array<MemorySection> *__managedHeapSections;
+    std::vector<MemorySection *> *__sortedHeapSections;
     VirtualMachineInformation *__vm;
     
 protected:
@@ -43,7 +43,8 @@ protected:
 public:
     HeapMemoryReader(PackedMemorySnapshot &snapshot): __snapshot(snapshot)
     {
-        __managedHeapSections = snapshot.managedHeapSections;
+        __sortedHeapSections = snapshot.sortedHeapSections;
+        
         __vm = snapshot.virtualMachineInformation;
     }
     
@@ -62,7 +63,10 @@ public:
     float readFloat(address_t address) { return readScalar<float>(address); }
     double readDouble(address_t address) { return readScalar<double>(address); }
     
-    address_t readPointer(address_t address) { return readScalar<address_t>(address); }
+    address_t readPointer(address_t address)
+    {
+        return __vm->pointerSize == 8 ? readScalar<address_t>(address) : (address_t)readScalar<uint32_t>(address);
+    }
     
     uint32_t readStringLength(address_t address);
     int32_t readString(address_t address, char16_t *buffer);

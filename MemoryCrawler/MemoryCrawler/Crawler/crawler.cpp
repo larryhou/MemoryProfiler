@@ -370,7 +370,7 @@ void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
     auto iterType = &entryType;
     while (iterType != nullptr)
     {
-        for (auto i = 0; iterType->fields->size; i++)
+        for (auto i = 0; i < iterType->fields->size; i++)
         {
             auto &field = iterType->fields->items[i];
             if (field.isStatic){continue;}
