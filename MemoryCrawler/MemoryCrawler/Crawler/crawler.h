@@ -17,7 +17,7 @@
 
 enum ConnectionKind:uint8_t { None, gcHandle, Native, Managed, Static };
 
-struct MemberJoint
+struct EntityJoint
 {
     int32_t gcHandleIndex = -1;
     int32_t hookTypeIndex = -1;
@@ -32,7 +32,7 @@ struct MemberJoint
     bool isStatic = false;
 };
 
-struct JointConnection
+struct EntityConnection
 {
     int32_t connectionArrayIndex = -1;
     int32_t from = -1;
@@ -83,8 +83,8 @@ class MemorySnapshotCrawler
 public:
     // crawling result
     InstanceManager<ManagedObject> managedObjects;
-    InstanceManager<JointConnection> connections;
-    InstanceManager<MemberJoint> joints;
+    InstanceManager<EntityConnection> connections;
+    InstanceManager<EntityJoint> joints;
     
     map<int32_t, vector<int32_t> *> fromConnections;
     map<int32_t, vector<int32_t> *> toConnections;
@@ -116,9 +116,9 @@ public:
     
     void crawl();
     
-    void tryAcceptConnection(JointConnection &connection);
+    void tryAcceptConnection(EntityConnection &connection);
     int32_t getIndexKey(ConnectionKind kind, int32_t index);
-    int64_t getConnectionKey(JointConnection &connection);
+    int64_t getConnectionKey(EntityConnection &connection);
     
     int32_t findTypeOfAddress(address_t address);
     int32_t findTypeAtTypeInfoAddress(address_t address);
@@ -150,13 +150,13 @@ private:
     void crawlManagedArrayAddress(address_t address,
                                   TypeDescription &type,
                                   HeapMemoryReader &memoryReader,
-                                  MemberJoint &joint,
+                                  EntityJoint &joint,
                                   int32_t depth);
     
     void crawlManagedEntryAddress(address_t address,
                                   TypeDescription *type,
                                   HeapMemoryReader &memoryReader,
-                                  MemberJoint &joint,
+                                  EntityJoint &joint,
                                   bool isRealType,
                                   int32_t depth);
 };

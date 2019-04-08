@@ -10,19 +10,23 @@
 
 void MemorySnapshotCrawler::crawl()
 {
+    __sampler.begin("MemorySnapshotCrawler::crawl");
     initManagedTypes();
     crawlGCHandles();
     crawlStatic();
+    __sampler.end();
 }
 
 void MemorySnapshotCrawler::initManagedTypes()
 {
+    __sampler.begin("initManagedTypes");
     Array<TypeDescription> &typeDescriptions = *__snapshot.typeDescriptions;
     for (auto i = 0; i < typeDescriptions.size; i++)
     {
         TypeDescription &type = typeDescriptions[i];
         type.isUnityEngineObjectType = isSubclassOfManagedType(type, __snapshot.managedTypeIndex.unityengine_Object);
     }
+    __sampler.end();
 }
 
 bool MemorySnapshotCrawler::isSubclassOfManagedType(TypeDescription &type, int32_t baseTypeIndex)
@@ -55,42 +59,42 @@ bool MemorySnapshotCrawler::isSubclassOfNativeType(PackedNativeType &type, int32
     return false;
 }
 
-void MemorySnapshotCrawler::tryAcceptConnection(JointConnection &jc)
+void MemorySnapshotCrawler::tryAcceptConnection(EntityConnection &ec)
 {
-    if (jc.from >= 0)
+    if (ec.from >= 0)
     {
-        ManagedObject &fromObject = managedObjects[jc.from];
+        ManagedObject &fromObject = managedObjects[ec.from];
         auto iter = __connectionVisit.find(fromObject.address);
         if (iter != __connectionVisit.end())
         {
-            ManagedObject &toObject = managedObjects[jc.to];
+            ManagedObject &toObject = managedObjects[ec.to];
             if (iter->second == toObject.address) { return; }
             __connectionVisit.insert(pair<address_t, address_t>(fromObject.address, toObject.address));
         }
     }
     
-    if (jc.fromKind != ConnectionKind::None && jc.from >= 0)
+    if (ec.fromKind != ConnectionKind::None && ec.from >= 0)
     {
-        auto key = getIndexKey(jc.fromKind, jc.from);
+        auto key = getIndexKey(ec.fromKind, ec.from);
         auto iter = fromConnections.find(key);
         if (iter == fromConnections.end())
         {
             auto entity = fromConnections.insert(pair<int32_t, vector<int32_t> *>(key, new vector<int32_t>));
             iter = entity.first;
         }
-        iter->second->push_back(jc.connectionArrayIndex);
+        iter->second->push_back(ec.connectionArrayIndex);
     }
     
-    if (jc.toKind != ConnectionKind::None && jc.to >= 0)
+    if (ec.toKind != ConnectionKind::None && ec.to >= 0)
     {
-        auto key = getIndexKey(jc.toKind, jc.to);
+        auto key = getIndexKey(ec.toKind, ec.to);
         auto iter = toConnections.find(key);
         if (iter == toConnections.end())
         {
             auto entity = toConnections.insert(pair<int32_t, vector<int32_t> *>(key, new vector<int32_t>));
             iter = entity.first;
         }
-        iter->second->push_back(jc.connectionArrayIndex);
+        iter->second->push_back(ec.connectionArrayIndex);
     }
 }
 
@@ -99,9 +103,9 @@ int32_t MemorySnapshotCrawler::getIndexKey(ConnectionKind kind, int32_t index)
     return ((int32_t)kind << 28) + index;
 }
 
-int64_t MemorySnapshotCrawler::getConnectionKey(JointConnection &jc)
+int64_t MemorySnapshotCrawler::getConnectionKey(EntityConnection &ec)
 {
-    return (int64_t)getIndexKey(jc.fromKind, jc.from) << 32 | getIndexKey(jc.toKind, jc.to);
+    return (int64_t)getIndexKey(ec.fromKind, ec.from) << 32 | getIndexKey(ec.toKind, ec.to);
 }
 
 int32_t MemorySnapshotCrawler::findTypeAtTypeInfoAddress(address_t address)
@@ -252,7 +256,7 @@ bool MemorySnapshotCrawler::isCrawlable(TypeDescription &type)
     return !type.isValueType || type.size > 8; // vm->pointerSize
 }
 
-void MemorySnapshotCrawler::crawlManagedArrayAddress(address_t address, TypeDescription &type, HeapMemoryReader &memoryReader, MemberJoint &joint, int32_t depth)
+void MemorySnapshotCrawler::crawlManagedArrayAddress(address_t address, TypeDescription &type, HeapMemoryReader &memoryReader, EntityJoint &joint, int32_t depth)
 {
     auto isStaticCrawling = memoryReader.isStatic();
     if (address < 0 || (!isStaticCrawling && address == 0)){return;}
@@ -284,7 +288,7 @@ void MemorySnapshotCrawler::crawlManagedArrayAddress(address_t address, TypeDesc
     }
 }
 
-void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDescription *type, HeapMemoryReader &memoryReader, MemberJoint &joint, bool isActualType, int32_t depth)
+void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDescription *type, HeapMemoryReader &memoryReader, EntityJoint &joint, bool isActualType, int32_t depth)
 {
     auto isStaticCrawling = memoryReader.isStatic();
     if (address < 0 || (!isStaticCrawling && address == 0)){return;}
@@ -328,28 +332,28 @@ void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
     
     assert(mo->managedObjectIndex >= 0);
     
-    auto &jc = connections.add();
-    jc.connectionArrayIndex = connections.size() - 1;
+    auto &ec = connections.add();
+    ec.connectionArrayIndex = connections.size() - 1;
     if (joint.gcHandleIndex >= 0)
     {
-        jc.fromKind = ConnectionKind::gcHandle;
-        jc.from = -1;
+        ec.fromKind = ConnectionKind::gcHandle;
+        ec.from = -1;
     }
     else if (joint.isStatic)
     {
-        jc.fromKind = ConnectionKind::Static;
-        jc.from = -1;
+        ec.fromKind = ConnectionKind::Static;
+        ec.from = -1;
     }
     else
     {
-        jc.fromKind = ConnectionKind::Managed;
-        jc.from = joint.hookObjectIndex;
+        ec.fromKind = ConnectionKind::Managed;
+        ec.from = joint.hookObjectIndex;
     }
     
-    jc.jointArrayIndex = joint.jointArrayIndex;
-    jc.toKind = ConnectionKind::Managed;
-    jc.to = mo->managedObjectIndex;
-    tryAcceptConnection(jc);
+    ec.jointArrayIndex = joint.jointArrayIndex;
+    ec.toKind = ConnectionKind::Managed;
+    ec.to = mo->managedObjectIndex;
+    tryAcceptConnection(ec);
     
     if (!entryType.isValueType)
     {
@@ -404,21 +408,21 @@ void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
                 reader = this->__memoryReader;
             }
             
-            auto &fj = joints.add();
+            auto &ej = joints.add();
             
             // set field hook info
-            fj.jointArrayIndex = joints.size() - 1;
-            fj.hookObjectAddress = address;
-            fj.hookObjectIndex = mo->managedObjectIndex;
-            fj.hookTypeIndex = entryType.typeIndex;
+            ej.jointArrayIndex = joints.size() - 1;
+            ej.hookObjectAddress = address;
+            ej.hookObjectIndex = mo->managedObjectIndex;
+            ej.hookTypeIndex = entryType.typeIndex;
             
             // set field info
-            fj.fieldAddress = fieldAddress;
-            fj.fieldTypeIndex = field.typeIndex;
-            fj.fieldSlotIndex = field.fieldSlotIndex;
-            fj.fieldOffset = field.offset;
+            ej.fieldAddress = fieldAddress;
+            ej.fieldTypeIndex = field.typeIndex;
+            ej.fieldSlotIndex = field.fieldSlotIndex;
+            ej.fieldOffset = field.offset;
             
-            crawlManagedEntryAddress(fieldAddress, fieldType, *reader, fj, true, depth + 1);
+            crawlManagedEntryAddress(fieldAddress, fieldType, *reader, ej, true, depth + 1);
         }
         
         if (iterType->baseOrElementTypeIndex == -1)
@@ -434,6 +438,7 @@ void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
 
 void MemorySnapshotCrawler::crawlGCHandles()
 {
+    __sampler.begin("crawlGCHandles");
     auto &gcHandles = *__snapshot.gcHandles;
     for (auto i = 0; i < gcHandles.size; i++)
     {
@@ -447,10 +452,12 @@ void MemorySnapshotCrawler::crawlGCHandles()
         
         crawlManagedEntryAddress(item.target, nullptr, *__memoryReader, joint, false, 0);
     }
+    __sampler.end();
 }
 
 void MemorySnapshotCrawler::crawlStatic()
 {
+    __sampler.begin("crawlStatic");
     StaticMemoryReader staticMemoryReader(__snapshot);
     auto &typeDescriptions = *__snapshot.typeDescriptions;
     for (auto i = 0; i < typeDescriptions.size; i++)
@@ -490,10 +497,13 @@ void MemorySnapshotCrawler::crawlStatic()
             crawlManagedEntryAddress(fieldAddress, fieldType, *reader, joint, false, 0);
         }
     }
+    __sampler.end();
 }
 
 MemorySnapshotCrawler::~MemorySnapshotCrawler()
 {
+    __sampler.summary();
+    
     delete __memoryReader;
     for (auto iter = toConnections.begin(); iter != toConnections.end(); ++iter)
     {
