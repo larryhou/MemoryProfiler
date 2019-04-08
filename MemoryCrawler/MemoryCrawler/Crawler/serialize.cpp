@@ -12,7 +12,7 @@
 
 static TimeSampler<std::nano> sampler;
 
-void MemorySnapshotReader::read(const char *filepath, bool memoryCache)
+PackedMemorySnapshot *MemorySnapshotReader::read(const char *filepath, bool memoryCache)
 {
     __fs = new FileStream;
     __fs->open(filepath, memoryCache);
@@ -32,6 +32,8 @@ void MemorySnapshotReader::read(const char *filepath, bool memoryCache)
         }
         __fs->ignore(8);
     }
+    
+    return snapshot;
 }
 
 void MemorySnapshotReader::readHeader(FileStream &fs)
@@ -318,8 +320,8 @@ void readPackedMemorySnapshot(PackedMemorySnapshot &item, FileStream &fs)
 
 void MemorySnapshotReader::readSnapshot(FileStream &fs)
 {
-    vm = new VirtualMachineInformation;
-    readVirtualMachineInformation(*vm, fs);
+    __vm = new VirtualMachineInformation;
+    readVirtualMachineInformation(*__vm, fs);
     
     snapshot = new PackedMemorySnapshot;
     readPackedMemorySnapshot(*snapshot, fs);
@@ -397,6 +399,8 @@ void MemorySnapshotReader::postSnapshot()
             field.fieldSlotIndex = n;
         }
     }
+    __cachedPtr = snapshot->cached_ptr;
+    assert(__cachedPtr != nullptr);
     sampler.end();
     
     sampler.begin("set_native_type_index");

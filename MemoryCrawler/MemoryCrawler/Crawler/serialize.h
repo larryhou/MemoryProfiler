@@ -17,8 +17,8 @@
 class MemorySnapshotReader
 {
     FileStream *__fs;
-    VirtualMachineInformation *vm;
-    FieldDescription *cachedPtr;
+    VirtualMachineInformation *__vm;
+    FieldDescription *__cachedPtr;
     
 public:
     string *mime;
@@ -30,7 +30,7 @@ public:
     int64_t createTime;
     PackedMemorySnapshot *snapshot;
     
-    void read(const char *filepath, bool memoryCache = false);
+    PackedMemorySnapshot *read(const char *filepath, bool memoryCache = false);
     
     ~MemorySnapshotReader();
     
