@@ -316,8 +316,8 @@ void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
     auto &entryType = __snapshot.typeDescriptions->items[typeIndex];
     
     ManagedObject *mo;
-    auto iter = __visit.find(address);
-    if (entryType.isValueType || iter == __visit.end())
+    auto iter = __crawlingVisit.find(address);
+    if (entryType.isValueType || iter == __crawlingVisit.end())
     {
         mo = &createManagedObject(address, typeIndex);
         mo->jointArrayIndex = joint.jointArrayIndex;
@@ -357,8 +357,8 @@ void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
     
     if (!entryType.isValueType)
     {
-        if (iter != __visit.end()) {return;}
-        __visit.insert(pair<address_t, int32_t>(address, mo->managedObjectIndex));
+        if (iter != __crawlingVisit.end()) {return;}
+        __crawlingVisit.insert(pair<address_t, int32_t>(address, mo->managedObjectIndex));
     }
     
     if (entryType.isArray)

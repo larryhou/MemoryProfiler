@@ -98,7 +98,7 @@ private:
     
     // crawling map
     map<address_t, address_t> __connectionVisit;
-    map<address_t, int32_t> __visit;
+    map<address_t, int32_t> __crawlingVisit;
     
     // address map
     map<address_t, int32_t> __typeAddressMap;
