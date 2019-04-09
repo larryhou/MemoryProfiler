@@ -13,7 +13,7 @@ void MemorySnapshotCrawler::crawl()
     __sampler.begin("MemorySnapshotCrawler::crawl");
     initManagedTypes();
     crawlGCHandles();
-    crawlStatic();
+    crawlStatics();
     __sampler.end();
 }
 
@@ -503,28 +503,59 @@ void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
     }
 }
 
+void MemorySnapshotCrawler::schedule(void (*task)())
+{
+    auto coreCount = std::thread::hardware_concurrency();
+    vector<std::thread *> threads;
+    
+    task(); // main thread
+    for (auto i = 0; i < coreCount - 1; i++)
+    {
+        std::thread t(task);
+        threads.push_back(&t);
+    }
+    
+    for (auto i = 0; i < threads.size(); i++)
+    {
+        threads[i]->join();
+    }
+}
+
 void MemorySnapshotCrawler::crawlGCHandles()
 {
     __sampler.begin("crawlGCHandles");
+    
+    __gcHandleCrawlingIndex = 0;
+    asyncCrawlGCHandles();
+    
+    __sampler.end();
+}
+
+void MemorySnapshotCrawler::asyncCrawlGCHandles()
+{
     auto &gcHandles = *__snapshot.gcHandles;
-    for (auto i = 0; i < gcHandles.size; i++)
+    while (true)
     {
-        auto &item = gcHandles[i];
+        __mutex.lock();
+        if (__gcHandleCrawlingIndex >= gcHandles.size) {break;}
+        auto &item = gcHandles[__gcHandleCrawlingIndex++];
+        __mutex.unlock();
         
-        auto &joint = joints.add();
-        joint.jointArrayIndex = joints.size() - 1;
+        auto &joint = createJoint();
         
         // set gcHandle info
         joint.gcHandleIndex = item.gcHandleArrayIndex;
         
         crawlManagedEntryAddress(item.target, nullptr, *__memoryReader, joint, false, 0);
     }
-    __sampler.end();
 }
 
-void MemorySnapshotCrawler::crawlStatic()
+void MemorySnapshotCrawler::crawlStatics()
 {
     __sampler.begin("crawlStatic");
+    
+    vector<StaticCrawlingTask *> scheduledTasks;
+    
     auto &typeDescriptions = *__snapshot.typeDescriptions;
     for (auto i = 0; i < typeDescriptions.size; i++)
     {
@@ -559,10 +590,33 @@ void MemorySnapshotCrawler::crawlStatic()
             joint.fieldTypeIndex = field.typeIndex;
             joint.isStatic = true;
             
-            crawlManagedEntryAddress(fieldAddress, fieldType, *reader, joint, false, 0);
+            StaticCrawlingTask task;
+            task.address = fieldAddress;
+            task.type = fieldType;
+            task.reader = reader;
+            task.joint = &joint;
+            scheduledTasks.push_back(&task);
         }
     }
+    
+    __staticCrawlingIndex = 0;
+    asyncCrawlStatics(scheduledTasks);
+    
     __sampler.end();
+}
+
+void MemorySnapshotCrawler::asyncCrawlStatics(vector<StaticCrawlingTask *> &scheduledTasks)
+{
+    auto taskCount = scheduledTasks.size();
+    while (true)
+    {
+        __mutex.lock();
+        if (__staticCrawlingIndex >= taskCount){break;}
+        auto &task = *scheduledTasks[__staticCrawlingIndex++];
+        __mutex.unlock();
+        
+        crawlManagedEntryAddress(task.address, task.type, *task.reader, *task.joint, false, 0);
+    }
 }
 
 MemorySnapshotCrawler::~MemorySnapshotCrawler()

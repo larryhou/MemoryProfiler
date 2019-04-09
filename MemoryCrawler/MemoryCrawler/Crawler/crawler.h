@@ -9,6 +9,7 @@
 #ifndef crawler_h
 #define crawler_h
 
+#include <thread>
 #include <fstream>
 #include <vector>
 #include <map>
@@ -77,6 +78,14 @@ public:
     ~InstanceManager();
 };
 
+struct StaticCrawlingTask
+{
+    address_t address;
+    TypeDescription *type;
+    HeapMemoryReader *reader;
+    EntityJoint *joint;
+};
+
 using std::map;
 using std::vector;
 class MemorySnapshotCrawler
@@ -112,8 +121,8 @@ private:
     
     // multi-threading
     std::mutex __mutex;
-    int32_t __crawlingGCHandleIndex = 0;
-    int32_t __crawlingStaticIndex = 0;
+    int32_t __gcHandleCrawlingIndex = 0;
+    int32_t __staticCrawlingIndex = 0;
 
 public:
     MemorySnapshotCrawler(PackedMemorySnapshot &snapshot): __snapshot(snapshot)
@@ -147,8 +156,14 @@ public:
     
 private:
     void initManagedTypes();
+    
     void crawlGCHandles();
-    void crawlStatic();
+    void asyncCrawlGCHandles();
+    
+    void crawlStatics();
+    void asyncCrawlStatics(vector<StaticCrawlingTask *> &scheduledTasks);
+    
+    void schedule(void (*task)());
     
     void tryConnectWithNativeObject(ManagedObject &mo);
     
