@@ -145,13 +145,13 @@ int32_t MemorySnapshotCrawler::findTypeAtTypeInfoAddress(address_t address)
     return iter != __typeAddressMap.end() ? iter->second : -1;
 }
 
-int32_t MemorySnapshotCrawler::findTypeOfAddress(address_t address)
+int32_t MemorySnapshotCrawler::findTypeOfAddress(address_t address, HeapMemoryReader *memoryReader)
 {
     auto typeIndex = findTypeAtTypeInfoAddress(address);
     if (typeIndex != -1) {return typeIndex;}
-    auto typePtr = __memoryReader->readPointer(address);
+    auto typePtr = memoryReader->readPointer(address);
     if (typePtr == 0) {return -1;}
-    auto vtablePtr = __memoryReader->readPointer(typePtr);
+    auto vtablePtr = memoryReader->readPointer(typePtr);
     if (vtablePtr != 0)
     {
         return findTypeAtTypeInfoAddress(vtablePtr);
@@ -237,7 +237,7 @@ int32_t MemorySnapshotCrawler::findGCHandleWithTargetAddress(address_t address)
     return iter != __gcHandleAddressMap.end() ? iter->second : -1;
 }
 
-void MemorySnapshotCrawler::tryConnectWithNativeObject(ManagedObject &mo)
+void MemorySnapshotCrawler::tryConnectWithNativeObject(ManagedObject &mo, HeapMemoryReader *memoryReader)
 {
     if (mo.nativeObjectIndex >= 0){return;}
     
@@ -245,7 +245,7 @@ void MemorySnapshotCrawler::tryConnectWithNativeObject(ManagedObject &mo)
     mo.isValueType = type.isValueType;
     if (mo.isValueType || type.isArray || !type.isUnityEngineObjectType) {return;}
     
-    auto nativeAddress = __memoryReader->readPointer(mo.address + __snapshot.cached_ptr->offset);
+    auto nativeAddress = memoryReader->readPointer(mo.address + __snapshot.cached_ptr->offset);
     if (nativeAddress == 0){return;}
     
     auto nativeObjectIndex = findNativeObjectAtAddress(nativeAddress);
@@ -344,6 +344,8 @@ void MemorySnapshotCrawler::crawlManagedArrayAddress(address_t address, TypeDesc
 void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDescription *type, HeapMemoryReader &memoryReader, EntityJoint &joint, bool isActualType, int32_t depth)
 {
     auto isStaticCrawling = memoryReader.isStatic();
+    auto typeMemoryReader = isStaticCrawling ? getMemoryReader() : &memoryReader;
+    
     if (address < 0 || (!isStaticCrawling && address == 0)){return;}
     if (depth >= 512) {return;}
     
@@ -360,7 +362,7 @@ void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
         }
         else
         {
-            typeIndex = findTypeOfAddress(address);
+            typeIndex = findTypeOfAddress(address, typeMemoryReader);
             if (typeIndex == -1 && type != nullptr) {typeIndex = type->typeIndex;}
         }
     }
@@ -383,7 +385,7 @@ void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
 #if USE_ADDRESS_MIRROR
         assert(address == __mirror[mo->managedObjectIndex]);
 #endif
-        tryConnectWithNativeObject(*mo);
+        tryConnectWithNativeObject(*mo, typeMemoryReader);
         setObjectSize(*mo, entryType, memoryReader);
     }
     else
@@ -463,7 +465,7 @@ void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
                     ptrAddress = address + field.offset;
                 }
                 fieldAddress = memoryReader.readPointer(ptrAddress);
-                auto fieldTypeIndex = findTypeOfAddress(fieldAddress);
+                auto fieldTypeIndex = findTypeOfAddress(fieldAddress, typeMemoryReader);
                 if (fieldTypeIndex != -1)
                 {
                     fieldType = &__snapshot.typeDescriptions->items[fieldTypeIndex];
@@ -471,9 +473,9 @@ void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
             }
             
             auto *reader = &memoryReader;
-            if (!fieldType->isValueType)
+            if (!fieldType->isValueType && memoryReader.isStatic())
             {
-                reader = this->__memoryReader;
+                reader = getMemoryReader();
             }
             
             auto &ej = createJoint();
@@ -503,21 +505,37 @@ void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
     }
 }
 
-void MemorySnapshotCrawler::schedule(void (*task)())
+HeapMemoryReader *MemorySnapshotCrawler::getMemoryReader()
 {
-    auto coreCount = std::thread::hardware_concurrency();
-    vector<std::thread *> threads;
+    std::thread::id id = std::this_thread::get_id();
     
-    task(); // main thread
+    auto iter = __threadMemoryReaders.find(id);
+    return iter == __threadMemoryReaders.end() ? __memoryReader : iter->second;
+}
+
+void MemorySnapshotCrawler::schedule(void (MemorySnapshotCrawler::*task)())
+{
+//    (this->*task)(); // main thread
+    
+    vector<std::thread *> threads;
+    auto coreCount = std::thread::hardware_concurrency();
     for (auto i = 0; i < coreCount - 1; i++)
     {
-        std::thread t(task);
-        threads.push_back(&t);
+        __sampler.begin("thread");
+        auto *t = new std::thread(task, this);
+        __sampler.end();
+        threads.push_back(t);
+        __threadMemoryReaders.insert(pair<std::thread::id, HeapMemoryReader *>(t->get_id(), new HeapMemoryReader(__snapshot)));
+    }
+
+    for (auto i = 0; i < threads.size(); i++)
+    {
+        threads[i]->join();
     }
     
     for (auto i = 0; i < threads.size(); i++)
     {
-        threads[i]->join();
+        delete threads[i];
     }
 }
 
@@ -533,6 +551,8 @@ void MemorySnapshotCrawler::crawlGCHandles()
 
 void MemorySnapshotCrawler::asyncCrawlGCHandles()
 {
+    auto memoryReader = getMemoryReader();
+    
     auto &gcHandles = *__snapshot.gcHandles;
     while (true)
     {
@@ -550,7 +570,7 @@ void MemorySnapshotCrawler::asyncCrawlGCHandles()
         // set gcHandle info
         joint.gcHandleIndex = item.gcHandleArrayIndex;
         
-        crawlManagedEntryAddress(item.target, nullptr, *__memoryReader, joint, false, 0);
+        crawlManagedEntryAddress(item.target, nullptr, *memoryReader, joint, false, 0);
     }
 }
 
@@ -558,7 +578,6 @@ void MemorySnapshotCrawler::crawlStatics()
 {
     __sampler.begin("crawlStatic");
     
-    vector<StaticCrawlingTask *> scheduledTasks;
     auto &typeDescriptions = *__snapshot.typeDescriptions;
     for (auto i = 0; i < typeDescriptions.size; i++)
     {
@@ -599,12 +618,11 @@ void MemorySnapshotCrawler::crawlStatics()
             task.type = fieldType;
             task.reader = reader;
             task.joint = &joint;
-            scheduledTasks.push_back(&task);
         }
     }
     
     __staticCrawlingIndex = 0;
-    asyncCrawlStatics();
+    schedule(&MemorySnapshotCrawler::asyncCrawlStatics);
     __sampler.end();
 }
 
@@ -621,7 +639,10 @@ void MemorySnapshotCrawler::asyncCrawlStatics()
         }
         auto &task = __staticCrawlingContext[__staticCrawlingIndex++];
         __mutex.unlock();
-        
+        if (!task.reader->isStatic())
+        {
+            task.reader = getMemoryReader();
+        }
         crawlManagedEntryAddress(task.address, task.type, *task.reader, *task.joint, false, 0);
     }
 }

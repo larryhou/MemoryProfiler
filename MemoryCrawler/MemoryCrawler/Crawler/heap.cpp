@@ -10,7 +10,7 @@
 #include <vector>
 
 int32_t HeapMemoryReader::seekOffset(address_t address)
-{
+{   
     if (address == 0) {return -1;}
     if (address >= __startAddress && address < __stopAddress)
     {

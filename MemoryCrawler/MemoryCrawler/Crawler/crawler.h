@@ -67,7 +67,7 @@ class InstanceManager
     int32_t __nestCursor;
     
 public:
-    InstanceManager(): InstanceManager(10000) {}
+    InstanceManager(): InstanceManager(1000) {}
     InstanceManager(int32_t deltaCount);
     
     T &add();
@@ -123,6 +123,10 @@ private:
     int32_t __gcHandleCrawlingIndex = 0;
     int32_t __staticCrawlingIndex = 0;
     InstanceManager<StaticCrawlingTask> __staticCrawlingContext;
+    map<std::thread::id, HeapMemoryReader *> __threadMemoryReaders;
+    
+private:
+    HeapMemoryReader *getMemoryReader();
 
 public:
     MemorySnapshotCrawler(PackedMemorySnapshot &snapshot): __snapshot(snapshot), __staticCrawlingContext(100)
@@ -139,7 +143,7 @@ public:
     int32_t getIndexKey(ConnectionKind kind, int32_t index);
     int64_t getConnectionKey(EntityConnection &connection);
     
-    int32_t findTypeOfAddress(address_t address);
+    int32_t findTypeOfAddress(address_t address, HeapMemoryReader *memoryReader);
     int32_t findTypeAtTypeInfoAddress(address_t address);
     
     int32_t findManagedObjectOfNativeObject(address_t address);
@@ -162,9 +166,9 @@ private:
     void crawlStatics();
     void asyncCrawlStatics();
     
-    void schedule(void (*task)());
+    void schedule(void (MemorySnapshotCrawler::*task)());
     
-    void tryConnectWithNativeObject(ManagedObject &mo);
+    void tryConnectWithNativeObject(ManagedObject &mo, HeapMemoryReader *memoryReader);
     
     void setObjectSize(ManagedObject &mo, TypeDescription &type, HeapMemoryReader &memoryReader);
     
