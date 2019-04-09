@@ -271,37 +271,37 @@ inline void MemorySnapshotCrawler::setObjectSize(ManagedObject &mo, TypeDescript
 
 ManagedObject &MemorySnapshotCrawler::createManagedObject()
 {
-    std::lock_guard<std::mutex> g(__mutex);
-    
+    __mutex.lock();
     auto &mo = managedObjects.add();
     mo.managedObjectIndex = managedObjects.size() - 1;
+    __mutex.unlock();
     return mo;
 }
 
 EntityJoint &MemorySnapshotCrawler::createJoint()
 {
-    std::lock_guard<std::mutex> g(__mutex);
-    
+    __mutex.lock();
     auto &ej = joints.add();
     ej.jointArrayIndex = joints.size() - 1;
+    __mutex.unlock();
     return ej;
 }
 
 EntityJoint &MemorySnapshotCrawler::cloneJoint(EntityJoint &joint)
 {
-    std::lock_guard<std::mutex> g(__mutex);
-    
+    __mutex.lock();
     auto &ej = joints.clone(joint);
     ej.jointArrayIndex = joints.size() - 1;
+    __mutex.unlock();
     return ej;
 }
 
 EntityConnection &MemorySnapshotCrawler::createConnection()
 {
-    std::lock_guard<std::mutex> g(__mutex);
-    
+    __mutex.lock();
     auto &ec = connections.add();
     ec.connectionArrayIndex = connections.size() - 1;
+    __mutex.unlock();
     return ec;
 }
 
