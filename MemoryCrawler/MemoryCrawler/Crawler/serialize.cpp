@@ -14,9 +14,14 @@ static TimeSampler<std::nano> sampler;
 
 PackedMemorySnapshot &MemorySnapshotReader::read(const char *filepath, bool memoryCache)
 {
+    sampler.begin("MemorySnapshotReader");
     __fs = new FileStream;
+    sampler.begin("open_snapshot");
     __fs->open(filepath, memoryCache);
+    sampler.end();
+    sampler.begin("read_header");
     readHeader(*__fs);
+    sampler.end();
     while (__fs->byteAvailable())
     {
         auto length = __fs->readUInt32(true);
@@ -32,7 +37,7 @@ PackedMemorySnapshot &MemorySnapshotReader::read(const char *filepath, bool memo
         }
         __fs->ignore(8);
     }
-    
+    sampler.end();
     return *snapshot;
 }
 
@@ -326,12 +331,6 @@ void MemorySnapshotReader::readSnapshot(FileStream &fs)
     snapshot = new PackedMemorySnapshot;
     readPackedMemorySnapshot(*snapshot, fs);
     
-    for (auto i = 0; i < snapshot->managedHeapSections->size; i++)
-    {
-        MemorySection &heap = snapshot->managedHeapSections->items[i];
-        heap.size = heap.bytes->size;
-    }
-    
     postSnapshot();
 }
 
@@ -363,6 +362,15 @@ inline bool readTypeIndex(int32_t &index, const TypeDescription &type, const str
 
 void MemorySnapshotReader::postSnapshot()
 {
+    sampler.begin("postSnapshot");
+    sampler.begin("create_sorted_heap");
+    for (auto i = 0; i < snapshot->managedHeapSections->size; i++)
+    {
+        MemorySection &heap = snapshot->managedHeapSections->items[i];
+        heap.size = heap.bytes->size;
+    }
+    sampler.end();
+    
     sampler.begin("create_type_strings");
     string sUnityEngineObject("UnityEngine.Object");
     string sSystemString("System.String");
@@ -422,19 +430,19 @@ void MemorySnapshotReader::postSnapshot()
     sampler.begin("set_heap_index");
     Array<MemorySection> &managedHeapSections = *snapshot->managedHeapSections;
     
-    auto heapSections = new std::vector<MemorySection *>;
+    auto sortedHeapSections = new std::vector<MemorySection *>;
     for (auto i = 0; i < managedHeapSections.size; i++)
     {
-        heapSections->push_back(&managedHeapSections[i]);
+        sortedHeapSections->push_back(&managedHeapSections[i]);
     }
-    std::sort(heapSections->begin(), heapSections->end(), [](const MemorySection *a, const MemorySection *b)
+    std::sort(sortedHeapSections->begin(), sortedHeapSections->end(), [](const MemorySection *a, const MemorySection *b)
               {
                   return a->startAddress < b->startAddress;
               });
-    snapshot->sortedHeapSections = heapSections;
-    for (auto i = 0; i < heapSections->size(); i++)
+    snapshot->sortedHeapSections = sortedHeapSections;
+    for (auto i = 0; i < sortedHeapSections->size(); i++)
     {
-        (*heapSections)[i]->heapArrayIndex = i;
+        (*sortedHeapSections)[i]->heapArrayIndex = i;
     }
     sampler.end();
     
@@ -444,6 +452,7 @@ void MemorySnapshotReader::postSnapshot()
     {
         nativeObjects[i].nativeObjectArrayIndex = i;
     }
+    sampler.end();
     sampler.end();
 }
 

@@ -12,6 +12,7 @@
 #include <fstream>
 #include <vector>
 #include <map>
+#include <unordered_map>
 #include "snapshot.h"
 #include "heap.h"
 #include "perf.h"
@@ -104,7 +105,7 @@ private:
     map<address_t, int32_t> __crawlingVisit;
     
     // address map
-    map<address_t, int32_t> __typeAddressMap;
+    std::unordered_map<address_t, int32_t> __typeAddressMap;
     map<address_t, int32_t> __nativeObjectAddressMap;
     map<address_t, int32_t> __managedObjectAddressMap;
     map<address_t, int32_t> __managedNativeAddressMap;
