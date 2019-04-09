@@ -537,7 +537,11 @@ void MemorySnapshotCrawler::asyncCrawlGCHandles()
     while (true)
     {
         __mutex.lock();
-        if (__gcHandleCrawlingIndex >= gcHandles.size) {break;}
+        if (__gcHandleCrawlingIndex >= gcHandles.size)
+        {
+            __mutex.unlock();
+            break;
+        }
         auto &item = gcHandles[__gcHandleCrawlingIndex++];
         __mutex.unlock();
         
@@ -555,7 +559,6 @@ void MemorySnapshotCrawler::crawlStatics()
     __sampler.begin("crawlStatic");
     
     vector<StaticCrawlingTask *> scheduledTasks;
-    
     auto &typeDescriptions = *__snapshot.typeDescriptions;
     for (auto i = 0; i < typeDescriptions.size; i++)
     {
@@ -566,7 +569,8 @@ void MemorySnapshotCrawler::crawlStatics()
             auto &field = type.fields->items[n];
             if (!field.isStatic){continue;}
             
-            __staticMemoryReader->load(*type.staticFieldBytes);
+            StaticMemoryReader staticMemoryReader(__snapshot);
+            staticMemoryReader.load(*type.staticFieldBytes);
             
             HeapMemoryReader *reader;
             address_t fieldAddress = 0;
@@ -574,11 +578,11 @@ void MemorySnapshotCrawler::crawlStatics()
             if (fieldType->isValueType)
             {
                 fieldAddress = field.offset - __vm->objectHeaderSize;
-                reader = __staticMemoryReader;
+                reader = &staticMemoryReader;
             }
             else
             {
-                fieldAddress = __staticMemoryReader->readPointer(field.offset);
+                fieldAddress = staticMemoryReader.readPointer(field.offset);
                 reader = __memoryReader;
             }
             
@@ -590,7 +594,7 @@ void MemorySnapshotCrawler::crawlStatics()
             joint.fieldTypeIndex = field.typeIndex;
             joint.isStatic = true;
             
-            StaticCrawlingTask task;
+            auto &task = __staticCrawlingContext.add();
             task.address = fieldAddress;
             task.type = fieldType;
             task.reader = reader;
@@ -600,19 +604,22 @@ void MemorySnapshotCrawler::crawlStatics()
     }
     
     __staticCrawlingIndex = 0;
-    asyncCrawlStatics(scheduledTasks);
-    
+    asyncCrawlStatics();
     __sampler.end();
 }
 
-void MemorySnapshotCrawler::asyncCrawlStatics(vector<StaticCrawlingTask *> &scheduledTasks)
+void MemorySnapshotCrawler::asyncCrawlStatics()
 {
-    auto taskCount = scheduledTasks.size();
+    auto taskCount = __staticCrawlingContext.size();
     while (true)
     {
         __mutex.lock();
-        if (__staticCrawlingIndex >= taskCount){break;}
-        auto &task = *scheduledTasks[__staticCrawlingIndex++];
+        if (__staticCrawlingIndex >= taskCount)
+        {
+            __mutex.unlock();
+            break;
+        }
+        auto &task = __staticCrawlingContext[__staticCrawlingIndex++];
         __mutex.unlock();
         
         crawlManagedEntryAddress(task.address, task.type, *task.reader, *task.joint, false, 0);
@@ -625,7 +632,6 @@ MemorySnapshotCrawler::~MemorySnapshotCrawler()
     
     delete __mirror;
     delete __memoryReader;
-    delete __staticMemoryReader;
     for (auto iter = toConnections.begin(); iter != toConnections.end(); ++iter)
     {
         delete iter->second;

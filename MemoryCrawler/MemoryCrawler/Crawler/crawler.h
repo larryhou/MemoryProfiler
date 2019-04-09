@@ -102,7 +102,6 @@ public:
 private:
     PackedMemorySnapshot &__snapshot;
     HeapMemoryReader *__memoryReader;
-    StaticMemoryReader *__staticMemoryReader;
     VirtualMachineInformation *__vm;
     
     TimeSampler<std::nano> __sampler;
@@ -123,12 +122,12 @@ private:
     std::mutex __mutex;
     int32_t __gcHandleCrawlingIndex = 0;
     int32_t __staticCrawlingIndex = 0;
+    InstanceManager<StaticCrawlingTask> __staticCrawlingContext;
 
 public:
-    MemorySnapshotCrawler(PackedMemorySnapshot &snapshot): __snapshot(snapshot)
+    MemorySnapshotCrawler(PackedMemorySnapshot &snapshot): __snapshot(snapshot), __staticCrawlingContext(100)
     {
         __memoryReader = new HeapMemoryReader(snapshot);
-        __staticMemoryReader = new StaticMemoryReader(snapshot);
         __vm = snapshot.virtualMachineInformation;
         debug();
     }
@@ -161,7 +160,7 @@ private:
     void asyncCrawlGCHandles();
     
     void crawlStatics();
-    void asyncCrawlStatics(vector<StaticCrawlingTask *> &scheduledTasks);
+    void asyncCrawlStatics();
     
     void schedule(void (*task)());
     
