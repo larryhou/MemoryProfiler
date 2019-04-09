@@ -78,6 +78,8 @@ bool MemorySnapshotCrawler::isSubclassOfNativeType(PackedNativeType &type, int32
 
 void MemorySnapshotCrawler::tryAcceptConnection(EntityConnection &ec)
 {
+    std::lock_guard<std::mutex> g(__mutex);
+    
     if (ec.from >= 0)
     {
         ManagedObject &fromObject = managedObjects[ec.from];
@@ -128,6 +130,7 @@ int64_t MemorySnapshotCrawler::getConnectionKey(EntityConnection &ec)
 int32_t MemorySnapshotCrawler::findTypeAtTypeInfoAddress(address_t address)
 {
     if (address == 0) {return -1;}
+    __mutex.lock();
     if (__typeAddressMap.size() == 0)
     {
         Array<TypeDescription> &typeDescriptions = *__snapshot.typeDescriptions;
@@ -137,7 +140,7 @@ int32_t MemorySnapshotCrawler::findTypeAtTypeInfoAddress(address_t address)
             __typeAddressMap.insert(pair<address_t, int32_t>(type.typeInfoAddress, type.typeIndex));
         }
     }
-    
+    __mutex.unlock();
     auto iter = __typeAddressMap.find(address);
     return iter != __typeAddressMap.end() ? iter->second : -1;
 }
@@ -159,6 +162,7 @@ int32_t MemorySnapshotCrawler::findTypeOfAddress(address_t address)
 int32_t MemorySnapshotCrawler::findManagedObjectOfNativeObject(address_t address)
 {
     if (address == 0){return -1;}
+    __mutex.lock();
     if (__managedNativeAddressMap.size() == 0)
     {
         for (auto i = 0; i < managedObjects.size(); i++)
@@ -171,6 +175,7 @@ int32_t MemorySnapshotCrawler::findManagedObjectOfNativeObject(address_t address
             }
         }
     }
+    __mutex.unlock();
     
     auto iter = __managedNativeAddressMap.find(address);
     return iter != __managedNativeAddressMap.end() ? iter->second : -1;
@@ -179,6 +184,7 @@ int32_t MemorySnapshotCrawler::findManagedObjectOfNativeObject(address_t address
 int32_t MemorySnapshotCrawler::findManagedObjectAtAddress(address_t address)
 {
     if (address == 0){return -1;}
+    __mutex.lock();
     if (__managedObjectAddressMap.size() == 0)
     {
         for (auto i = 0; i < managedObjects.size(); i++)
@@ -187,6 +193,7 @@ int32_t MemorySnapshotCrawler::findManagedObjectAtAddress(address_t address)
             __managedObjectAddressMap.insert(pair<address_t, int32_t>(mo.address, mo.managedObjectIndex));
         }
     }
+    __mutex.unlock();
     
     auto iter = __managedObjectAddressMap.find(address);
     return iter != __managedObjectAddressMap.end() ? iter->second : -1;
@@ -195,6 +202,7 @@ int32_t MemorySnapshotCrawler::findManagedObjectAtAddress(address_t address)
 int32_t MemorySnapshotCrawler::findNativeObjectAtAddress(address_t address)
 {
     if (address == 0){return -1;}
+    __mutex.lock();
     if (__nativeObjectAddressMap.size() == 0)
     {
         auto &nativeObjects = *__snapshot.nativeObjects;
@@ -204,6 +212,7 @@ int32_t MemorySnapshotCrawler::findNativeObjectAtAddress(address_t address)
             __nativeObjectAddressMap.insert(pair<address_t, int32_t>(no.nativeObjectAddress, no.nativeObjectArrayIndex));
         }
     }
+    __mutex.unlock();
     
     auto iter = __nativeObjectAddressMap.find(address);
     return iter != __nativeObjectAddressMap.end() ? iter->second : -1;
@@ -212,6 +221,7 @@ int32_t MemorySnapshotCrawler::findNativeObjectAtAddress(address_t address)
 int32_t MemorySnapshotCrawler::findGCHandleWithTargetAddress(address_t address)
 {
     if (address == 0){return -1;}
+    __mutex.lock();
     if (__gcHandleAddressMap.size() == 0)
     {
         auto &gcHandles = *__snapshot.gcHandles;
@@ -221,6 +231,7 @@ int32_t MemorySnapshotCrawler::findGCHandleWithTargetAddress(address_t address)
             __gcHandleAddressMap.insert(pair<address_t, int32_t>(no.target, no.gcHandleArrayIndex));
         }
     }
+    __mutex.unlock();
     
     auto iter = __gcHandleAddressMap.find(address);
     return iter != __gcHandleAddressMap.end() ? iter->second : -1;
@@ -258,17 +269,40 @@ inline void MemorySnapshotCrawler::setObjectSize(ManagedObject &mo, TypeDescript
     mo.size = memoryReader.readObjectSize(mo.address, type);
 }
 
-ManagedObject &MemorySnapshotCrawler::createManagedObject(address_t address, int32_t typeIndex)
+ManagedObject &MemorySnapshotCrawler::createManagedObject()
 {
+    std::lock_guard<std::mutex> g(__mutex);
+    
     auto &mo = managedObjects.add();
-    mo.address = address;
-    mo.typeIndex = typeIndex;
     mo.managedObjectIndex = managedObjects.size() - 1;
-    tryConnectWithNativeObject(mo);
-#if USE_ADDRESS_MIRROR
-    assert(address == __mirror[mo.managedObjectIndex]);
-#endif
     return mo;
+}
+
+EntityJoint &MemorySnapshotCrawler::createJoint()
+{
+    std::lock_guard<std::mutex> g(__mutex);
+    
+    auto &ej = joints.add();
+    ej.jointArrayIndex = joints.size() - 1;
+    return ej;
+}
+
+EntityJoint &MemorySnapshotCrawler::cloneJoint(EntityJoint &joint)
+{
+    std::lock_guard<std::mutex> g(__mutex);
+    
+    auto &ej = joints.clone(joint);
+    ej.jointArrayIndex = joints.size() - 1;
+    return ej;
+}
+
+EntityConnection &MemorySnapshotCrawler::createConnection()
+{
+    std::lock_guard<std::mutex> g(__mutex);
+    
+    auto &ec = connections.add();
+    ec.connectionArrayIndex = connections.size() - 1;
+    return ec;
 }
 
 bool MemorySnapshotCrawler::isCrawlable(TypeDescription &type)
@@ -298,8 +332,7 @@ void MemorySnapshotCrawler::crawlManagedArrayAddress(address_t address, TypeDesc
             elementAddress = memoryReader.readPointer(ptrAddress);
         }
         
-        auto &elementJoint = joints.clone(joint);
-        elementJoint.jointArrayIndex = joints.size() - 1;
+        auto &elementJoint = cloneJoint(joint);
         
         // set element info
         elementJoint.elementArrayIndex = i;
@@ -336,12 +369,21 @@ void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
     auto &entryType = __snapshot.typeDescriptions->items[typeIndex];
     
     ManagedObject *mo;
+    __mutex.lock();
     auto iter = __crawlingVisit.find(address);
-    if (entryType.isValueType || iter == __crawlingVisit.end())
+    bool isCrawlled = iter != __crawlingVisit.end();
+    __mutex.unlock();
+    if (entryType.isValueType || !isCrawlled)
     {
-        mo = &createManagedObject(address, typeIndex);
+        mo = &createManagedObject();
         mo->jointArrayIndex = joint.jointArrayIndex;
         mo->gcHandleIndex = joint.gcHandleIndex;
+        mo->typeIndex = typeIndex;
+        mo->address = address;
+#if USE_ADDRESS_MIRROR
+        assert(address == __mirror[mo->managedObjectIndex]);
+#endif
+        tryConnectWithNativeObject(*mo);
         setObjectSize(*mo, entryType, memoryReader);
     }
     else
@@ -352,8 +394,7 @@ void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
     
     assert(mo->managedObjectIndex >= 0);
     
-    auto &ec = connections.add();
-    ec.connectionArrayIndex = connections.size() - 1;
+    auto &ec = createConnection();
     if (joint.gcHandleIndex >= 0)
     {
         ec.fromKind = ConnectionKind::gcHandle;
@@ -377,8 +418,15 @@ void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
     
     if (!entryType.isValueType)
     {
-        if (iter != __crawlingVisit.end()) {return;}
+        __mutex.lock();
+        iter = __crawlingVisit.find(address);
+        if (iter != __crawlingVisit.end())
+        {
+            __mutex.unlock();
+            return;
+        }
         __crawlingVisit.insert(pair<address_t, int32_t>(address, mo->managedObjectIndex));
+        __mutex.unlock();
     }
     
     if (entryType.isArray)
@@ -428,10 +476,9 @@ void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
                 reader = this->__memoryReader;
             }
             
-            auto &ej = joints.add();
+            auto &ej = createJoint();
             
             // set field hook info
-            ej.jointArrayIndex = joints.size() - 1;
             ej.hookObjectAddress = address;
             ej.hookObjectIndex = mo->managedObjectIndex;
             ej.hookTypeIndex = entryType.typeIndex;
@@ -504,8 +551,7 @@ void MemorySnapshotCrawler::crawlStatic()
                 reader = __memoryReader;
             }
             
-            auto &joint = joints.add();
-            joint.jointArrayIndex = joints.size() - 1;
+            auto &joint = createJoint();
             
             // set static field info
             joint.hookTypeIndex = type.typeIndex;

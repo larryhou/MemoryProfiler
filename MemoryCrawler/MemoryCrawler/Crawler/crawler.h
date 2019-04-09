@@ -66,7 +66,7 @@ class InstanceManager
     int32_t __nestCursor;
     
 public:
-    InstanceManager(): InstanceManager(1000) {}
+    InstanceManager(): InstanceManager(10000) {}
     InstanceManager(int32_t deltaCount);
     
     T &add();
@@ -109,6 +109,11 @@ private:
     map<address_t, int32_t> __managedObjectAddressMap;
     map<address_t, int32_t> __managedNativeAddressMap;
     map<address_t, int32_t> __gcHandleAddressMap;
+    
+    // multi-threading
+    std::mutex __mutex;
+    int32_t __crawlingGCHandleIndex = 0;
+    int32_t __crawlingStaticIndex = 0;
 
 public:
     MemorySnapshotCrawler(PackedMemorySnapshot &snapshot): __snapshot(snapshot)
@@ -149,7 +154,10 @@ private:
     
     void setObjectSize(ManagedObject &mo, TypeDescription &type, HeapMemoryReader &memoryReader);
     
-    ManagedObject &createManagedObject(address_t address, int32_t typeIndex);
+    EntityConnection &createConnection();
+    ManagedObject &createManagedObject();
+    EntityJoint &createJoint();
+    EntityJoint &cloneJoint(EntityJoint &joint);
     
     bool isCrawlable(TypeDescription &type);
     

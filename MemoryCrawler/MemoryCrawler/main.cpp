@@ -6,6 +6,7 @@
 //  Copyright © 2019 larryhou. All rights reserved.
 //
 
+#include <thread>
 #include <iostream>
 #include <vector>
 #include <ratio>
@@ -120,13 +121,17 @@ int main(int argc, const char * argv[])
     profiler.end();
     profiler.summary();
     
+    ushort coreCount = std::thread::hardware_concurrency();
+    printf("number of total computor cores %d\n", coreCount);
+    
+    
 //    InstanceManager<SimpleObject> manager(10);
 //    for (auto i = 0; i < 100; i++)
 //    {
 //        SimpleObject &obj = manager.add();
 //        obj.index = i;
 //    }
-//    
+//
 //    assert(manager.size() == 100);
 //    for (auto i = 0; i < manager.size(); i++)
 //    {
