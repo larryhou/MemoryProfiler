@@ -15,6 +15,7 @@
 #include "Crawler/perf.h"
 #include "Crawler/serialize.h"
 #include "Crawler/crawler.h"
+#include "Crawler/cache.h"
 
 using std::cout;
 using std::endl;

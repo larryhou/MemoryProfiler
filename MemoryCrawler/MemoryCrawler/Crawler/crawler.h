@@ -90,9 +90,9 @@ public:
     
     map<int32_t, vector<int32_t> *> fromConnections;
     map<int32_t, vector<int32_t> *> toConnections;
+    PackedMemorySnapshot &snapshot;
     
 private:
-    PackedMemorySnapshot &__snapshot;
     HeapMemoryReader *__memoryReader;
     StaticMemoryReader *__staticMemoryReader;
     VirtualMachineInformation *__vm;
@@ -112,7 +112,7 @@ private:
     map<address_t, int32_t> __gcHandleAddressMap;
 
 public:
-    MemorySnapshotCrawler(PackedMemorySnapshot &snapshot): __snapshot(snapshot)
+    MemorySnapshotCrawler(PackedMemorySnapshot &snapshot): snapshot(snapshot)
     {
         __memoryReader = new HeapMemoryReader(snapshot);
         __staticMemoryReader = new StaticMemoryReader(snapshot);

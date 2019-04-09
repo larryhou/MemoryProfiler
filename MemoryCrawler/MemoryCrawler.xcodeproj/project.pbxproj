@@ -13,6 +13,8 @@
 		6B74B77222548A0900A69BC0 /* snapshot.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6B74B77122548A0900A69BC0 /* snapshot.cpp */; };
 		6BCA665022575EE100A4C96A /* crawler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6BCA664F22575EE100A4C96A /* crawler.cpp */; };
 		6BCA665322584B6100A4C96A /* heap.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6BCA665222584B6100A4C96A /* heap.cpp */; };
+		6BE889A0225C9FFA0029BB09 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 6BE8899F225C9FF90029BB09 /* libsqlite3.tbd */; };
+		6BE889A3225CA16B0029BB09 /* cache.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6BE889A2225CA16B0029BB09 /* cache.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -42,6 +44,9 @@
 		6BCA664F22575EE100A4C96A /* crawler.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = crawler.cpp; sourceTree = "<group>"; };
 		6BCA665122584B6100A4C96A /* heap.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = heap.h; sourceTree = "<group>"; };
 		6BCA665222584B6100A4C96A /* heap.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = heap.cpp; sourceTree = "<group>"; };
+		6BE8899F225C9FF90029BB09 /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
+		6BE889A1225CA16B0029BB09 /* cache.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cache.h; sourceTree = "<group>"; };
+		6BE889A2225CA16B0029BB09 /* cache.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = cache.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -49,6 +54,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6BE889A0225C9FFA0029BB09 /* libsqlite3.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -60,6 +66,7 @@
 			children = (
 				6B0AC7412252FC5D00B58C69 /* MemoryCrawler */,
 				6B0AC7402252FC5D00B58C69 /* Products */,
+				6BE8899E225C9FF60029BB09 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -95,8 +102,18 @@
 				6BCA664F22575EE100A4C96A /* crawler.cpp */,
 				6BCA665122584B6100A4C96A /* heap.h */,
 				6BCA665222584B6100A4C96A /* heap.cpp */,
+				6BE889A1225CA16B0029BB09 /* cache.h */,
+				6BE889A2225CA16B0029BB09 /* cache.cpp */,
 			);
 			path = Crawler;
+			sourceTree = "<group>";
+		};
+		6BE8899E225C9FF60029BB09 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				6BE8899F225C9FF90029BB09 /* libsqlite3.tbd */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -155,6 +172,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6BE889A3225CA16B0029BB09 /* cache.cpp in Sources */,
 				6BCA665022575EE100A4C96A /* crawler.cpp in Sources */,
 				6B74B77222548A0900A69BC0 /* snapshot.cpp in Sources */,
 				6B0AC7432252FC5D00B58C69 /* main.cpp in Sources */,
