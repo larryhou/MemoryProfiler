@@ -17,9 +17,9 @@
 
 class CrawlerCache
 {
-    TimeSampler<std::nano> sampler;
-    sqlite3 *database;
-    char buffer[32*1024];
+    char __buffer[32*1024];
+    TimeSampler<std::nano> __sampler;
+    sqlite3 *__database;
     
 public:
     CrawlerCache();
@@ -29,6 +29,10 @@ public:
     ~CrawlerCache();
     
 private:
+    void createNativeTypeTable();
+    void insert(Array<PackedNativeType> &nativeTypes);
+    void createNativeObjectTable();
+    void insert(Array<PackedNativeUnityEngineObject> &nativeObjects);
     void createTypeTable();
     void createFieldTable();
     void insert(Array<TypeDescription> &types);
@@ -54,8 +58,8 @@ void CrawlerCache::insert(const char * sql, Array<T> &array, std::function<void(
     char *errmsg;
     sqlite3_stmt *stmt;
     
-    sqlite3_exec(database, "BEGIN TRANSACTION", nullptr, nullptr, &errmsg);
-    sqlite3_prepare_v2(database, sql, (int)strlen(sql), &stmt, nullptr);
+    sqlite3_exec(__database, "BEGIN TRANSACTION", nullptr, nullptr, &errmsg);
+    sqlite3_prepare_v2(__database, sql, (int)strlen(sql), &stmt, nullptr);
     
     for (auto i = 0; i < array.size; i++)
     {
@@ -65,7 +69,7 @@ void CrawlerCache::insert(const char * sql, Array<T> &array, std::function<void(
         sqlite3_reset(stmt);
     }
     
-    sqlite3_exec(database, "COMMIT TRANSACTION", nullptr, nullptr, &errmsg);
+    sqlite3_exec(__database, "COMMIT TRANSACTION", nullptr, nullptr, &errmsg);
     sqlite3_finalize(stmt);
 }
 
@@ -75,8 +79,8 @@ void CrawlerCache::insert(const char * sql, InstanceManager<T> &manager, std::fu
     char *errmsg;
     sqlite3_stmt *stmt;
     
-    sqlite3_exec(database, "BEGIN TRANSACTION", nullptr, nullptr, &errmsg);
-    sqlite3_prepare_v2(database, sql, (int)strlen(sql), &stmt, nullptr);
+    sqlite3_exec(__database, "BEGIN TRANSACTION", nullptr, nullptr, &errmsg);
+    sqlite3_prepare_v2(__database, sql, (int)strlen(sql), &stmt, nullptr);
     
     for (auto i = 0; i < manager.size(); i++)
     {
@@ -86,7 +90,7 @@ void CrawlerCache::insert(const char * sql, InstanceManager<T> &manager, std::fu
         sqlite3_reset(stmt);
     }
     
-    sqlite3_exec(database, "COMMIT TRANSACTION", nullptr, nullptr, &errmsg);
+    sqlite3_exec(__database, "COMMIT TRANSACTION", nullptr, nullptr, &errmsg);
     sqlite3_finalize(stmt);
 }
 

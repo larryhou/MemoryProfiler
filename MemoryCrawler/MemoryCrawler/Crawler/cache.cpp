@@ -15,16 +15,72 @@ CrawlerCache::CrawlerCache()
 
 void CrawlerCache::open(const char *filepath)
 {
-    auto rc = sqlite3_open(filepath, &database);
+    auto rc = sqlite3_open(filepath, &__database);
     assert(rc == 0);
     
-    sqlite3_exec(database, "PRAGMA FOREIGN_KEYS=ON;", nullptr, nullptr, nullptr);
+    sqlite3_exec(__database, "PRAGMA FOREIGN_KEYS=ON;", nullptr, nullptr, nullptr);
 }
 
 void CrawlerCache::create(const char *sql)
 {
     char *errmsg;
-    sqlite3_exec(database, sql, nullptr, nullptr, &errmsg);
+    sqlite3_exec(__database, sql, nullptr, nullptr, &errmsg);
+}
+
+void CrawlerCache::createNativeTypeTable()
+{
+    create("CREATE TABLE nativeTypes (" \
+           "typeIndex INTEGER PRIMARY KEY," \
+           "name TEXT NOT NULL," \
+           "nativeBaseTypeArrayIndex INTEGER," \
+           "managedTypeArrayIndex INTEGER);");
+}
+
+void CrawlerCache::insert(Array<PackedNativeType> &nativeTypes)
+{
+    insert<PackedNativeType>("INSERT INTO nativeTypes VALUES (?1, ?2, ?3, ?4)",
+                             nativeTypes, [](PackedNativeType &nt, sqlite3_stmt *stmt)
+                             {
+                                 sqlite3_bind_int(stmt, 1, nt.typeIndex);
+                                 sqlite3_bind_text(stmt, 2, nt.name->c_str(), (int)nt.name->size(), SQLITE_STATIC);
+                                 sqlite3_bind_int64(stmt, 3, nt.nativeBaseTypeArrayIndex);
+                                 sqlite3_bind_int(stmt, 4, nt.managedTypeArrayIndex);
+                             });
+}
+
+void CrawlerCache::createNativeObjectTable()
+{
+    create("CREATE TABLE nativeObjects (" \
+           "hideFlags INTEGER," \
+           "instanceId INTEGER," \
+           "isDontDestroyOnLoad INTEGER," \
+           "isManager INTEGER," \
+           "isPersistent INTEGER," \
+           "name TEXT NOT NULL," \
+           "nativeObjectAddress INTEGER," \
+           "nativeTypeArrayIndex INTEGER REFERENCES nativeTypes (typeIndex)," \
+           "size INTEGER," \
+           "managedObjectArrayIndex INTEGER," \
+           "nativeObjectArrayIndex INTEGER PRIMARY KEY);");
+}
+
+void CrawlerCache::insert(Array<PackedNativeUnityEngineObject> &nativeObjects)
+{
+    insert<PackedNativeUnityEngineObject>("INSERT INTO nativeObjects VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 9?, 10?, 11?)",
+                                          nativeObjects, [](PackedNativeUnityEngineObject &no, sqlite3_stmt *stmt)
+                                          {
+                                              sqlite3_bind_int(stmt, 1, no.hideFlags);
+                                              sqlite3_bind_int(stmt, 2, no.instanceId);
+                                              sqlite3_bind_int(stmt, 3, no.isDontDestroyOnLoad);
+                                              sqlite3_bind_int(stmt, 4, no.isManager);
+                                              sqlite3_bind_int(stmt, 5, no.isPersistent);
+                                              sqlite3_bind_text(stmt, 6, no.name->c_str(), (int)no.name->size(), SQLITE_STATIC);
+                                              sqlite3_bind_int64(stmt, 7, no.nativeObjectAddress);
+                                              sqlite3_bind_int(stmt, 8, no.nativeTypeArrayIndex);
+                                              sqlite3_bind_int(stmt, 9, no.size);
+                                              sqlite3_bind_int(stmt, 10, no.managedObjectArrayIndex);
+                                              sqlite3_bind_int(stmt, 11, no.nativeObjectArrayIndex);
+                                          });
 }
 
 void CrawlerCache::createTypeTable()
@@ -59,7 +115,7 @@ void CrawlerCache::insert(Array<TypeDescription> &types)
     insert<TypeDescription>("INSERT INTO types VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
                             types, [this](TypeDescription &t, sqlite3_stmt *stmt)
                             {
-                                char *iter = buffer;
+                                char *iter = __buffer;
                                 for (auto n = 0; n < t.fields->size; n++)
                                 {
                                     auto &f = t.fields->items[n];
@@ -77,7 +133,7 @@ void CrawlerCache::insert(Array<TypeDescription> &types)
                                 sqlite3_bind_int(stmt, 9, t.typeIndex);
                                 sqlite3_bind_int64(stmt, 10, t.typeInfoAddress);
                                 sqlite3_bind_int64(stmt, 11, t.nativeTypeArrayIndex);
-                                sqlite3_bind_blob(stmt, 12, buffer, (int)(iter - buffer), SQLITE_STATIC);
+                                sqlite3_bind_blob(stmt, 12, __buffer, (int)(iter - __buffer), SQLITE_STATIC);
                             });
     
     // type fields
@@ -198,18 +254,22 @@ void CrawlerCache::save(MemorySnapshotCrawler &crawler)
     sprintf(filepath, "__cpp_cache/%s.db", crawler.snapshot.uuid->c_str());
     open(filepath);
     
+    createNativeTypeTable();
+    createNativeObjectTable();
     createTypeTable();
     createFieldTable();
     createJointTable();
     createObjectTable();
     createConnectionTable();
     
+    insert(*crawler.snapshot.nativeTypes);
+    insert(*crawler.snapshot.nativeObjects);
     insert(*crawler.snapshot.typeDescriptions);
     insert(crawler.joints);
     insert(crawler.managedObjects);
     insert(crawler.connections);
     
-    sqlite3_close(database);
+    sqlite3_close(__database);
 }
 
 CrawlerCache::~CrawlerCache()
