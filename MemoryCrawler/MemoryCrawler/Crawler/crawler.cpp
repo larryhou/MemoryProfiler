@@ -46,6 +46,11 @@ void MemorySnapshotCrawler::initManagedTypes()
     __sampler.end();
 }
 
+const char16_t *MemorySnapshotCrawler::getString(address_t address, int32_t &size)
+{
+    return __memoryReader->readString(address + __vm->objectHeaderSize, size);
+}
+
 bool MemorySnapshotCrawler::isSubclassOfManagedType(TypeDescription &type, int32_t baseTypeIndex)
 {
     if (type.typeIndex == baseTypeIndex) { return true; }

@@ -70,6 +70,7 @@ public:
     
     uint32_t readStringLength(address_t address);
     int32_t readString(address_t address, char16_t *buffer);
+    const char16_t *readString(address_t address, int32_t &size);
     
     uint32_t readArrayLength(address_t address, TypeDescription &type);
     

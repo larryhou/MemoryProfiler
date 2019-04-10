@@ -44,6 +44,12 @@ private:
     void createObjectTable();
     void insert(InstanceManager<ManagedObject> &objects);
     
+    void createVMTable();
+    void insertVMTable(VirtualMachineInformation &vm);
+    
+    void createStringTable();
+    void insertStringTable(MemorySnapshotCrawler &crawler);
+    
     template <typename T>
     void insert(const char * sql, InstanceManager<T> &manager, std::function<void(T &item, sqlite3_stmt *stmt)> kernel);
     

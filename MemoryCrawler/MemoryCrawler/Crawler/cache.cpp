@@ -8,6 +8,7 @@
 
 #include "cache.h"
 #include <sys/stat.h>
+#include <string>
 
 SnapshotCrawlerCache::SnapshotCrawlerCache()
 {
@@ -259,6 +260,61 @@ void SnapshotCrawlerCache::insert(InstanceManager<ManagedObject> &objects)
                           });
 }
 
+void SnapshotCrawlerCache::createVMTable()
+{
+    create("CREATE TABLE vm (" \
+           "allocationGranularity INTEGER," \
+           "arrayBoundsOffsetInHeader INTEGER," \
+           "arrayHeaderSize INTEGER," \
+           "arraySizeOffsetInHeader INTEGER," \
+           "heapFormatVersion INTEGER," \
+           "objectHeaderSize INTEGER," \
+           "pointerSize INTEGER);");
+}
+
+void SnapshotCrawlerCache::createStringTable()
+{
+    create("CREATE TABLE strings (" \
+           "id INTEGER PRIMARY KEY," \
+           "size INTEGER," \
+           "data TEXT NOT NULL," \
+           "address INTEGER);");
+}
+
+void SnapshotCrawlerCache::insertStringTable(MemorySnapshotCrawler &crawler)
+{
+    char *errmsg;
+    sqlite3_stmt *stmt;
+    
+    const char sql[] = "INSERT INTO strings VALUES (?1, ?2, ?3, ?4);";
+    sqlite3_exec(__database, "BEGIN TRANSACTION", nullptr, nullptr, &errmsg);
+    sqlite3_prepare_v2(__database, sql, (int)strlen(sql), &stmt, nullptr);
+    
+    int32_t sequence = 0;
+    int32_t stringTypeIndex = crawler.snapshot.managedTypeIndex.system_String;
+    auto &managedObjects = crawler.managedObjects;
+    for (auto i = 0; i < managedObjects.size(); i++)
+    {
+        auto &mo = managedObjects[i];
+        if (stringTypeIndex == mo.typeIndex)
+        {
+            int32_t size;
+            auto target = crawler.getString(mo.address, size);
+            
+            sqlite3_bind_int(stmt, 1, sequence++);
+            sqlite3_bind_int(stmt, 2, size);
+            sqlite3_bind_text16(stmt, 3, target, size, SQLITE_STATIC);
+            sqlite3_bind_int64(stmt, 4, mo.address);
+            
+            if (sqlite3_step(stmt) != SQLITE_DONE) {}
+            sqlite3_reset(stmt);
+        }
+    }
+    
+    sqlite3_exec(__database, "COMMIT TRANSACTION", nullptr, nullptr, &errmsg);
+    sqlite3_finalize(stmt);
+}
+
 MemorySnapshotCrawler &SnapshotCrawlerCache::read(const char *uuid)
 {
     __sampler.begin("SnapshotCrawlerCache::read");
@@ -357,6 +413,21 @@ MemorySnapshotCrawler &SnapshotCrawlerCache::read(const char *uuid)
            });
     __sampler.end(); // read_fields
     __sampler.end(); // read_type_fields
+    __sampler.begin("read_vm");
+    snapshot->virtualMachineInformation = new VirtualMachineInformation;
+    auto &vm = *snapshot->virtualMachineInformation;
+    select("select * from vm;", 1,
+           [&](sqlite3_stmt *stmt)
+           {
+               vm.allocationGranularity = sqlite3_column_int(stmt, 0);
+               vm.arrayBoundsOffsetInHeader = sqlite3_column_int(stmt, 1);
+               vm.arrayHeaderSize = sqlite3_column_int(stmt, 2);
+               vm.arraySizeOffsetInHeader = sqlite3_column_int(stmt, 3);
+               vm.heapFormatVersion = sqlite3_column_int(stmt, 4);
+               vm.objectHeaderSize = sqlite3_column_int(stmt, 5);
+               vm.pointerSize = sqlite3_column_int(stmt, 6);
+           });
+    __sampler.end(); // read_vm
     __sampler.end(); // read_snapshot
     
     __sampler.begin("read_MemorySnapshotCrawler");
@@ -426,8 +497,34 @@ void SnapshotCrawlerCache::select(const char *sql, int32_t size, std::function<v
     sqlite3_finalize(stmt);
 }
 
+void SnapshotCrawlerCache::insertVMTable(VirtualMachineInformation &vm)
+{
+    char *errmsg;
+    sqlite3_stmt *stmt;
+    
+    const char sql[] = "INSERT INTO vm VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7);";
+    sqlite3_exec(__database, "BEGIN TRANSACTION", nullptr, nullptr, &errmsg);
+    sqlite3_prepare_v2(__database, sql, (int)strlen(sql), &stmt, nullptr);
+    
+    sqlite3_bind_int(stmt, 1, vm.allocationGranularity);
+    sqlite3_bind_int(stmt, 2, vm.arrayBoundsOffsetInHeader);
+    sqlite3_bind_int(stmt, 3, vm.arrayHeaderSize);
+    sqlite3_bind_int(stmt, 4, vm.arraySizeOffsetInHeader);
+    sqlite3_bind_int(stmt, 5, vm.heapFormatVersion);
+    sqlite3_bind_int(stmt, 6, vm.objectHeaderSize);
+    sqlite3_bind_int(stmt, 7, vm.pointerSize);
+    
+    if (sqlite3_step(stmt) != SQLITE_DONE) {}
+    sqlite3_reset(stmt);
+    
+    sqlite3_exec(__database, "COMMIT TRANSACTION", nullptr, nullptr, &errmsg);
+    sqlite3_finalize(stmt);
+}
+
 void SnapshotCrawlerCache::save(MemorySnapshotCrawler &crawler)
 {
+    if (crawler.snapshot.uuid == nullptr) {return;}
+    
     __sampler.begin("SnapshotCrawlerCache::save");
     mkdir(__workspace, 0777);
     
@@ -489,6 +586,16 @@ void SnapshotCrawlerCache::save(MemorySnapshotCrawler &crawler)
     
     __sampler.begin("insert_connections");
     insert(crawler.connections);
+    __sampler.end();
+    
+    __sampler.begin("insert_vm");
+    createVMTable();
+    insertVMTable(*crawler.snapshot.virtualMachineInformation);
+    __sampler.end();
+    
+    __sampler.begin("insert_strings");
+    createStringTable();
+    insertStringTable(crawler);
     __sampler.end();
     
     __sampler.begin("close_database");

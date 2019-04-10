@@ -123,6 +123,8 @@ public:
     void crawl();
     void debug();
     
+    const char16_t *getString(address_t address, int32_t &size);
+    
     void tryAcceptConnection(EntityConnection &connection);
     int32_t getIndexKey(ConnectionKind kind, int32_t index);
     int64_t getConnectionKey(EntityConnection &connection);
