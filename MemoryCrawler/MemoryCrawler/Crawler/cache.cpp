@@ -275,31 +275,31 @@ MemorySnapshotCrawler &SnapshotCrawlerCache::read(const char *uuid)
     __sampler.begin("read_native_types");
     snapshot->nativeTypes = new Array<PackedNativeType>(selectCount("nativeTypes"));
     select<PackedNativeType>("select * from nativeTypes;", *snapshot->nativeTypes,
-                             [](PackedNativeType &nt, sqlite3_stmt *smt)
+                             [](PackedNativeType &nt, sqlite3_stmt *stmt)
                              {
-                                 nt.typeIndex = sqlite3_column_int(smt, 0);
-                                 nt.name = new string((char *)sqlite3_column_text(smt, 1));
-                                 nt.nativeBaseTypeArrayIndex = sqlite3_column_int(smt, 2);
-                                 nt.managedTypeArrayIndex = sqlite3_column_int(smt, 3);
+                                 nt.typeIndex = sqlite3_column_int(stmt, 0);
+                                 nt.name = new string((char *)sqlite3_column_text(stmt, 1));
+                                 nt.nativeBaseTypeArrayIndex = sqlite3_column_int(stmt, 2);
+                                 nt.managedTypeArrayIndex = sqlite3_column_int(stmt, 3);
                              });
     __sampler.end(); // read_native_types
     
     __sampler.begin("read_native_objects");
     snapshot->nativeObjects = new Array<PackedNativeUnityEngineObject>(selectCount("nativeObjects"));
     select<PackedNativeUnityEngineObject>("select * from nativeObjects;", *snapshot->nativeObjects,
-                                          [](PackedNativeUnityEngineObject &nt, sqlite3_stmt *smt)
+                                          [](PackedNativeUnityEngineObject &nt, sqlite3_stmt *stmt)
                                           {
-                                              nt.hideFlags = sqlite3_column_int(smt, 0);
-                                              nt.instanceId = sqlite3_column_int(smt, 1);
-                                              nt.isDontDestroyOnLoad = (bool)sqlite3_column_int(smt, 2);
-                                              nt.isManager = (bool)sqlite3_column_int(smt, 3);
-                                              nt.isPersistent = (bool)sqlite3_column_int(smt, 4);
-                                              nt.name = new string((char *)sqlite3_column_text(smt, 5));
-                                              nt.nativeObjectAddress = sqlite3_column_int(smt, 6);
-                                              nt.nativeTypeArrayIndex = sqlite3_column_int(smt, 7);
-                                              nt.size = sqlite3_column_int(smt, 8);
-                                              nt.managedObjectArrayIndex = sqlite3_column_int(smt, 9);
-                                              nt.nativeObjectArrayIndex = sqlite3_column_int(smt, 10);
+                                              nt.hideFlags = sqlite3_column_int(stmt, 0);
+                                              nt.instanceId = sqlite3_column_int(stmt, 1);
+                                              nt.isDontDestroyOnLoad = (bool)sqlite3_column_int(stmt, 2);
+                                              nt.isManager = (bool)sqlite3_column_int(stmt, 3);
+                                              nt.isPersistent = (bool)sqlite3_column_int(stmt, 4);
+                                              nt.name = new string((char *)sqlite3_column_text(stmt, 5));
+                                              nt.nativeObjectAddress = sqlite3_column_int(stmt, 6);
+                                              nt.nativeTypeArrayIndex = sqlite3_column_int(stmt, 7);
+                                              nt.size = sqlite3_column_int(stmt, 8);
+                                              nt.managedObjectArrayIndex = sqlite3_column_int(stmt, 9);
+                                              nt.nativeObjectArrayIndex = sqlite3_column_int(stmt, 10);
                                           });
     __sampler.end(); // read_native_objects
     
