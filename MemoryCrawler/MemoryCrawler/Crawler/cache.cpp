@@ -155,7 +155,7 @@ void CrawlerCache::insert(Array<TypeDescription> &types)
 void CrawlerCache::createJointTable()
 {
     create("CREATE TABLE joints (" \
-           "jointArrayIndex INTEGER NOT NULL PRIMARY KEY," \
+           "jointArrayIndex INTEGER PRIMARY KEY," \
            "hookTypeIndex INTEGER," \
            "hookObjectIndex INTEGER," \
            "hookObjectAddress INTEGER," \
@@ -190,7 +190,7 @@ void CrawlerCache::insert(InstanceManager<EntityJoint> &joints)
 void CrawlerCache::createConnectionTable()
 {
     create("CREATE TABLE connections (" \
-           "id INTEGER NOT NULL PRIMARY KEY," \
+           "id INTEGER PRIMARY KEY," \
            "from INTEGER," \
            "fromKind INTEGER," \
            "to INTEGER," \
@@ -215,9 +215,9 @@ void CrawlerCache::insert(InstanceManager<EntityConnection> &connections)
 void CrawlerCache::createObjectTable()
 {
     create("CREATE TABLE objects (" \
-           "address INTEGER NOT NULL," \
+           "address INTEGER," \
            "typeIndex INTEGER REFERENCES types (typeIndex)," \
-           "managedObjectIndex INTEGER NOT NULL PRIMARY KEY," \
+           "managedObjectIndex INTEGER PRIMARY KEY," \
            "nativeObjectIndex INTEGER," \
            "gcHandleIndex INTEGER," \
            "isValueType INTEGER," \
