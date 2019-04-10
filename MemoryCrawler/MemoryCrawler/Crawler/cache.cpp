@@ -8,12 +8,12 @@
 
 #include "cache.h"
 
-CrawlerCache::CrawlerCache()
+SnapshotCrawlerCache::SnapshotCrawlerCache()
 {
     
 }
 
-void CrawlerCache::open(const char *filepath)
+void SnapshotCrawlerCache::open(const char *filepath)
 {
     auto rc = sqlite3_open(filepath, &__database);
     assert(rc == 0);
@@ -21,13 +21,13 @@ void CrawlerCache::open(const char *filepath)
     sqlite3_exec(__database, "PRAGMA FOREIGN_KEYS=ON;", nullptr, nullptr, nullptr);
 }
 
-void CrawlerCache::create(const char *sql)
+void SnapshotCrawlerCache::create(const char *sql)
 {
     char *errmsg;
     sqlite3_exec(__database, sql, nullptr, nullptr, &errmsg);
 }
 
-void CrawlerCache::createNativeTypeTable()
+void SnapshotCrawlerCache::createNativeTypeTable()
 {
     create("CREATE TABLE nativeTypes (" \
            "typeIndex INTEGER PRIMARY KEY," \
@@ -36,7 +36,7 @@ void CrawlerCache::createNativeTypeTable()
            "managedTypeArrayIndex INTEGER);");
 }
 
-void CrawlerCache::insert(Array<PackedNativeType> &nativeTypes)
+void SnapshotCrawlerCache::insert(Array<PackedNativeType> &nativeTypes)
 {
     insert<PackedNativeType>("INSERT INTO nativeTypes VALUES (?1, ?2, ?3, ?4)",
                              nativeTypes, [](PackedNativeType &nt, sqlite3_stmt *stmt)
@@ -48,7 +48,7 @@ void CrawlerCache::insert(Array<PackedNativeType> &nativeTypes)
                              });
 }
 
-void CrawlerCache::createNativeObjectTable()
+void SnapshotCrawlerCache::createNativeObjectTable()
 {
     create("CREATE TABLE nativeObjects (" \
            "hideFlags INTEGER," \
@@ -64,7 +64,7 @@ void CrawlerCache::createNativeObjectTable()
            "nativeObjectArrayIndex INTEGER PRIMARY KEY);");
 }
 
-void CrawlerCache::insert(Array<PackedNativeUnityEngineObject> &nativeObjects)
+void SnapshotCrawlerCache::insert(Array<PackedNativeUnityEngineObject> &nativeObjects)
 {
     insert<PackedNativeUnityEngineObject>("INSERT INTO nativeObjects VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 9?, 10?, 11?)",
                                           nativeObjects, [](PackedNativeUnityEngineObject &no, sqlite3_stmt *stmt)
@@ -83,7 +83,7 @@ void CrawlerCache::insert(Array<PackedNativeUnityEngineObject> &nativeObjects)
                                           });
 }
 
-void CrawlerCache::createTypeTable()
+void SnapshotCrawlerCache::createTypeTable()
 {
     create("CREATE TABLE types (" \
            "arrayRank INTEGER," \
@@ -100,7 +100,7 @@ void CrawlerCache::createTypeTable()
            "fields BLOB);");
 }
 
-void CrawlerCache::createFieldTable()
+void SnapshotCrawlerCache::createFieldTable()
 {
     create("CREATE TABLE fields (" \
            "id INTEGER PRIMARY KEY," \
@@ -110,7 +110,7 @@ void CrawlerCache::createFieldTable()
            "typeIndex INTEGER REFERENCES types (typeIndex));");
 }
 
-void CrawlerCache::insert(Array<TypeDescription> &types)
+void SnapshotCrawlerCache::insert(Array<TypeDescription> &types)
 {
     insert<TypeDescription>("INSERT INTO types VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
                             types, [this](TypeDescription &t, sqlite3_stmt *stmt)
@@ -152,7 +152,7 @@ void CrawlerCache::insert(Array<TypeDescription> &types)
                             });
 }
 
-void CrawlerCache::createJointTable()
+void SnapshotCrawlerCache::createJointTable()
 {
     create("CREATE TABLE joints (" \
            "jointArrayIndex INTEGER PRIMARY KEY," \
@@ -168,7 +168,7 @@ void CrawlerCache::createJointTable()
            "isStatic INTEGER);");
 }
 
-void CrawlerCache::insert(InstanceManager<EntityJoint> &joints)
+void SnapshotCrawlerCache::insert(InstanceManager<EntityJoint> &joints)
 {
     insert<EntityJoint>("INSERT INTO joints VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
                         joints, [](EntityJoint &ej, sqlite3_stmt *stmt)
@@ -187,7 +187,7 @@ void CrawlerCache::insert(InstanceManager<EntityJoint> &joints)
                         });
 }
 
-void CrawlerCache::createConnectionTable()
+void SnapshotCrawlerCache::createConnectionTable()
 {
     create("CREATE TABLE connections (" \
            "id INTEGER PRIMARY KEY," \
@@ -198,7 +198,7 @@ void CrawlerCache::createConnectionTable()
            "jointArrayIndex INTEGER REFERENCES joints (jointArrayIndex));");
 }
 
-void CrawlerCache::insert(InstanceManager<EntityConnection> &connections)
+void SnapshotCrawlerCache::insert(InstanceManager<EntityConnection> &connections)
 {
     insert<EntityConnection>("INSERT INTO connections VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
                              connections, [](EntityConnection &ec, sqlite3_stmt *stmt)
@@ -212,7 +212,7 @@ void CrawlerCache::insert(InstanceManager<EntityConnection> &connections)
                              });
 }
 
-void CrawlerCache::createObjectTable()
+void SnapshotCrawlerCache::createObjectTable()
 {
     create("CREATE TABLE objects (" \
            "address INTEGER," \
@@ -226,7 +226,7 @@ void CrawlerCache::createObjectTable()
            "jointArrayIndex INTEGER REFERENCES joints (jointArrayIndex));");
 }
 
-void CrawlerCache::insert(InstanceManager<ManagedObject> &objects)
+void SnapshotCrawlerCache::insert(InstanceManager<ManagedObject> &objects)
 {
     insert<ManagedObject>("INSERT INTO objects VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
                           objects, [](ManagedObject &mo, sqlite3_stmt *stmt)
@@ -248,7 +248,7 @@ void CrawlerCache::insert(InstanceManager<ManagedObject> &objects)
 //
 //}
 
-void CrawlerCache::save(MemorySnapshotCrawler &crawler)
+void SnapshotCrawlerCache::save(MemorySnapshotCrawler &crawler)
 {
     char filepath[64];
     sprintf(filepath, "__cpp_cache/%s.db", crawler.snapshot.uuid->c_str());
@@ -272,7 +272,7 @@ void CrawlerCache::save(MemorySnapshotCrawler &crawler)
     sqlite3_close(__database);
 }
 
-CrawlerCache::~CrawlerCache()
+SnapshotCrawlerCache::~SnapshotCrawlerCache()
 {
     
 }

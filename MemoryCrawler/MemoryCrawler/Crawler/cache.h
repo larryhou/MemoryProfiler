@@ -15,18 +15,18 @@
 #include "crawler.h"
 #include "perf.h"
 
-class CrawlerCache
+class SnapshotCrawlerCache
 {
     char __buffer[32*1024];
     TimeSampler<std::nano> __sampler;
     sqlite3 *__database;
     
 public:
-    CrawlerCache();
+    SnapshotCrawlerCache();
     void open(const char *filepath);
     void save(MemorySnapshotCrawler &crawler);
     MemorySnapshotCrawler &read();
-    ~CrawlerCache();
+    ~SnapshotCrawlerCache();
     
 private:
     void createNativeTypeTable();
@@ -53,7 +53,7 @@ private:
 };
 
 template <typename T>
-void CrawlerCache::insert(const char * sql, Array<T> &array, std::function<void(T &item, sqlite3_stmt *stmt)> kernel)
+void SnapshotCrawlerCache::insert(const char * sql, Array<T> &array, std::function<void(T &item, sqlite3_stmt *stmt)> kernel)
 {
     char *errmsg;
     sqlite3_stmt *stmt;
@@ -74,7 +74,7 @@ void CrawlerCache::insert(const char * sql, Array<T> &array, std::function<void(
 }
 
 template <typename T>
-void CrawlerCache::insert(const char * sql, InstanceManager<T> &manager, std::function<void(T &item, sqlite3_stmt *stmt)> kernel)
+void SnapshotCrawlerCache::insert(const char * sql, InstanceManager<T> &manager, std::function<void(T &item, sqlite3_stmt *stmt)> kernel)
 {
     char *errmsg;
     sqlite3_stmt *stmt;
