@@ -278,6 +278,11 @@ MemorySnapshotCrawler &SnapshotCrawlerCache::read(const char *uuid)
     auto snapshot = new PackedMemorySnapshot;
     
     snapshot->nativeTypes = new Array<PackedNativeType>(count("nativeTypes"));
+    select<PackedNativeType>("select * from nativeTypes;", *snapshot->nativeTypes,
+                             [](PackedNativeType &nt, sqlite3_stmt *smt)
+                             {
+                                 
+                             });
     snapshot->nativeObjects = new Array<PackedNativeUnityEngineObject>(count("nativeObjects"));
     snapshot->typeDescriptions = new Array<TypeDescription>(count("types"));
     
