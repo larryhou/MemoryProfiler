@@ -40,6 +40,9 @@ inline void testStream(const char * filepath)
     
     SnapshotCrawlerCache cache;
     cache.save(crawler);
+    
+    MemorySnapshotCrawler &serializedCrawler = cache.read(reader.uuid->c_str());
+    cout << serializedCrawler.managedObjects.size() << endl;
 }
 
 int main(int argc, const char * argv[])

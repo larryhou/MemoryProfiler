@@ -29,6 +29,21 @@ void SnapshotCrawlerCache::create(const char *sql)
     sqlite3_exec(__database, sql, nullptr, nullptr, &errmsg);
 }
 
+int sqliteCallbackCount(void *context, int argc, char **argv, char **columns)
+{
+    auto ptr = (int *)context;
+    *ptr = *(int *)argv[0];
+    return 0;
+}
+
+int32_t SnapshotCrawlerCache::count(const char *name)
+{
+    sprintf(__buffer, "select count(*) from %s;", name);
+    int count = 0;
+    sqlite3_exec(__database, __buffer, sqliteCallbackCount, &count, nullptr);
+    return count;
+}
+
 void SnapshotCrawlerCache::createNativeTypeTable()
 {
     create("CREATE TABLE nativeTypes (" \
@@ -248,19 +263,35 @@ void SnapshotCrawlerCache::insert(InstanceManager<ManagedObject> &objects)
                           });
 }
 
-//MemorySnapshotCrawler &CrawlerCache::read()
-//{
-//
-//}
+MemorySnapshotCrawler &SnapshotCrawlerCache::read(const char *uuid)
+{
+    char filepath[64];
+    sprintf(filepath, "%s/%s.db", __workspace, uuid);
+    remove(filepath);
+    
+    __sampler.begin("open");
+    open(filepath);
+    __sampler.end();
+    
+    auto snapshot = new PackedMemorySnapshot;
+    
+    snapshot->nativeTypes = new Array<PackedNativeType>(count("nativeTypes"));
+    snapshot->nativeObjects = new Array<PackedNativeUnityEngineObject>(count("nativeObjects"));
+    snapshot->typeDescriptions = new Array<TypeDescription>(count("types"));
+    
+    auto crawler = new MemorySnapshotCrawler(*snapshot);
+    
+    
+    return *crawler;
+}
 
 void SnapshotCrawlerCache::save(MemorySnapshotCrawler &crawler)
 {
     __sampler.begin("SnapshotCrawlerCache::save");
-    const char *output = "__cpp_cache";
-    mkdir(output, 0777);
+    mkdir(__workspace, 0777);
     
     char filepath[64];
-    sprintf(filepath, "%s/%s.db", output, crawler.snapshot.uuid->c_str());
+    sprintf(filepath, "%s/%s.db", __workspace, crawler.snapshot.uuid->c_str());
     remove(filepath);
     
     __sampler.begin("open");
