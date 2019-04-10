@@ -10,7 +10,7 @@
 
 void MemorySnapshotCrawler::crawl()
 {
-    __sampler.begin("MemorySnapshotCrawler::crawl");
+    __sampler.begin("MemorySnapshotCrawler");
     initManagedTypes();
     crawlGCHandles();
     crawlStatic();

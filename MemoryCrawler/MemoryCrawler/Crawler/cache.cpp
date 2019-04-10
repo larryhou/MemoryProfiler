@@ -7,10 +7,11 @@
 //
 
 #include "cache.h"
+#include <sys/stat.h>
 
 SnapshotCrawlerCache::SnapshotCrawlerCache()
 {
-    
+    __sampler.begin("SnapshotCrawlerCache");
 }
 
 void SnapshotCrawlerCache::open(const char *filepath)
@@ -18,7 +19,8 @@ void SnapshotCrawlerCache::open(const char *filepath)
     auto rc = sqlite3_open(filepath, &__database);
     assert(rc == 0);
     
-    sqlite3_exec(__database, "PRAGMA FOREIGN_KEYS=ON;", nullptr, nullptr, nullptr);
+    sqlite3_exec(__database, "PRAGMA FOREIGN_KEYS=OFF;", nullptr, nullptr, nullptr);
+    sqlite3_exec(__database, "PRAGMA journal_mode = MEMORY", nullptr, nullptr, nullptr);
 }
 
 void SnapshotCrawlerCache::create(const char *sql)
@@ -38,7 +40,7 @@ void SnapshotCrawlerCache::createNativeTypeTable()
 
 void SnapshotCrawlerCache::insert(Array<PackedNativeType> &nativeTypes)
 {
-    insert<PackedNativeType>("INSERT INTO nativeTypes VALUES (?1, ?2, ?3, ?4)",
+    insert<PackedNativeType>("INSERT INTO nativeTypes VALUES (?1, ?2, ?3, ?4);",
                              nativeTypes, [](PackedNativeType &nt, sqlite3_stmt *stmt)
                              {
                                  sqlite3_bind_int(stmt, 1, nt.typeIndex);
@@ -66,7 +68,7 @@ void SnapshotCrawlerCache::createNativeObjectTable()
 
 void SnapshotCrawlerCache::insert(Array<PackedNativeUnityEngineObject> &nativeObjects)
 {
-    insert<PackedNativeUnityEngineObject>("INSERT INTO nativeObjects VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 9?, 10?, 11?)",
+    insert<PackedNativeUnityEngineObject>("INSERT INTO nativeObjects VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11);",
                                           nativeObjects, [](PackedNativeUnityEngineObject &no, sqlite3_stmt *stmt)
                                           {
                                               sqlite3_bind_int(stmt, 1, no.hideFlags);
@@ -112,7 +114,7 @@ void SnapshotCrawlerCache::createFieldTable()
 
 void SnapshotCrawlerCache::insert(Array<TypeDescription> &types)
 {
-    insert<TypeDescription>("INSERT INTO types VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
+    insert<TypeDescription>("INSERT INTO types VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12);",
                             types, [this](TypeDescription &t, sqlite3_stmt *stmt)
                             {
                                 char *iter = __buffer;
@@ -129,7 +131,10 @@ void SnapshotCrawlerCache::insert(Array<TypeDescription> &types)
                                 sqlite3_bind_int(stmt, 5, t.isValueType);
                                 sqlite3_bind_text(stmt, 6, t.name->c_str(), (int)t.name->size(), SQLITE_STATIC);
                                 sqlite3_bind_int(stmt, 7, t.size);
-                                sqlite3_bind_blob(stmt, 8, t.staticFieldBytes->items, t.staticFieldBytes->size, SQLITE_STATIC);
+                                if (t.staticFieldBytes != nullptr)
+                                {
+                                    sqlite3_bind_blob(stmt, 8, t.staticFieldBytes->items, t.staticFieldBytes->size, SQLITE_STATIC);
+                                }
                                 sqlite3_bind_int(stmt, 9, t.typeIndex);
                                 sqlite3_bind_int64(stmt, 10, t.typeInfoAddress);
                                 sqlite3_bind_int64(stmt, 11, t.nativeTypeArrayIndex);
@@ -137,7 +142,7 @@ void SnapshotCrawlerCache::insert(Array<TypeDescription> &types)
                             });
     
     // type fields
-    insert<TypeDescription>("INSERT INTO fields VALUES (?1, ?2, ?3, ?4, ?5)",
+    insert<TypeDescription>("INSERT INTO fields VALUES (?1, ?2, ?3, ?4, ?5);",
                             types, [](TypeDescription &t, sqlite3_stmt *stmt)
                             {
                                 for (auto n = 0; n < t.fields->size; n++)
@@ -170,7 +175,7 @@ void SnapshotCrawlerCache::createJointTable()
 
 void SnapshotCrawlerCache::insert(InstanceManager<EntityJoint> &joints)
 {
-    insert<EntityJoint>("INSERT INTO joints VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+    insert<EntityJoint>("INSERT INTO joints VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11);",
                         joints, [](EntityJoint &ej, sqlite3_stmt *stmt)
                         {
                             sqlite3_bind_int(stmt, 1, ej.jointArrayIndex);
@@ -190,24 +195,24 @@ void SnapshotCrawlerCache::insert(InstanceManager<EntityJoint> &joints)
 void SnapshotCrawlerCache::createConnectionTable()
 {
     create("CREATE TABLE connections (" \
-           "id INTEGER PRIMARY KEY," \
-           "from INTEGER," \
+           "connectionArrayIndex INTEGER PRIMARY KEY," \
+           "fromIndex INTEGER," \
            "fromKind INTEGER," \
-           "to INTEGER," \
+           "toIndex INTEGER," \
            "toKind INTEGER," \
            "jointArrayIndex INTEGER REFERENCES joints (jointArrayIndex));");
 }
 
 void SnapshotCrawlerCache::insert(InstanceManager<EntityConnection> &connections)
 {
-    insert<EntityConnection>("INSERT INTO connections VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+    insert<EntityConnection>("INSERT INTO connections VALUES (?1, ?2, ?3, ?4, ?5, ?6);",
                              connections, [](EntityConnection &ec, sqlite3_stmt *stmt)
                              {
                                  sqlite3_bind_int(stmt, 1, ec.connectionArrayIndex);
                                  sqlite3_bind_int(stmt, 2, ec.from);
-                                 sqlite3_bind_int(stmt, 3, ec.fromKind);
+                                 sqlite3_bind_int(stmt, 3, (int)ec.fromKind);
                                  sqlite3_bind_int(stmt, 4, ec.to);
-                                 sqlite3_bind_int(stmt, 5, ec.toKind);
+                                 sqlite3_bind_int(stmt, 5, (int)ec.toKind);
                                  sqlite3_bind_int(stmt, 6, ec.jointArrayIndex);
                              });
 }
@@ -228,7 +233,7 @@ void SnapshotCrawlerCache::createObjectTable()
 
 void SnapshotCrawlerCache::insert(InstanceManager<ManagedObject> &objects)
 {
-    insert<ManagedObject>("INSERT INTO objects VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+    insert<ManagedObject>("INSERT INTO objects VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9);",
                           objects, [](ManagedObject &mo, sqlite3_stmt *stmt)
                           {
                               sqlite3_bind_int64(stmt, 1, mo.address);
@@ -250,29 +255,78 @@ void SnapshotCrawlerCache::insert(InstanceManager<ManagedObject> &objects)
 
 void SnapshotCrawlerCache::save(MemorySnapshotCrawler &crawler)
 {
+    __sampler.begin("SnapshotCrawlerCache::save");
+    const char *output = "__cpp_cache";
+    mkdir(output, 0777);
+    
     char filepath[64];
-    sprintf(filepath, "__cpp_cache/%s.db", crawler.snapshot.uuid->c_str());
+    sprintf(filepath, "%s/%s.db", output, crawler.snapshot.uuid->c_str());
+    remove(filepath);
+    
+    __sampler.begin("open");
     open(filepath);
+    __sampler.end();
     
+    __sampler.begin("create_native_types");
     createNativeTypeTable();
+    __sampler.end();
+    
+    __sampler.begin("create_native_objects");
     createNativeObjectTable();
+    __sampler.end();
+    
+    __sampler.begin("create_managed_types");
     createTypeTable();
+    __sampler.end();
+    
+    __sampler.begin("create_type_fields");
     createFieldTable();
+    __sampler.end();
+    
+    __sampler.begin("create_joints");
     createJointTable();
+    __sampler.end();
+    
+    __sampler.begin("create_objects");
     createObjectTable();
+    __sampler.end();
+    
+    __sampler.begin("create_connections");
     createConnectionTable();
+    __sampler.end();
     
+    __sampler.begin("insert_native_types");
     insert(*crawler.snapshot.nativeTypes);
-    insert(*crawler.snapshot.nativeObjects);
-    insert(*crawler.snapshot.typeDescriptions);
-    insert(crawler.joints);
-    insert(crawler.managedObjects);
-    insert(crawler.connections);
+    __sampler.end();
     
+    __sampler.begin("insert_native_objects");
+    insert(*crawler.snapshot.nativeObjects);
+    __sampler.end();
+    
+    __sampler.begin("insert_managed_types");
+    insert(*crawler.snapshot.typeDescriptions);
+    __sampler.end();
+    
+    __sampler.begin("insert_joints");
+    insert(crawler.joints);
+    __sampler.end();
+    
+    __sampler.begin("insert_objects");
+    insert(crawler.managedObjects);
+    __sampler.end();
+    
+    __sampler.begin("insert_connections");
+    insert(crawler.connections);
+    __sampler.end();
+    
+    __sampler.begin("close_database");
     sqlite3_close(__database);
+    __sampler.end();
+    __sampler.end();
 }
 
 SnapshotCrawlerCache::~SnapshotCrawlerCache()
 {
-    
+    __sampler.end();
+    __sampler.summary();
 }

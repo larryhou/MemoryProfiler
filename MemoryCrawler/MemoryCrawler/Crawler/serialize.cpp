@@ -362,6 +362,8 @@ inline bool readTypeIndex(int32_t &index, const TypeDescription &type, const str
 
 void MemorySnapshotReader::postSnapshot()
 {
+    snapshot->uuid = uuid;
+    
     sampler.begin("postSnapshot");
     sampler.begin("create_sorted_heap");
     for (auto i = 0; i < snapshot->managedHeapSections->size; i++)

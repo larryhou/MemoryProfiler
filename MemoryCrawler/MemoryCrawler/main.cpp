@@ -37,6 +37,9 @@ inline void testStream(const char * filepath)
     sampler.end();
     sampler.end();
     sampler.summary();
+    
+    SnapshotCrawlerCache cache;
+    cache.save(crawler);
 }
 
 int main(int argc, const char * argv[])
