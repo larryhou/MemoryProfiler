@@ -20,7 +20,7 @@ void SnapshotCrawlerCache::open(const char *filepath)
     assert(rc == 0);
     
     sqlite3_exec(__database, "PRAGMA FOREIGN_KEYS=OFF;", nullptr, nullptr, nullptr);
-    sqlite3_exec(__database, "PRAGMA journal_mode = MEMORY", nullptr, nullptr, nullptr);
+    sqlite3_exec(__database, "PRAGMA journal_mode = MEMORY;", nullptr, nullptr, nullptr);
 }
 
 void SnapshotCrawlerCache::create(const char *sql)
