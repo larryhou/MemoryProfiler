@@ -33,7 +33,7 @@ void SnapshotCrawlerCache::create(const char *sql)
 static int sqliteCallbackCount(void *context, int argc, char **argv, char **columns)
 {
     auto ptr = (int *)context;
-    *ptr = *(int *)argv[0];
+    *ptr = atoi(argv[0]);
     return 0;
 }
 
