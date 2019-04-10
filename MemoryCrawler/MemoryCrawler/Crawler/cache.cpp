@@ -19,8 +19,9 @@ void SnapshotCrawlerCache::open(const char *filepath)
     auto rc = sqlite3_open(filepath, &__database);
     assert(rc == 0);
     
-    sqlite3_exec(__database, "PRAGMA FOREIGN_KEYS=OFF;", nullptr, nullptr, nullptr);
-    sqlite3_exec(__database, "PRAGMA journal_mode = MEMORY;", nullptr, nullptr, nullptr);
+    char *errmsg;
+    sqlite3_exec(__database, "PRAGMA FOREIGN_KEYS=OFF;", nullptr, nullptr, &errmsg);
+    sqlite3_exec(__database, "PRAGMA journal_mode = MEMORY;", nullptr, nullptr, &errmsg);
 }
 
 void SnapshotCrawlerCache::create(const char *sql)
@@ -29,7 +30,7 @@ void SnapshotCrawlerCache::create(const char *sql)
     sqlite3_exec(__database, sql, nullptr, nullptr, &errmsg);
 }
 
-int sqliteCallbackCount(void *context, int argc, char **argv, char **columns)
+static int sqliteCallbackCount(void *context, int argc, char **argv, char **columns)
 {
     auto ptr = (int *)context;
     *ptr = *(int *)argv[0];
@@ -38,9 +39,11 @@ int sqliteCallbackCount(void *context, int argc, char **argv, char **columns)
 
 int32_t SnapshotCrawlerCache::count(const char *name)
 {
-    sprintf(__buffer, "select count(*) from %s;", name);
+    char *errmsg;
+    
     int count = 0;
-    sqlite3_exec(__database, __buffer, sqliteCallbackCount, &count, nullptr);
+    sprintf(__buffer, "select count(*) from %s;", name);
+    sqlite3_exec(__database, __buffer, sqliteCallbackCount, &count, &errmsg);
     return count;
 }
 
@@ -267,7 +270,6 @@ MemorySnapshotCrawler &SnapshotCrawlerCache::read(const char *uuid)
 {
     char filepath[64];
     sprintf(filepath, "%s/%s.db", __workspace, uuid);
-    remove(filepath);
     
     __sampler.begin("open");
     open(filepath);
