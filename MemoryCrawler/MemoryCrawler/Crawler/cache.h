@@ -59,7 +59,7 @@ private:
     void select(const char * sql, int32_t size, std::function<void(sqlite3_stmt *stmt)> kernel);
     
     void create(const char *sql);
-    int32_t count(const char *name);
+    int32_t selectCount(const char *name);
 };
 
 template <typename T>

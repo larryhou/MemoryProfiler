@@ -30,20 +30,20 @@ void SnapshotCrawlerCache::create(const char *sql)
     sqlite3_exec(__database, sql, nullptr, nullptr, &errmsg);
 }
 
-static int sqliteCallbackCount(void *context, int argc, char **argv, char **columns)
+static int sqliteCallbackSelectCount(void *context, int argc, char **argv, char **columns)
 {
     auto ptr = (int *)context;
     *ptr = atoi(argv[0]);
     return 0;
 }
 
-int32_t SnapshotCrawlerCache::count(const char *name)
+int32_t SnapshotCrawlerCache::selectCount(const char *name)
 {
     char *errmsg;
     
     int count = 0;
     sprintf(__buffer, "select count(*) from %s;", name);
-    sqlite3_exec(__database, __buffer, sqliteCallbackCount, &count, &errmsg);
+    sqlite3_exec(__database, __buffer, sqliteCallbackSelectCount, &count, &errmsg);
     return count;
 }
 
@@ -273,7 +273,7 @@ MemorySnapshotCrawler &SnapshotCrawlerCache::read(const char *uuid)
     auto snapshot = new PackedMemorySnapshot;
     
     __sampler.begin("read_native_types");
-    snapshot->nativeTypes = new Array<PackedNativeType>(count("nativeTypes"));
+    snapshot->nativeTypes = new Array<PackedNativeType>(selectCount("nativeTypes"));
     select<PackedNativeType>("select * from nativeTypes;", *snapshot->nativeTypes,
                              [](PackedNativeType &nt, sqlite3_stmt *smt)
                              {
@@ -285,7 +285,7 @@ MemorySnapshotCrawler &SnapshotCrawlerCache::read(const char *uuid)
     __sampler.end(); // read_native_types
     
     __sampler.begin("read_native_objects");
-    snapshot->nativeObjects = new Array<PackedNativeUnityEngineObject>(count("nativeObjects"));
+    snapshot->nativeObjects = new Array<PackedNativeUnityEngineObject>(selectCount("nativeObjects"));
     select<PackedNativeUnityEngineObject>("select * from nativeObjects;", *snapshot->nativeObjects,
                                           [](PackedNativeUnityEngineObject &nt, sqlite3_stmt *smt)
                                           {
@@ -304,7 +304,7 @@ MemorySnapshotCrawler &SnapshotCrawlerCache::read(const char *uuid)
     __sampler.end(); // read_native_objects
     
     __sampler.begin("read_managed_types");
-    snapshot->typeDescriptions = new Array<TypeDescription>(count("types"));
+    snapshot->typeDescriptions = new Array<TypeDescription>(selectCount("types"));
     select<TypeDescription>("select * from types;", *snapshot->typeDescriptions,
                             [](TypeDescription &mt, sqlite3_stmt *stmt)
                             {
@@ -338,7 +338,7 @@ MemorySnapshotCrawler &SnapshotCrawlerCache::read(const char *uuid)
     __sampler.begin("read_type_fields");
     int32_t typeIndex = 0;
     TypeDescription *hookType;
-    select("select * from fields;", (int32_t)count("fields"),
+    select("select * from fields;", (int32_t)selectCount("fields"),
            [&](sqlite3_stmt *stmt)
            {
                auto id = sqlite3_column_int64(stmt, 0);
@@ -362,7 +362,7 @@ MemorySnapshotCrawler &SnapshotCrawlerCache::read(const char *uuid)
     __sampler.begin("read_MemorySnapshotCrawler");
     auto crawler = new MemorySnapshotCrawler(*snapshot);
     __sampler.begin("read_joints");
-    select<EntityJoint>("select * from joints;", count("joints"), crawler->joints,
+    select<EntityJoint>("select * from joints;", selectCount("joints"), crawler->joints,
                         [](EntityJoint &ej, sqlite3_stmt *stmt)
                         {
                             ej.jointArrayIndex = sqlite3_column_int(stmt, 0);
@@ -380,7 +380,7 @@ MemorySnapshotCrawler &SnapshotCrawlerCache::read(const char *uuid)
     __sampler.end(); // read_joints
     
     __sampler.begin("read_connections");
-    select<EntityConnection>("select * from connections;", count("connections"), crawler->connections,
+    select<EntityConnection>("select * from connections;", selectCount("connections"), crawler->connections,
                              [](EntityConnection &ec, sqlite3_stmt *stmt)
                              {
                                  ec.connectionArrayIndex = sqlite3_column_int(stmt, 0);
@@ -393,19 +393,19 @@ MemorySnapshotCrawler &SnapshotCrawlerCache::read(const char *uuid)
     __sampler.end(); // read_connections
     
     __sampler.begin("read_managed_objects");
-    select<ManagedObject>("select * from objects;", count("objects"), crawler->managedObjects,
-                        [](ManagedObject &mo, sqlite3_stmt *stmt)
-                        {
-                            mo.address = sqlite3_column_int64(stmt, 0);
-                            mo.typeIndex = sqlite3_column_int(stmt, 1);
-                            mo.managedObjectIndex = sqlite3_column_int(stmt, 2);
-                            mo.nativeObjectIndex = sqlite3_column_int(stmt, 3);
-                            mo.gcHandleIndex = sqlite3_column_int(stmt, 4);
-                            mo.isValueType = (bool)sqlite3_column_int(stmt, 5);
-                            mo.size = sqlite3_column_int(stmt, 6);
-                            mo.nativeSize = sqlite3_column_int(stmt, 7);
-                            mo.jointArrayIndex = sqlite3_column_int(stmt, 8);
-                        });
+    select<ManagedObject>("select * from objects;", selectCount("objects"), crawler->managedObjects,
+                          [](ManagedObject &mo, sqlite3_stmt *stmt)
+                          {
+                              mo.address = sqlite3_column_int64(stmt, 0);
+                              mo.typeIndex = sqlite3_column_int(stmt, 1);
+                              mo.managedObjectIndex = sqlite3_column_int(stmt, 2);
+                              mo.nativeObjectIndex = sqlite3_column_int(stmt, 3);
+                              mo.gcHandleIndex = sqlite3_column_int(stmt, 4);
+                              mo.isValueType = (bool)sqlite3_column_int(stmt, 5);
+                              mo.size = sqlite3_column_int(stmt, 6);
+                              mo.nativeSize = sqlite3_column_int(stmt, 7);
+                              mo.jointArrayIndex = sqlite3_column_int(stmt, 8);
+                          });
     __sampler.end(); // read_managed_objects
     __sampler.end(); // read_crawler
     __sampler.end(); // ::read
