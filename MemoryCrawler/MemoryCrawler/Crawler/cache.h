@@ -51,25 +51,25 @@ private:
     void insertStringTable(MemorySnapshotCrawler &crawler);
     
     template <typename T>
-    void insert(const char * sql, InstanceManager<T> &manager, std::function<void(T &item, sqlite3_stmt *stmt)> kernel);
+    void insert(const char * sql, InstanceManager<T> &manager, std::function<void(T &item, sqlite3_stmt *stmt)> eachcall);
     
     template <typename T>
-    void select(const char * sql, int32_t size, InstanceManager<T> &manager, std::function<void(T &item, sqlite3_stmt *stmt)> kernel);
+    void select(const char * sql, int32_t size, InstanceManager<T> &manager, std::function<void(T &item, sqlite3_stmt *stmt)> eachcall);
     
     template <typename T>
-    void insert(const char * sql, Array<T> &array, std::function<void(T &item, sqlite3_stmt *stmt)> kernel);
+    void insert(const char * sql, Array<T> &array, std::function<void(T &item, sqlite3_stmt *stmt)> eachcall);
     
     template <typename T>
-    void select(const char * sql, Array<T> &array, std::function<void(T &item, sqlite3_stmt *stmt)> kernel);
+    void select(const char * sql, Array<T> &array, std::function<void(T &item, sqlite3_stmt *stmt)> eachcall);
     
-    void select(const char * sql, int32_t size, std::function<void(sqlite3_stmt *stmt)> kernel);
+    void select(const char * sql, int32_t size, std::function<void(sqlite3_stmt *stmt)> eachcall);
     
     void create(const char *sql);
     int32_t selectCount(const char *name);
 };
 
 template <typename T>
-void SnapshotCrawlerCache::insert(const char * sql, Array<T> &array, std::function<void(T &item, sqlite3_stmt *stmt)> kernel)
+void SnapshotCrawlerCache::insert(const char * sql, Array<T> &array, std::function<void(T &item, sqlite3_stmt *stmt)> eachcall)
 {
     char *errmsg;
     sqlite3_stmt *stmt;
@@ -79,7 +79,7 @@ void SnapshotCrawlerCache::insert(const char * sql, Array<T> &array, std::functi
     
     for (auto i = 0; i < array.size; i++)
     {
-        kernel(array[i], stmt);
+        eachcall(array[i], stmt);
         
         if (sqlite3_step(stmt) != SQLITE_DONE) {}
         sqlite3_reset(stmt);
@@ -90,7 +90,7 @@ void SnapshotCrawlerCache::insert(const char * sql, Array<T> &array, std::functi
 }
 
 template <typename T>
-void SnapshotCrawlerCache::select(const char * sql, Array<T> &array, std::function<void(T &item, sqlite3_stmt *stmt)> kernel)
+void SnapshotCrawlerCache::select(const char * sql, Array<T> &array, std::function<void(T &item, sqlite3_stmt *stmt)> eachcall)
 {
     sqlite3_stmt *stmt;
     sqlite3_prepare_v2(__database, sql, (int)strlen(sql), &stmt, nullptr);
@@ -98,14 +98,14 @@ void SnapshotCrawlerCache::select(const char * sql, Array<T> &array, std::functi
     for (auto i = 0; i < array.size; i++)
     {
         if (sqlite3_step(stmt) != SQLITE_DONE) {}
-        kernel(array[i], stmt);
+        eachcall(array[i], stmt);
     }
     
     sqlite3_finalize(stmt);
 }
 
 template <typename T>
-void SnapshotCrawlerCache::insert(const char * sql, InstanceManager<T> &manager, std::function<void(T &item, sqlite3_stmt *stmt)> kernel)
+void SnapshotCrawlerCache::insert(const char * sql, InstanceManager<T> &manager, std::function<void(T &item, sqlite3_stmt *stmt)> eachcall)
 {
     char *errmsg;
     sqlite3_stmt *stmt;
@@ -115,7 +115,7 @@ void SnapshotCrawlerCache::insert(const char * sql, InstanceManager<T> &manager,
     
     for (auto i = 0; i < manager.size(); i++)
     {
-        kernel(manager[i], stmt);
+        eachcall(manager[i], stmt);
         
         if (sqlite3_step(stmt) != SQLITE_DONE) {}
         sqlite3_reset(stmt);
@@ -126,7 +126,7 @@ void SnapshotCrawlerCache::insert(const char * sql, InstanceManager<T> &manager,
 }
 
 template <typename T>
-void SnapshotCrawlerCache::select(const char * sql, int32_t size, InstanceManager<T> &manager, std::function<void(T &item, sqlite3_stmt *stmt)> kernel)
+void SnapshotCrawlerCache::select(const char * sql, int32_t size, InstanceManager<T> &manager, std::function<void(T &item, sqlite3_stmt *stmt)> eachcall)
 {
     sqlite3_stmt *stmt;
     sqlite3_prepare_v2(__database, sql, (int)strlen(sql), &stmt, nullptr);
@@ -134,7 +134,7 @@ void SnapshotCrawlerCache::select(const char * sql, int32_t size, InstanceManage
     for (auto i = 0; i < size; i++)
     {
         if (sqlite3_step(stmt) != SQLITE_DONE) {}
-        kernel(manager.add(), stmt);
+        eachcall(manager.add(), stmt);
     }
     
     sqlite3_finalize(stmt);
