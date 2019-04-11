@@ -32,6 +32,7 @@ struct EntityJoint
     int32_t elementArrayIndex = -1;
     int32_t jointArrayIndex = -1;
     bool isStatic = false;
+    bool isUsed = false;
 };
 
 struct EntityConnection
@@ -39,7 +40,6 @@ struct EntityConnection
     int32_t connectionArrayIndex = -1;
     int32_t from = -1;
     int32_t to = -1;
-    int32_t jointArrayIndex = -1;
     ConnectionKind fromKind = ConnectionKind::None;
     ConnectionKind toKind = ConnectionKind::None;
 };
@@ -112,7 +112,7 @@ private:
     map<address_t, int32_t> __gcHandleAddressMap;
 
 public:
-    MemorySnapshotCrawler(PackedMemorySnapshot &snapshot): snapshot(snapshot)
+    MemorySnapshotCrawler(PackedMemorySnapshot &snapshot, int32_t deltaCount = 1000): snapshot(snapshot), managedObjects(deltaCount), connections(deltaCount), joints(deltaCount)
     {
         __memoryReader = new HeapMemoryReader(snapshot);
         __staticMemoryReader = new StaticMemoryReader(snapshot);

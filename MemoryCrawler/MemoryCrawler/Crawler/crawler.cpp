@@ -367,6 +367,7 @@ void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
         }
     }
     if (typeIndex == -1){return;}
+    joint.isUsed = true;
     
     auto &entryType = snapshot.typeDescriptions->items[typeIndex];
     
@@ -405,7 +406,6 @@ void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
         ec.from = joint.hookObjectIndex;
     }
     
-    ec.jointArrayIndex = joint.jointArrayIndex;
     ec.toKind = ConnectionKind::Managed;
     ec.to = mo->managedObjectIndex;
     tryAcceptConnection(ec);

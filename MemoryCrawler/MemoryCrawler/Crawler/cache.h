@@ -66,6 +66,8 @@ private:
     
     void create(const char *sql);
     int32_t selectCount(const char *name);
+    
+    void removeRedundants(MemorySnapshotCrawler &crawler);
 };
 
 template <typename T>
