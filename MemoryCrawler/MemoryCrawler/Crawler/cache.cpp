@@ -54,18 +54,22 @@ void SnapshotCrawlerCache::createNativeTypeTable()
            "typeIndex INTEGER PRIMARY KEY," \
            "name TEXT NOT NULL," \
            "nativeBaseTypeArrayIndex INTEGER," \
-           "managedTypeArrayIndex INTEGER);");
+           "managedTypeArrayIndex INTEGER,"\
+           "instanceCount INTEGER," \
+           "instanceMemory INTEGER);");
 }
 
 void SnapshotCrawlerCache::insert(Array<PackedNativeType> &nativeTypes)
 {
-    insert<PackedNativeType>("INSERT INTO nativeTypes VALUES (?1, ?2, ?3, ?4);",
+    insert<PackedNativeType>("INSERT INTO nativeTypes VALUES (?1, ?2, ?3, ?4, ?5, ?6);",
                              nativeTypes, [](PackedNativeType &nt, sqlite3_stmt *stmt)
                              {
                                  sqlite3_bind_int(stmt, 1, nt.typeIndex);
                                  sqlite3_bind_text(stmt, 2, nt.name->c_str(), (int)nt.name->size(), SQLITE_STATIC);
                                  sqlite3_bind_int64(stmt, 3, nt.nativeBaseTypeArrayIndex);
                                  sqlite3_bind_int(stmt, 4, nt.managedTypeArrayIndex);
+                                 sqlite3_bind_int(stmt, 5, nt.instanceCount);
+                                 sqlite3_bind_int(stmt, 6, nt.instanceMemory);
                              });
 }
 
@@ -118,7 +122,10 @@ void SnapshotCrawlerCache::createTypeTable()
            "typeIndex INTEGER PRIMARY KEY," \
            "typeInfoAddress INTEGER," \
            "nativeTypeArrayIndex INTEGER," \
-           "fields INTEGER);");
+           "fields INTEGER," \
+           "instanceCount INTEGER," \
+           "instanceMemory INTEGER," \
+           "nativeMemory INTEGER);");
 }
 
 void SnapshotCrawlerCache::createFieldTable()
@@ -133,7 +140,7 @@ void SnapshotCrawlerCache::createFieldTable()
 
 void SnapshotCrawlerCache::insert(Array<TypeDescription> &types)
 {
-    insert<TypeDescription>("INSERT INTO types VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12);",
+    insert<TypeDescription>("INSERT INTO types VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15);",
                             types, [this](TypeDescription &t, sqlite3_stmt *stmt)
                             {
                                 sqlite3_bind_int(stmt, 1, t.arrayRank);
@@ -151,6 +158,9 @@ void SnapshotCrawlerCache::insert(Array<TypeDescription> &types)
                                 sqlite3_bind_int64(stmt, 10, t.typeInfoAddress);
                                 sqlite3_bind_int(stmt, 11, t.nativeTypeArrayIndex);
                                 sqlite3_bind_int(stmt, 12, t.fields->size);
+                                sqlite3_bind_int(stmt, 13, t.instanceCount);
+                                sqlite3_bind_int(stmt, 14, t.instanceMemory);
+                                sqlite3_bind_int(stmt, 15, t.nativeMemory);
                             });
     
     // type fields
@@ -337,6 +347,8 @@ MemorySnapshotCrawler &SnapshotCrawlerCache::read(const char *uuid)
                                  nt.name = new string((char *)sqlite3_column_text(stmt, 1));
                                  nt.nativeBaseTypeArrayIndex = sqlite3_column_int(stmt, 2);
                                  nt.managedTypeArrayIndex = sqlite3_column_int(stmt, 3);
+                                 nt.instanceCount = sqlite3_column_int(stmt, 4);
+                                 nt.instanceMemory = sqlite3_column_int(stmt, 5);
                              });
     __sampler.end(); // read_native_types
     
@@ -390,6 +402,9 @@ MemorySnapshotCrawler &SnapshotCrawlerCache::read(const char *uuid)
                                         mt.fields = new Array<FieldDescription>(size);
                                     }
                                 }
+                                mt.instanceCount = sqlite3_column_int(stmt, 12);
+                                mt.instanceMemory = sqlite3_column_int(stmt, 13);
+                                mt.nativeMemory = sqlite3_column_int(stmt, 14);
                             });
     __sampler.begin("read_type_fields");
     int32_t typeIndex = 0;

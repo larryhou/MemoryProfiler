@@ -48,7 +48,7 @@ struct TypeDescription
     int32_t typeIndex;
     
     int32_t instanceCount = 0;
-    int32_t managedMemory = 0;
+    int32_t instanceMemory = 0;
     int32_t nativeMemory = 0;
     int32_t nativeTypeArrayIndex = -1;
     
@@ -107,7 +107,7 @@ struct PackedNativeType
     int32_t typeIndex = -1;
     int32_t managedTypeArrayIndex = -1;
     int32_t instanceCount = 0;
-    int32_t nativeMemory = 0;
+    int32_t instanceMemory = 0;
     
     ~PackedNativeType();
 };

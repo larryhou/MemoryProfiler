@@ -14,6 +14,7 @@ void MemorySnapshotCrawler::crawl()
     initManagedTypes();
     crawlGCHandles();
     crawlStatic();
+    summarize();
     __sampler.end();
 }
 
@@ -32,6 +33,35 @@ void MemorySnapshotCrawler::debug()
     fs.read((char *)__mirror, size * sizeof(address_t));
     fs.close();
 #endif
+}
+
+void MemorySnapshotCrawler::summarize()
+{
+    __sampler.begin("summarize_managed_objects");
+    auto &nativeObjects = *snapshot.nativeObjects;
+    auto &typeDescriptions = *snapshot.typeDescriptions;
+    for (auto i = 0; i < typeDescriptions.size; i++)
+    {
+        auto &type = typeDescriptions[i];
+        type.instanceMemory = 0;
+        type.instanceCount = 0;
+        type.nativeMemory = 0;
+    }
+    
+    for (auto i = 0; i < managedObjects.size(); i++)
+    {
+        auto &mo = managedObjects[i];
+        auto &type = typeDescriptions[mo.typeIndex];
+        type.instanceMemory += mo.size;
+        type.instanceCount += 1;
+        
+        if (mo.nativeObjectIndex >= 0)
+        {
+            auto &no = nativeObjects[mo.nativeObjectIndex];
+            type.nativeMemory += no.size;
+        }
+    }
+    __sampler.end();
 }
 
 void MemorySnapshotCrawler::initManagedTypes()

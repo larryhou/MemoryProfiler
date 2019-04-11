@@ -168,6 +168,8 @@ private:
                                   EntityJoint &joint,
                                   bool isRealType,
                                   int32_t depth);
+    
+    void summarize();
 };
 
 template<class T>

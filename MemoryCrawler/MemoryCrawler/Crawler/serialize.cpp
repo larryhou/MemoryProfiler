@@ -454,7 +454,34 @@ void MemorySnapshotReader::postSnapshot()
     {
         nativeObjects[i].nativeObjectArrayIndex = i;
     }
+    sampler.end(); // set_native_object_index
+    
+    summarize();
+    
     sampler.end();
+}
+
+void MemorySnapshotReader::summarize()
+{
+    sampler.begin("summarize_native_objects");
+    
+    auto &nativeTypes = *snapshot->nativeTypes;
+    for (auto i = 0; i < nativeTypes.size; i++)
+    {
+        auto &type = nativeTypes[i];
+        type.instanceMemory = 0;
+        type.instanceCount = 0;
+    }
+    
+    auto &nativeObjects = *snapshot->nativeObjects;
+    for (auto i = 0; i < nativeObjects.size; i++)
+    {
+        auto &no = nativeObjects[i];
+        auto &type = nativeTypes[no.nativeTypeArrayIndex];
+        type.instanceMemory += no.size;
+        type.instanceCount += 1;
+    }
+    
     sampler.end();
 }
 
