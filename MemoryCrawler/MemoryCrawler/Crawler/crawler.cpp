@@ -111,42 +111,26 @@ bool MemorySnapshotCrawler::isSubclassOfNativeType(PackedNativeType &type, int32
     return false;
 }
 
-void MemorySnapshotCrawler::tryAcceptConnection(EntityConnection &ec)
+void MemorySnapshotCrawler::acceptConnection(EntityConnection &ec)
 {
-    if (ec.from >= 0)
-    {
-        ManagedObject &fromObject = managedObjects[ec.from];
-        auto iter = __connectionVisit.find(fromObject.address);
-        if (iter != __connectionVisit.end())
-        {
-            ManagedObject &toObject = managedObjects[ec.to];
-            if (iter->second == toObject.address) { return; }
-            __connectionVisit.insert(pair<address_t, address_t>(fromObject.address, toObject.address));
-        }
-    }
-    
     if (ec.fromKind != ConnectionKind::None && ec.from >= 0)
     {
-        auto key = getIndexKey(ec.fromKind, ec.from);
-        auto iter = fromConnections.find(key);
-        if (iter == fromConnections.end())
+        auto &mo = managedObjects[ec.from];
+        if (mo.toConnections == nullptr)
         {
-            auto entity = fromConnections.insert(pair<int32_t, vector<int32_t> *>(key, new vector<int32_t>));
-            iter = entity.first;
+            mo.toConnections = new vector<int32_t>;
         }
-        iter->second->push_back(ec.connectionArrayIndex);
+        mo.toConnections->push_back(ec.connectionArrayIndex);
     }
     
     if (ec.toKind != ConnectionKind::None && ec.to >= 0)
     {
-        auto key = getIndexKey(ec.toKind, ec.to);
-        auto iter = toConnections.find(key);
-        if (iter == toConnections.end())
+        auto &mo = managedObjects[ec.to];
+        if (mo.fromConnections == nullptr)
         {
-            auto entity = toConnections.insert(pair<int32_t, vector<int32_t> *>(key, new vector<int32_t>));
-            iter = entity.first;
+            mo.fromConnections = new vector<int32_t>;
         }
-        iter->second->push_back(ec.connectionArrayIndex);
+        mo.fromConnections->push_back(ec.connectionArrayIndex);
     }
 }
 
@@ -413,7 +397,7 @@ bool MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
     
     ec.toKind = ConnectionKind::Managed;
     ec.to = mo->managedObjectIndex;
-    tryAcceptConnection(ec);
+    acceptConnection(ec);
     
     if (!entryType.isValueType)
     {
@@ -569,13 +553,4 @@ MemorySnapshotCrawler::~MemorySnapshotCrawler()
     delete __mirror;
     delete __memoryReader;
     delete __staticMemoryReader;
-    for (auto iter = toConnections.begin(); iter != toConnections.end(); ++iter)
-    {
-        delete iter->second;
-    }
-    
-    for (auto iter = fromConnections.begin(); iter != fromConnections.end(); ++iter)
-    {
-        delete iter->second;
-    }
 }

@@ -46,6 +46,9 @@ struct EntityConnection
 
 struct ManagedObject
 {
+    std::vector<int32_t> *fromConnections;
+    std::vector<int32_t> *toConnections;
+    
     address_t address = 0;
     int32_t typeIndex = -1;
     int32_t managedObjectIndex = -1;
@@ -89,8 +92,6 @@ public:
     InstanceManager<EntityConnection> connections;
     InstanceManager<EntityJoint> joints;
     
-    map<int32_t, vector<int32_t> *> fromConnections;
-    map<int32_t, vector<int32_t> *> toConnections;
     PackedMemorySnapshot &snapshot;
     
 private:
@@ -102,7 +103,6 @@ private:
     address_t *__mirror = nullptr;
     
     // crawling map
-    map<address_t, address_t> __connectionVisit;
     map<address_t, int32_t> __crawlingVisit;
     
     // address map
@@ -126,7 +126,7 @@ public:
     
     const char16_t *getString(address_t address, int32_t &size);
     
-    void tryAcceptConnection(EntityConnection &connection);
+    void acceptConnection(EntityConnection &connection);
     int32_t getIndexKey(ConnectionKind kind, int32_t index);
     int64_t getConnectionKey(EntityConnection &connection);
     
