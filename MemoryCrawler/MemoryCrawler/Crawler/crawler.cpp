@@ -335,6 +335,7 @@ void MemorySnapshotCrawler::crawlManagedArrayAddress(address_t address, TypeDesc
         
         auto &elementJoint = joints.clone(joint);
         elementJoint.jointArrayIndex = joints.size() - 1;
+        elementJoint.isConnected = false;
         
         // set element info
         elementJoint.elementArrayIndex = i;
@@ -367,7 +368,6 @@ void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
         }
     }
     if (typeIndex == -1){return;}
-    joint.isUsed = true;
     
     auto &entryType = snapshot.typeDescriptions->items[typeIndex];
     
@@ -379,6 +379,7 @@ void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
         mo->jointArrayIndex = joint.jointArrayIndex;
         mo->gcHandleIndex = joint.gcHandleIndex;
         setObjectSize(*mo, entryType, memoryReader);
+        joint.isConnected = true;
     }
     else
     {

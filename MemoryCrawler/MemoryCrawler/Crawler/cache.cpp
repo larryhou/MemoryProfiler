@@ -202,7 +202,7 @@ void SnapshotCrawlerCache::removeRedundants(MemorySnapshotCrawler &crawler)
     for (auto i = 0; i < joints.size(); i++)
     {
         auto &ej = joints[i];
-        if (ej.isUsed)
+        if (ej.isConnected)
         {
             ej.jointArrayIndex = jointArrayIndex++;
         }
@@ -222,7 +222,7 @@ void SnapshotCrawlerCache::insert(InstanceManager<EntityJoint> &joints)
     insert<EntityJoint>("INSERT INTO joints VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11);",
                         joints, [](EntityJoint &ej, sqlite3_stmt *stmt)
                         {
-                            if (!ej.isUsed){return;}
+                            if (!ej.isConnected){return;}
                             sqlite3_bind_int(stmt, 1, ej.jointArrayIndex);
                             sqlite3_bind_int(stmt, 2, ej.hookTypeIndex);
                             sqlite3_bind_int(stmt, 3, ej.hookObjectIndex);

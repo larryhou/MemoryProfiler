@@ -32,7 +32,7 @@ struct EntityJoint
     int32_t elementArrayIndex = -1;
     int32_t jointArrayIndex = -1;
     bool isStatic = false;
-    bool isUsed = false;
+    bool isConnected = false;
 };
 
 struct EntityConnection
