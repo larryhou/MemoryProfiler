@@ -73,6 +73,7 @@ public:
     T &add();
     T &operator[](const int32_t index);
     T &clone(T &item);
+    void rollback();
     int32_t size();
     
     ~InstanceManager();
@@ -156,13 +157,13 @@ private:
     
     bool isCrawlable(TypeDescription &type);
     
-    void crawlManagedArrayAddress(address_t address,
+    bool crawlManagedArrayAddress(address_t address,
                                   TypeDescription &type,
                                   HeapMemoryReader &memoryReader,
                                   EntityJoint &joint,
                                   int32_t depth);
     
-    void crawlManagedEntryAddress(address_t address,
+    bool crawlManagedEntryAddress(address_t address,
                                   TypeDescription *type,
                                   HeapMemoryReader &memoryReader,
                                   EntityJoint &joint,
@@ -187,8 +188,17 @@ T &InstanceManager<T>::add()
 {
     if (__nestCursor == __deltaCount)
     {
-        __current = new T[__deltaCount];
-        __manager.push_back(__current);
+        auto entity = __cursor / __deltaCount;
+        if (entity < __manager.size())
+        {
+            __current = __manager[entity];
+        }
+        else
+        {
+            __current = new T[__deltaCount];
+            __manager.push_back(__current);
+        }
+        
         __nestCursor = 0;
     }
     
@@ -202,6 +212,25 @@ T &InstanceManager<T>::clone(T &item)
     auto &newObject = add();
     std::memcpy(&newObject, &item, sizeof(item));
     return newObject;
+}
+
+template<class T>
+void InstanceManager<T>::rollback()
+{
+    if (__cursor <= 0) {return;}
+    
+    __cursor -= 1;
+    if (__nestCursor > 0)
+    {
+        __nestCursor -= 1;
+    }
+    else
+    {
+        __nestCursor = __deltaCount - 1;
+    }
+    
+    auto *ptr = &(*this)[__cursor];
+    memset(ptr, 0, sizeof(T));
 }
 
 template<class T>

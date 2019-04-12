@@ -311,14 +311,15 @@ bool MemorySnapshotCrawler::isCrawlable(TypeDescription &type)
     return !type.isValueType || type.size > 8; // vm->pointerSize
 }
 
-void MemorySnapshotCrawler::crawlManagedArrayAddress(address_t address, TypeDescription &type, HeapMemoryReader &memoryReader, EntityJoint &joint, int32_t depth)
+bool MemorySnapshotCrawler::crawlManagedArrayAddress(address_t address, TypeDescription &type, HeapMemoryReader &memoryReader, EntityJoint &joint, int32_t depth)
 {
     auto isStaticCrawling = memoryReader.isStatic();
-    if (address < 0 || (!isStaticCrawling && address == 0)){return;}
+    if (address < 0 || (!isStaticCrawling && address == 0)){return false;}
     
     auto &elementType = snapshot.typeDescriptions->items[type.baseOrElementTypeIndex];
-    if (!isCrawlable(elementType)) {return;}
+    if (!isCrawlable(elementType)) {return false;}
     
+    auto successCount = 0;
     address_t elementAddress = 0;
     auto elementCount = memoryReader.readArrayLength(address, type);
     for (auto i = 0; i < elementCount; i++)
@@ -340,15 +341,18 @@ void MemorySnapshotCrawler::crawlManagedArrayAddress(address_t address, TypeDesc
         // set element info
         elementJoint.elementArrayIndex = i;
         
-        crawlManagedEntryAddress(elementAddress, &elementType, memoryReader, elementJoint, false, depth + 1);
+        auto success = crawlManagedEntryAddress(elementAddress, &elementType, memoryReader, elementJoint, false, depth + 1);
+        if (success) { successCount += 1; }
     }
+    
+    return successCount != 0;
 }
 
-void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDescription *type, HeapMemoryReader &memoryReader, EntityJoint &joint, bool isActualType, int32_t depth)
+bool MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDescription *type, HeapMemoryReader &memoryReader, EntityJoint &joint, bool isActualType, int32_t depth)
 {
     auto isStaticCrawling = memoryReader.isStatic();
-    if (address < 0 || (!isStaticCrawling && address == 0)){return;}
-    if (depth >= 512) {return;}
+    if (address < 0 || (!isStaticCrawling && address == 0)){return false;}
+    if (depth >= 512) {return false;}
     
     int32_t typeIndex = -1;
     if (type != nullptr && type->isValueType)
@@ -367,7 +371,7 @@ void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
             if (typeIndex == -1 && type != nullptr) {typeIndex = type->typeIndex;}
         }
     }
-    if (typeIndex == -1){return;}
+    if (typeIndex == -1){return false;}
     
     auto &entryType = snapshot.typeDescriptions->items[typeIndex];
     
@@ -413,16 +417,16 @@ void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
     
     if (!entryType.isValueType)
     {
-        if (iter != __crawlingVisit.end()) {return;}
+        if (iter != __crawlingVisit.end()) {return false;}
         __crawlingVisit.insert(pair<address_t, int32_t>(address, mo->managedObjectIndex));
     }
     
     if (entryType.isArray)
     {
-        crawlManagedArrayAddress(address, entryType, memoryReader, joint, depth + 1);
-        return;
+        return crawlManagedArrayAddress(address, entryType, memoryReader, joint, depth + 1);
     }
     
+    auto successCount = 0;
     auto iterType = &entryType;
     while (iterType != nullptr)
     {
@@ -478,7 +482,8 @@ void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
             ej.fieldSlotIndex = field.fieldSlotIndex;
             ej.fieldOffset = field.offset;
             
-            crawlManagedEntryAddress(fieldAddress, fieldType, *reader, ej, true, depth + 1);
+            auto success = crawlManagedEntryAddress(fieldAddress, fieldType, *reader, ej, true, depth + 1);
+            if (success) { successCount += 1; }
         }
         
         if (iterType->baseOrElementTypeIndex == -1)
@@ -490,6 +495,8 @@ void MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
             iterType = &snapshot.typeDescriptions->items[iterType->baseOrElementTypeIndex];
         }
     }
+    
+    return successCount != 0;
 }
 
 void MemorySnapshotCrawler::crawlGCHandles()
