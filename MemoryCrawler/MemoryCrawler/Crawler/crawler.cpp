@@ -111,7 +111,7 @@ bool MemorySnapshotCrawler::isSubclassOfNativeType(PackedNativeType &type, int32
     return false;
 }
 
-void MemorySnapshotCrawler::acceptConnection(EntityConnection &ec)
+void MemorySnapshotCrawler::tryAcceptConnection(EntityConnection &ec)
 {
     if (ec.fromKind != ConnectionKind::None && ec.from >= 0)
     {
@@ -132,16 +132,6 @@ void MemorySnapshotCrawler::acceptConnection(EntityConnection &ec)
         }
         mo.fromConnections->push_back(ec.connectionArrayIndex);
     }
-}
-
-int32_t MemorySnapshotCrawler::getIndexKey(ConnectionKind kind, int32_t index)
-{
-    return ((int32_t)kind << 28) + index;
-}
-
-int64_t MemorySnapshotCrawler::getConnectionKey(EntityConnection &ec)
-{
-    return (int64_t)getIndexKey(ec.fromKind, ec.from) << 32 | getIndexKey(ec.toKind, ec.to);
 }
 
 int32_t MemorySnapshotCrawler::findTypeAtTypeInfoAddress(address_t address)
@@ -397,7 +387,7 @@ bool MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
     
     ec.toKind = ConnectionKind::Managed;
     ec.to = mo->managedObjectIndex;
-    acceptConnection(ec);
+    tryAcceptConnection(ec);
     
     if (!entryType.isValueType)
     {

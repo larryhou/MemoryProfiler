@@ -107,7 +107,7 @@ private:
     
     // address map
     std::unordered_map<address_t, int32_t> __typeAddressMap;
-    map<address_t, int32_t> __nativeObjectAddressMap;
+    std::unordered_map<address_t, int32_t> __nativeObjectAddressMap;
     map<address_t, int32_t> __managedObjectAddressMap;
     map<address_t, int32_t> __managedNativeAddressMap;
     map<address_t, int32_t> __gcHandleAddressMap;
@@ -122,13 +122,18 @@ public:
     }
     
     void crawl();
-    void debug();
     
     const char16_t *getString(address_t address, int32_t &size);
     
-    void acceptConnection(EntityConnection &connection);
-    int32_t getIndexKey(ConnectionKind kind, int32_t index);
-    int64_t getConnectionKey(EntityConnection &connection);
+    void tryAcceptConnection(EntityConnection &connection);
+    
+    ~MemorySnapshotCrawler();
+    
+private:
+    void initManagedTypes();
+    void crawlGCHandles();
+    void crawlStatic();
+    void debug();
     
     int32_t findTypeOfAddress(address_t address);
     int32_t findTypeAtTypeInfoAddress(address_t address);
@@ -141,13 +146,6 @@ public:
     
     bool isSubclassOfManagedType(TypeDescription &type, int32_t baseTypeIndex);
     bool isSubclassOfNativeType(PackedNativeType &type, int32_t baseTypeIndex);
-    
-    ~MemorySnapshotCrawler();
-    
-private:
-    void initManagedTypes();
-    void crawlGCHandles();
-    void crawlStatic();
     
     void tryConnectWithNativeObject(ManagedObject &mo);
     
