@@ -473,6 +473,7 @@ MemorySnapshotCrawler &SnapshotCrawlerCache::read(const char *uuid)
     select<EntityJoint>("select * from joints;", selectCount("joints"), crawler->joints,
                         [](EntityJoint &ej, sqlite3_stmt *stmt)
                         {
+                            ej.isConnected = true;
                             ej.jointArrayIndex = sqlite3_column_int(stmt, 0);
                             ej.hookTypeIndex = sqlite3_column_int(stmt, 1);
                             ej.hookObjectIndex = sqlite3_column_int(stmt, 2);
