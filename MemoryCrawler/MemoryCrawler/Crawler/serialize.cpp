@@ -489,4 +489,5 @@ MemorySnapshotReader::~MemorySnapshotReader()
 {
     sampler.summary();
     delete __fs;
+    delete snapshot;
 }

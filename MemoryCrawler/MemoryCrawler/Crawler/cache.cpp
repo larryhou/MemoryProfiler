@@ -22,7 +22,7 @@ void SnapshotCrawlerCache::open(const char *filepath)
     
     char *errmsg;
     sqlite3_exec(__database, "PRAGMA FOREIGN_KEYS=OFF;", nullptr, nullptr, &errmsg);
-    sqlite3_exec(__database, "PRAGMA journal_mode = MEMORY;", nullptr, nullptr, &errmsg);
+//    sqlite3_exec(__database, "PRAGMA journal_mode = MEMORY;", nullptr, nullptr, &errmsg);
 }
 
 void SnapshotCrawlerCache::create(const char *sql)
@@ -639,9 +639,6 @@ void SnapshotCrawlerCache::save(MemorySnapshotCrawler &crawler)
     insertStringTable(crawler);
     __sampler.end();
     
-    __sampler.begin("close_database");
-    sqlite3_close(__database);
-    __sampler.end();
     __sampler.end();
 }
 
@@ -649,4 +646,8 @@ SnapshotCrawlerCache::~SnapshotCrawlerCache()
 {
     __sampler.end();
     __sampler.summary();
+    if (__database != nullptr)
+    {    
+        sqlite3_close(__database);
+    }
 }

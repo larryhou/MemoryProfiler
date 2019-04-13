@@ -127,13 +127,13 @@ struct VirtualMachineInformation
 
 struct PackedMemorySnapshot
 {
-    Array<Connection> *connections; // Connection[]
-    Array<PackedGCHandle> *gcHandles; // PackedGCHandle[]
-    Array<MemorySection> *managedHeapSections; // MemorySection[]
-    Array<PackedNativeUnityEngineObject> *nativeObjects; // PackedNativeUnityEngineObject[]
-    Array<PackedNativeType> *nativeTypes; // PackedNativeType[]
-    Array<TypeDescription> *typeDescriptions; // TypeDescription[]
-    VirtualMachineInformation *virtualMachineInformation;
+    Array<Connection> *connections = nullptr; // Connection[]
+    Array<PackedGCHandle> *gcHandles = nullptr; // PackedGCHandle[]
+    Array<MemorySection> *managedHeapSections = nullptr; // MemorySection[]
+    Array<PackedNativeUnityEngineObject> *nativeObjects = nullptr; // PackedNativeUnityEngineObject[]
+    Array<PackedNativeType> *nativeTypes = nullptr; // PackedNativeType[]
+    Array<TypeDescription> *typeDescriptions = nullptr; // TypeDescription[]
+    VirtualMachineInformation *virtualMachineInformation = nullptr;
     
     std::vector<MemorySection *> *sortedHeapSections;
     

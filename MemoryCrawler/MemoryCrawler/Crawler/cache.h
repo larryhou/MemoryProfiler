@@ -19,7 +19,7 @@ class SnapshotCrawlerCache
 {
     char __buffer[32*1024];
     TimeSampler<std::nano> __sampler;
-    sqlite3 *__database;
+    sqlite3 *__database = nullptr;
     const char *__workspace = "__cpp_cache";
     
 public:

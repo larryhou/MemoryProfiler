@@ -249,7 +249,7 @@ InstanceManager<T>::~InstanceManager<T>()
 {
     for (auto i  = 0; i < __manager.size(); i++)
     {
-        delete [] __manager[i];
+        delete[] __manager[i];
     }
 }
 

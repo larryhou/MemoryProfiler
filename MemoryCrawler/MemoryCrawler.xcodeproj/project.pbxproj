@@ -11,6 +11,7 @@
 		6B5343722255B43F003CDBD0 /* serialize.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6B5343712255B43F003CDBD0 /* serialize.cpp */; };
 		6B74B76F2254748200A69BC0 /* stream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6B74B76D2254748200A69BC0 /* stream.cpp */; };
 		6B74B77222548A0900A69BC0 /* snapshot.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6B74B77122548A0900A69BC0 /* snapshot.cpp */; };
+		6B87DD0D2261B387001B0BE3 /* args.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6B87DD0C2261B387001B0BE3 /* args.cpp */; };
 		6BCA665022575EE100A4C96A /* crawler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6BCA664F22575EE100A4C96A /* crawler.cpp */; };
 		6BCA665322584B6100A4C96A /* heap.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6BCA665222584B6100A4C96A /* heap.cpp */; };
 		6BE889A0225C9FFA0029BB09 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 6BE8899F225C9FF90029BB09 /* libsqlite3.tbd */; };
@@ -40,6 +41,8 @@
 		6B74B76E2254748200A69BC0 /* stream.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = stream.h; sourceTree = "<group>"; };
 		6B74B7702254838500A69BC0 /* types.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = types.h; sourceTree = "<group>"; };
 		6B74B77122548A0900A69BC0 /* snapshot.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = snapshot.cpp; sourceTree = "<group>"; };
+		6B87DD0B2261B387001B0BE3 /* args.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = args.h; sourceTree = "<group>"; };
+		6B87DD0C2261B387001B0BE3 /* args.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = args.cpp; sourceTree = "<group>"; };
 		6BCA664E22575EE100A4C96A /* crawler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = crawler.h; sourceTree = "<group>"; };
 		6BCA664F22575EE100A4C96A /* crawler.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = crawler.cpp; sourceTree = "<group>"; };
 		6BCA665122584B6100A4C96A /* heap.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = heap.h; sourceTree = "<group>"; };
@@ -104,6 +107,8 @@
 				6BCA665222584B6100A4C96A /* heap.cpp */,
 				6BE889A1225CA16B0029BB09 /* cache.h */,
 				6BE889A2225CA16B0029BB09 /* cache.cpp */,
+				6B87DD0B2261B387001B0BE3 /* args.h */,
+				6B87DD0C2261B387001B0BE3 /* args.cpp */,
 			);
 			path = Crawler;
 			sourceTree = "<group>";
@@ -178,6 +183,7 @@
 				6B0AC7432252FC5D00B58C69 /* main.cpp in Sources */,
 				6B5343722255B43F003CDBD0 /* serialize.cpp in Sources */,
 				6B74B76F2254748200A69BC0 /* stream.cpp in Sources */,
+				6B87DD0D2261B387001B0BE3 /* args.cpp in Sources */,
 				6BCA665322584B6100A4C96A /* heap.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
