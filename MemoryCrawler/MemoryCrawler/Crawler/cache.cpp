@@ -488,18 +488,6 @@ MemorySnapshotCrawler &SnapshotCrawlerCache::read(const char *uuid)
                         });
     __sampler.end(); // read_joints
     
-    __sampler.begin("read_connections");
-    select<EntityConnection>("select * from connections;", selectCount("connections"), crawler->connections,
-                             [](EntityConnection &ec, sqlite3_stmt *stmt)
-                             {
-                                 ec.connectionArrayIndex = sqlite3_column_int(stmt, 0);
-                                 ec.from = sqlite3_column_int(stmt, 1);
-                                 ec.fromKind = (ConnectionKind)sqlite3_column_int(stmt, 2);
-                                 ec.to = sqlite3_column_int(stmt, 3);
-                                 ec.toKind = (ConnectionKind)sqlite3_column_int(stmt, 4);
-                             });
-    __sampler.end(); // read_connections
-    
     __sampler.begin("read_managed_objects");
     select<ManagedObject>("select * from objects;", selectCount("objects"), crawler->managedObjects,
                           [](ManagedObject &mo, sqlite3_stmt *stmt)
@@ -515,6 +503,18 @@ MemorySnapshotCrawler &SnapshotCrawlerCache::read(const char *uuid)
                               mo.jointArrayIndex = sqlite3_column_int(stmt, 8);
                           });
     __sampler.end(); // read_managed_objects
+    __sampler.begin("read_connections");
+    select<EntityConnection>("select * from connections;", selectCount("connections"), crawler->connections,
+                             [&](EntityConnection &ec, sqlite3_stmt *stmt)
+                             {
+                                 ec.connectionArrayIndex = sqlite3_column_int(stmt, 0);
+                                 ec.from = sqlite3_column_int(stmt, 1);
+                                 ec.fromKind = (ConnectionKind)sqlite3_column_int(stmt, 2);
+                                 ec.to = sqlite3_column_int(stmt, 3);
+                                 ec.toKind = (ConnectionKind)sqlite3_column_int(stmt, 4);
+                                 crawler->tryAcceptConnection(ec);
+                             });
+    __sampler.end(); // read_connections
     __sampler.end(); // read_crawler
     __sampler.end(); // ::read
     return *crawler;

@@ -116,21 +116,13 @@ void MemorySnapshotCrawler::tryAcceptConnection(EntityConnection &ec)
     if (ec.fromKind != ConnectionKind::None && ec.from >= 0)
     {
         auto &mo = managedObjects[ec.from];
-        if (mo.toConnections == nullptr)
-        {
-            mo.toConnections = new vector<int32_t>;
-        }
-        mo.toConnections->push_back(ec.connectionArrayIndex);
+        mo.toConnections.push_back(ec.connectionArrayIndex);
     }
     
     if (ec.toKind != ConnectionKind::None && ec.to >= 0)
     {
         auto &mo = managedObjects[ec.to];
-        if (mo.fromConnections == nullptr)
-        {
-            mo.fromConnections = new vector<int32_t>;
-        }
-        mo.fromConnections->push_back(ec.connectionArrayIndex);
+        mo.fromConnections.push_back(ec.connectionArrayIndex);
     }
 }
 

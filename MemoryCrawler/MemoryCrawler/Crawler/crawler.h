@@ -46,8 +46,8 @@ struct EntityConnection
 
 struct ManagedObject
 {
-    std::vector<int32_t> *fromConnections;
-    std::vector<int32_t> *toConnections;
+    std::vector<int32_t> fromConnections;
+    std::vector<int32_t> toConnections;
     
     address_t address = 0;
     int32_t typeIndex = -1;
