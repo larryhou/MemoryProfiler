@@ -517,6 +517,9 @@ MemorySnapshotCrawler &SnapshotCrawlerCache::read(const char *uuid)
     __sampler.end(); // read_connections
     __sampler.end(); // read_crawler
     __sampler.end(); // ::read
+    
+    __sampler.end();
+    __sampler.summary();
     return *crawler;
 }
 
@@ -640,14 +643,15 @@ void SnapshotCrawlerCache::save(MemorySnapshotCrawler &crawler)
     __sampler.end();
     
     __sampler.end();
+    
+    __sampler.end();
+    __sampler.summary();
 }
 
 SnapshotCrawlerCache::~SnapshotCrawlerCache()
 {
-    __sampler.end();
-    __sampler.summary();
     if (__database != nullptr)
-    {    
+    {
         sqlite3_close(__database);
     }
 }

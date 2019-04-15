@@ -78,7 +78,7 @@ void crawlSnapshot(const char * filepath)
 {
     TimeSampler<std::nano> sampler;
     
-    sampler.begin("testStream");
+    sampler.begin("CrawlSnapshot");
     sampler.begin("read_snapshot");
     MemorySnapshotReader reader;
     auto &snapshot = reader.read(filepath);
@@ -109,6 +109,10 @@ void crawlSnapshot(const char * filepath)
         if (strbeg(command, "read"))
         {
             readCachedSnapshot(crawler.snapshot.uuid->c_str());
+        }
+        else if (strbeg(command, "load"))
+        {
+            
         }
         else if (strbeg(command, "ref"))
         {
@@ -184,20 +188,11 @@ void readCachedSnapshot(const char *uuid)
 {
     SnapshotCrawlerCache cache;
     MemorySnapshotCrawler &serializedCrawler = cache.read(uuid);
-    cout << serializedCrawler.managedObjects.size() << endl;
     delete &serializedCrawler;
 }
 
 int main(int argc, const char * argv[])
 {
-//    ArgumentManager manager;
-//    manager.addOption(new ArgumentOption("--file-snapshot-path", "-f", "内存快照路径", true, true));
-//    manager.addOption(new ArgumentOption("--comp-snapshot-path", "-c", "参与比对的内存快照路径", true));
-//    manager.addOption(new ArgumentOption("--debug", "-d", "开启调试模式", false));
-//    manager.addOption(new ArgumentOption("--interactive", "-i", "开启交互模式", false));
-//    manager.help();
-//    manager.parseArguments(argc - 1, &argv[1]);
-    
     cout << "argc=" << argc << endl;
     for (auto i = 0; i < argc; i++)
     {
