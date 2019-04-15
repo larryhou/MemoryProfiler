@@ -49,12 +49,15 @@ void readCommandOptions(const char *command, std::function<void(std::vector<cons
     {
         if (command[i] == ' ')
         {
-            auto size = strlen(item);
-            auto option = new char[size];
-            strcpy(option, item);
-            options.push_back(option);
-            memset(item, 0, size);
-            iter = 0;
+            if (iter > 0)
+            {
+                auto size = strlen(item);
+                auto option = new char[size];
+                strcpy(option, item);
+                options.push_back(option);
+                memset(item, 0, size);
+                iter = 0;
+            }
         }
         else
         {
@@ -70,6 +73,7 @@ void readCommandOptions(const char *command, std::function<void(std::vector<cons
 }
 
 #include <unistd.h>
+#include <memory>
 void crawlSnapshot(const char * filepath)
 {
     TimeSampler<std::nano> sampler;
@@ -119,14 +123,53 @@ void crawlSnapshot(const char * filepath)
             readCommandOptions(command, [](std::vector<const char *> &options)
                                {
                                    if (options.size() == 1){return;}
-                                   if (0 == strcmp(options[1], "array"))
+                                   const char *subcommand = options[1];
+                                   if (0 == strcmp(subcommand, "array"))
                                    {
                                        Array<PackedNativeUnityEngineObject> array(1000000);
+                                       printf("[Array] size=%d\n", array.size);
                                    }
-                                   else if (0 == strcmp(options[1], "im"))
+                                   else if (0 == strcmp(subcommand, "im"))
                                    {
-                                       InstanceManager<PackedNativeUnityEngineObject> manager;
+                                       InstanceManager<PackedNativeUnityEngineObject> manager(10000);
                                        for (auto i = 0; i < 1000000; i++) { manager.add(); }
+                                       printf("[IM] size=%d\n", manager.size());
+                                   }
+                                   else if (0 == strcmp(subcommand, "vector"))
+                                   {
+                                       std::vector<PackedNativeUnityEngineObject> vector(1000000);
+                                       printf("[Vector] size=%d\n", (int)vector.size());
+                                   }
+                                   else if (0 == strcmp(subcommand, "carray"))
+                                   {
+                                       char array[64*1024];
+                                       printf("[CArray] size=%d\n", (int)sizeof(array));
+                                   }
+                                   else if (0 == strcmp(subcommand, "t1"))
+                                   {
+                                       std::vector<const Connection *> vector;
+                                       for (auto i = 0; i < 1000; i++)
+                                       {
+                                           vector.push_back(new Connection[1000]);
+                                       }
+                                       
+                                       for (auto iter = vector.begin(); iter != vector.end(); iter++)
+                                       {
+                                           delete [] *iter;
+                                       }
+                                       
+                                       printf("total_memory=%d\n", (int)sizeof(char) * 1000000);
+                                   }
+                                   else if (0 == strcmp(subcommand, "t2"))
+                                   {
+                                       for (auto i = 0; i < 1000; i++)
+                                       {
+                                           std::allocator<PackedNativeUnityEngineObject> allocator;
+                                           auto *ptr = allocator.allocate(1000);
+                                           allocator.deallocate(ptr, 1000);
+                                       }
+                                       
+                                       
                                    }
                                });
         }

@@ -60,10 +60,14 @@ struct ManagedObject
     bool isValueType = false;
 };
 
+#include <memory>
+#include <new>
+
 template <class T>
 class InstanceManager
 {
     std::vector<T *> __manager;
+    std::vector<std::allocator<T> *> __allocators;
     int32_t __cursor;
     int32_t __deltaCount;
     T *__current;
@@ -174,8 +178,10 @@ private:
 template<class T>
 InstanceManager<T>::InstanceManager(int32_t deltaCount)
 {
-    __deltaCount = deltaCount;
-    __current = new T[__deltaCount];
+    __deltaCount = 512 * 1024 / sizeof(T) + 1;
+    std::allocator<T> *allocator = new std::allocator<T>;
+    __allocators.push_back(allocator);
+    __current = allocator->allocate(__deltaCount);
     __manager.push_back(__current);
     __nestCursor = 0;
     __cursor = 0;
@@ -193,7 +199,9 @@ T &InstanceManager<T>::add()
         }
         else
         {
-            __current = new T[__deltaCount];
+            std::allocator<T> *allocator = new std::allocator<T>;
+            __allocators.push_back(allocator);
+            __current = allocator->allocate(__deltaCount);
             __manager.push_back(__current);
         }
         
@@ -201,7 +209,8 @@ T &InstanceManager<T>::add()
     }
     
     __cursor += 1;
-    return __current[__nestCursor++];
+    auto item = new(__current + __nestCursor++) T;
+    return *item;
 }
 
 template<class T>
@@ -247,9 +256,17 @@ T &InstanceManager<T>::operator[](const int32_t index)
 template<class T>
 InstanceManager<T>::~InstanceManager<T>()
 {
-    for (auto i  = 0; i < __manager.size(); i++)
+//    for (auto iter = __manager.begin(); iter != __manager.end(); iter++)
+//    {
+//        delete [] *iter;
+//        *iter = nullptr;
+//    }
+    
+    for (auto i = 0; i < __allocators.size(); i++)
     {
-        delete[] __manager[i];
+        auto *allocator = __allocators[i];
+        allocator->deallocate(__manager[i], __deltaCount);
+        delete allocator;
     }
 }
 
