@@ -39,7 +39,7 @@ bool strbeg(const char *str, const char *cmp)
     return true;
 }
 
-void readCommandOptions(const char *command, std::function<void(std::vector<const char *> &)> callback)
+void readCommandOptions(const char *command, std::function<void(std::vector<const char *> &)> completion)
 {
     std::vector<const char *> options;
     auto charCount = strlen(command);
@@ -67,7 +67,7 @@ void readCommandOptions(const char *command, std::function<void(std::vector<cons
     
     if (strlen(item) > 0) { options.push_back(item); }
     
-    callback(options);
+    completion(options);
     
     for (auto i = 0; i < options.size(); i++) { delete [] options[i]; }
 }
@@ -153,18 +153,16 @@ void crawlSnapshot(const char * filepath)
                                    }
                                    else if (0 == strcmp(subcommand, "t1"))
                                    {
-                                       std::vector<const Connection *> vector;
+                                       std::vector<const PackedNativeUnityEngineObject *> vector;
                                        for (auto i = 0; i < 1000; i++)
                                        {
-                                           vector.push_back(new Connection[1000]);
+                                           vector.push_back(new PackedNativeUnityEngineObject[1000]);
                                        }
                                        
                                        for (auto iter = vector.begin(); iter != vector.end(); iter++)
                                        {
                                            delete [] *iter;
                                        }
-                                       
-                                       printf("total_memory=%d\n", (int)sizeof(char) * 1000000);
                                    }
                                    else if (0 == strcmp(subcommand, "t2"))
                                    {
@@ -174,8 +172,6 @@ void crawlSnapshot(const char * filepath)
                                            auto *ptr = allocator.allocate(1000);
                                            allocator.deallocate(ptr, 1000);
                                        }
-                                       
-                                       
                                    }
                                });
         }
