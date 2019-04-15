@@ -91,9 +91,6 @@ void crawlSnapshot(const char * filepath)
     sampler.end();
     sampler.summary();
     
-    SnapshotCrawlerCache cache;
-    cache.save(crawler);
-    
     while (true)
     {
         std::cout << "/> ";
@@ -109,6 +106,11 @@ void crawlSnapshot(const char * filepath)
         if (strbeg(command, "read"))
         {
             readCachedSnapshot(crawler.snapshot.uuid->c_str());
+        }
+        else if (strbeg(command, "save"))
+        {
+            SnapshotCrawlerCache cache;
+            cache.save(crawler);
         }
         else if (strbeg(command, "load"))
         {
