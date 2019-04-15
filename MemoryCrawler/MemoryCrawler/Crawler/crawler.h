@@ -66,10 +66,10 @@ struct ManagedObject
 template <class T>
 class InstanceManager
 {
-    std::vector<T *> __manager;
+    std::vector<std::vector<T> *> __manager;
     int32_t __cursor;
     int32_t __deltaCount;
-    T *__current;
+    std::vector<T> *__current;
     int32_t __nestCursor;
     
 public:
@@ -177,8 +177,9 @@ private:
 template<class T>
 InstanceManager<T>::InstanceManager(int32_t deltaCount)
 {
+    T temaplate;
     __deltaCount = deltaCount;
-    __current = new T[__deltaCount];
+    __current = new std::vector<T>(__deltaCount, temaplate);
     __manager.push_back(__current);
     __nestCursor = 0;
     __cursor = 0;
@@ -196,7 +197,8 @@ T &InstanceManager<T>::add()
         }
         else
         {
-            __current = new T[__deltaCount];
+            T temaplate;
+            __current = new std::vector<T>(__deltaCount, temaplate);
             __manager.push_back(__current);
         }
         
@@ -204,7 +206,7 @@ T &InstanceManager<T>::add()
     }
     
     __cursor += 1;
-    return __current[__nestCursor++];
+    return (*__current)[__nestCursor++];
 }
 
 template<class T>
@@ -244,7 +246,7 @@ template<class T>
 T &InstanceManager<T>::operator[](const int32_t index)
 {
     auto entity = index / __deltaCount;
-    return __manager[entity][index % __deltaCount];
+    return (*__manager[entity])[index % __deltaCount];
 }
 
 template<class T>
@@ -252,7 +254,8 @@ InstanceManager<T>::~InstanceManager<T>()
 {
     for (auto iter = __manager.begin(); iter != __manager.end(); iter++)
     {
-        delete [] *iter;
+//        std::vector<T>().swap(**iter);
+        delete *iter;
     }
 }
 

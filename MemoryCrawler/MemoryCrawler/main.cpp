@@ -76,6 +76,7 @@ void readCommandOptions(const char *command, std::function<void(std::vector<cons
 #include <memory>
 void crawlSnapshot(const char * filepath)
 {
+    using std::vector;
     TimeSampler<std::nano> sampler;
     
     sampler.begin("CrawlSnapshot");
@@ -171,6 +172,21 @@ void crawlSnapshot(const char * filepath)
                                            std::allocator<PackedNativeUnityEngineObject> allocator;
                                            auto *ptr = allocator.allocate(1000);
                                            allocator.deallocate(ptr, 1000);
+                                       }
+                                   }
+                                   else if (0 == strcmp(subcommand, "t3"))
+                                   {
+                                       PackedNativeUnityEngineObject empty;
+                                       vector<vector<PackedNativeUnityEngineObject> *> manager;
+                                       for (auto i = 0; i < 1000; i++)
+                                       {
+                                           auto block = new vector<PackedNativeUnityEngineObject>(1000, empty);
+                                           manager.push_back(block);
+                                       }
+                                       
+                                       for (auto iter = manager.begin(); iter != manager.end(); iter++)
+                                       {
+                                           delete *iter;
                                        }
                                    }
                                });
