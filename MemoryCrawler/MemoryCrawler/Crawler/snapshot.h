@@ -135,12 +135,12 @@ struct PackedMemorySnapshot
     Array<TypeDescription> *typeDescriptions = nullptr; // TypeDescription[]
     VirtualMachineInformation virtualMachineInformation;
     
-    std::vector<MemorySection *> *sortedHeapSections;
+    std::vector<MemorySection *> *sortedHeapSections = nullptr;
     
     ManagedTypeIndex managedTypeIndex;
     NativeTypeIndex nativeTypeIndex;
     
-    FieldDescription *cached_ptr;
+    FieldDescription *cached_ptr = nullptr;
     string uuid;
     
     ~PackedMemorySnapshot();
