@@ -8,7 +8,6 @@
 
 #include <string>
 #include <vector>
-#include "Crawler/perf.h"
 #include "Crawler/crawler.h"
 #include "Crawler/cache.h"
 #include "Crawler/leak.h"

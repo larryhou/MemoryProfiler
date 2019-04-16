@@ -15,6 +15,7 @@ MemorySnapshotCrawler::MemorySnapshotCrawler(const char *filepath)
     __memoryReader = new HeapMemoryReader(snapshot);
     __staticMemoryReader = new StaticMemoryReader(snapshot);
     __vm = &snapshot.virtualMachineInformation;
+    debug();
 }
 
 MemorySnapshotCrawler::MemorySnapshotCrawler()
@@ -22,6 +23,7 @@ MemorySnapshotCrawler::MemorySnapshotCrawler()
     __memoryReader = new HeapMemoryReader(snapshot);
     __staticMemoryReader = new StaticMemoryReader(snapshot);
     __vm = &snapshot.virtualMachineInformation;
+    debug();
 }
 
 MemorySnapshotCrawler &MemorySnapshotCrawler::crawl()
