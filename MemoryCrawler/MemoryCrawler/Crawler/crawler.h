@@ -125,6 +125,7 @@ public:
     const char16_t *getString(address_t address, int32_t &size);
     
     void tryAcceptConnection(EntityConnection &connection);
+    void tryAcceptConnection(Connection &connection);
     
     ~MemorySnapshotCrawler();
     

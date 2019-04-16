@@ -81,6 +81,9 @@ struct PackedGCHandle
 
 struct PackedNativeUnityEngineObject
 {
+    std::vector<Connection *> fromConnections;
+    std::vector<Connection *> toConnections;
+    
     int32_t hideFlags;
     int32_t instanceId;
     bool isDontDestroyOnLoad;
