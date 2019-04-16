@@ -36,7 +36,7 @@ PackedMemorySnapshot &MemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
     __sampler.begin("read_header");
     readHeader(*__fs);
     __sampler.end();
-    assert(__fs->tell() == 124);
+    
     while (__fs->byteAvailable())
     {
         auto length = __fs->readUInt32(true);
@@ -62,6 +62,7 @@ void MemorySnapshotReader::readHeader(FileStream &fs)
 {
     mime = new string(fs.readString((size_t)3));
     assert(*mime == string("PMS"));
+    
     description = new string(fs.readString(true));
     unityVersion = new string(fs.readString(true));
     systemVersion = new string(fs.readString(true));
