@@ -7,17 +7,10 @@
 //
 
 #include <string>
-#include <thread>
-#include <istream>
 #include <vector>
-#include <ratio>
-#include "Crawler/snapshot.h"
-#include "Crawler/stream.h"
 #include "Crawler/perf.h"
-#include "Crawler/serialize.h"
 #include "Crawler/crawler.h"
 #include "Crawler/cache.h"
-//#include "Crawler/args.h"
 
 using std::cout;
 using std::endl;
@@ -74,12 +67,12 @@ void readCommandOptions(const char *command, std::function<void(std::vector<cons
 
 #include <unistd.h>
 #include <memory>
-void crawlSnapshot(const char * filepath)
+void processSnapshot(const char * filepath)
 {
-    auto &crawler = MemorySnapshotCrawler(filepath).crawl();
+    auto &mainCrawler = MemorySnapshotCrawler(filepath).crawl();
     
     char uuid[40];
-    std::strcpy(uuid, crawler.snapshot.uuid->c_str());
+    std::strcpy(uuid, mainCrawler.snapshot.uuid->c_str());
     
     while (true)
     {
@@ -95,13 +88,13 @@ void crawlSnapshot(const char * filepath)
         const char *command = input.c_str();
         if (strbeg(command, "read"))
         {
-            auto readCrawler = SnapshotCrawlerCache().read(uuid);
-            delete readCrawler;
+            auto crawler = SnapshotCrawlerCache().read(uuid);
+            delete crawler;
         }
         else if (strbeg(command, "save"))
         {
             SnapshotCrawlerCache cache;
-            cache.save(crawler);
+            cache.save(mainCrawler);
         }
         else if (strbeg(command, "load"))
         {
@@ -187,7 +180,7 @@ int main(int argc, const char * argv[])
     
     if (argc > 1)
     {
-        crawlSnapshot(argv[1]);
+        processSnapshot(argv[1]);
     }
     
     return 0;
