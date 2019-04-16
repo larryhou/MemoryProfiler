@@ -346,22 +346,24 @@ void SnapshotCrawlerCache::insertStringTable(MemorySnapshotCrawler &crawler)
     sqlite3_finalize(stmt);
 }
 
-MemorySnapshotCrawler &SnapshotCrawlerCache::read(const char *uuid)
+MemorySnapshotCrawler *SnapshotCrawlerCache::read(const char *uuid)
 {
     __sampler.begin("SnapshotCrawlerCache::read");
     char filepath[64];
     sprintf(filepath, "%s/%s.db", __workspace, uuid);
+    
+    auto crawler = new MemorySnapshotCrawler();
     
     __sampler.begin("open");
     open(filepath);
     __sampler.end();
     
     __sampler.begin("read_PackedMemorySnapshot");
-    auto snapshot = new PackedMemorySnapshot;
+    auto &snapshot = crawler->snapshot;
     
     __sampler.begin("read_native_types");
-    snapshot->nativeTypes = new Array<PackedNativeType>(selectCount("nativeTypes"));
-    select<PackedNativeType>("select * from nativeTypes;", *snapshot->nativeTypes,
+    snapshot.nativeTypes = new Array<PackedNativeType>(selectCount("nativeTypes"));
+    select<PackedNativeType>("select * from nativeTypes;", *snapshot.nativeTypes,
                              [](PackedNativeType &nt, sqlite3_stmt *stmt)
                              {
                                  nt.typeIndex = sqlite3_column_int(stmt, 0);
@@ -374,8 +376,8 @@ MemorySnapshotCrawler &SnapshotCrawlerCache::read(const char *uuid)
     __sampler.end(); // read_native_types
     
     __sampler.begin("read_native_objects");
-    snapshot->nativeObjects = new Array<PackedNativeUnityEngineObject>(selectCount("nativeObjects"));
-    select<PackedNativeUnityEngineObject>("select * from nativeObjects;", *snapshot->nativeObjects,
+    snapshot.nativeObjects = new Array<PackedNativeUnityEngineObject>(selectCount("nativeObjects"));
+    select<PackedNativeUnityEngineObject>("select * from nativeObjects;", *snapshot.nativeObjects,
                                           [](PackedNativeUnityEngineObject &nt, sqlite3_stmt *stmt)
                                           {
                                               nt.hideFlags = sqlite3_column_int(stmt, 0);
@@ -393,8 +395,8 @@ MemorySnapshotCrawler &SnapshotCrawlerCache::read(const char *uuid)
     __sampler.end(); // read_native_objects
     
     __sampler.begin("read_managed_types");
-    snapshot->typeDescriptions = new Array<TypeDescription>(selectCount("types"));
-    select<TypeDescription>("select * from types;", *snapshot->typeDescriptions,
+    snapshot.typeDescriptions = new Array<TypeDescription>(selectCount("types"));
+    select<TypeDescription>("select * from types;", *snapshot.typeDescriptions,
                             [](TypeDescription &mt, sqlite3_stmt *stmt)
                             {
                                 mt.arrayRank = sqlite3_column_int(stmt, 0);
@@ -438,7 +440,7 @@ MemorySnapshotCrawler &SnapshotCrawlerCache::read(const char *uuid)
                auto fieldSlotIndex = id & 0xFFFF;
                if (hookType == nullptr || fieldHookTypeIndex != typeIndex)
                {
-                   hookType = &snapshot->typeDescriptions->items[fieldHookTypeIndex];
+                   hookType = &snapshot.typeDescriptions->items[fieldHookTypeIndex];
                    typeIndex = (int32_t)fieldHookTypeIndex;
                }
                auto &field = hookType->fields->items[fieldSlotIndex];
@@ -450,8 +452,7 @@ MemorySnapshotCrawler &SnapshotCrawlerCache::read(const char *uuid)
     __sampler.end(); // read_fields
     __sampler.end(); // read_type_fields
     __sampler.begin("read_vm");
-    snapshot->virtualMachineInformation = new VirtualMachineInformation;
-    auto &vm = *snapshot->virtualMachineInformation;
+    auto &vm = snapshot.virtualMachineInformation;
     select("select * from vm;", 1,
            [&](sqlite3_stmt *stmt)
            {
@@ -467,7 +468,6 @@ MemorySnapshotCrawler &SnapshotCrawlerCache::read(const char *uuid)
     __sampler.end(); // read_snapshot
     
     __sampler.begin("read_MemorySnapshotCrawler");
-    auto crawler = new MemorySnapshotCrawler(*snapshot);
     __sampler.begin("read_joints");
     
     select<EntityJoint>("select * from joints;", selectCount("joints"), crawler->joints,
@@ -520,7 +520,7 @@ MemorySnapshotCrawler &SnapshotCrawlerCache::read(const char *uuid)
     
     __sampler.end();
     __sampler.summary();
-    return *crawler;
+    return crawler;
 }
 
 void SnapshotCrawlerCache::select(const char *sql, int32_t size, std::function<void (sqlite3_stmt *)> kernel)
@@ -634,7 +634,7 @@ void SnapshotCrawlerCache::save(MemorySnapshotCrawler &crawler)
     
     __sampler.begin("insert_vm");
     createVMTable();
-    insertVMTable(*crawler.snapshot.virtualMachineInformation);
+    insertVMTable(crawler.snapshot.virtualMachineInformation);
     __sampler.end();
     
     __sampler.begin("insert_strings");

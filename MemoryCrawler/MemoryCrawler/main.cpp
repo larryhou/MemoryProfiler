@@ -76,20 +76,10 @@ void readCommandOptions(const char *command, std::function<void(std::vector<cons
 #include <memory>
 void crawlSnapshot(const char * filepath)
 {
-    TimeSampler<std::nano> sampler;
+    auto &crawler = MemorySnapshotCrawler(filepath).crawl();
     
-    sampler.begin("CrawlSnapshot");
-    sampler.begin("read_snapshot");
-    MemorySnapshotReader reader;
-    auto &snapshot = reader.read(filepath);
-    sampler.end();
-    
-    sampler.begin("craw_snapshot");
-    MemorySnapshotCrawler crawler(snapshot);
-    crawler.crawl();
-    sampler.end();
-    sampler.end();
-    sampler.summary();
+    char uuid[40];
+    std::strcpy(uuid, crawler.snapshot.uuid->c_str());
     
     while (true)
     {
@@ -105,7 +95,8 @@ void crawlSnapshot(const char * filepath)
         const char *command = input.c_str();
         if (strbeg(command, "read"))
         {
-            readCachedSnapshot(crawler.snapshot.uuid->c_str());
+            auto readCrawler = SnapshotCrawlerCache().read(uuid);
+            delete readCrawler;
         }
         else if (strbeg(command, "save"))
         {
@@ -184,13 +175,6 @@ void crawlSnapshot(const char * filepath)
             printf("not supported command [%s]\n", command);
         }
     }
-}
-
-void readCachedSnapshot(const char *uuid)
-{
-    SnapshotCrawlerCache cache;
-    MemorySnapshotCrawler &serializedCrawler = cache.read(uuid);
-    delete &serializedCrawler;
 }
 
 int main(int argc, const char * argv[])

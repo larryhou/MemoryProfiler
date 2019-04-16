@@ -58,6 +58,5 @@ PackedMemorySnapshot::~PackedMemorySnapshot()
     delete nativeObjects;
     delete nativeTypes;
     delete typeDescriptions;
-    delete virtualMachineInformation;
 }
 

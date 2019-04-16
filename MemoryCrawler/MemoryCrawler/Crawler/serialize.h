@@ -13,24 +13,28 @@
 #include "types.h"
 #include "stream.h"
 #include "snapshot.h"
+#include "perf.h"
 
 class MemorySnapshotReader
 {
-    FileStream *__fs;
-    VirtualMachineInformation *__vm;
-    FieldDescription *__cachedPtr;
+    FileStream *__fs = nullptr;
+    VirtualMachineInformation *__vm = nullptr;
+    FieldDescription *__cachedPtr = nullptr;
+    const char *__filepath = nullptr;
+    PackedMemorySnapshot *__snapshot = nullptr;
+    TimeSampler<std::nano> __sampler;
     
 public:
-    string *mime;
-    string *unityVersion;
-    string *description;
-    string *systemVersion;
-    string *uuid;
+    string *mime = nullptr;
+    string *unityVersion = nullptr;
+    string *description = nullptr;
+    string *systemVersion = nullptr;
+    string *uuid = nullptr;
     size_t size;
     int64_t createTime;
-    PackedMemorySnapshot *snapshot;
     
-    PackedMemorySnapshot &read(const char *filepath, bool memoryCache = false);
+    MemorySnapshotReader(const char *filepath);
+    PackedMemorySnapshot &read(PackedMemorySnapshot &snapshot);
     
     ~MemorySnapshotReader();
     
@@ -39,6 +43,8 @@ private:
     void readSnapshot(FileStream &fs);
     void postSnapshot();
     void summarize();
+    
+    void readPackedMemorySnapshot(PackedMemorySnapshot &item, FileStream &fs);
 };
 
 #endif /* serialize_h */

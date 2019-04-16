@@ -20,10 +20,14 @@ using std::string;
 template <typename T>
 struct Array
 {
-    int32_t size;
+    int32_t size = 0;
     T *items;
     
-    Array(int32_t size): size(size) { items = new T[size]; }
+    Array(int32_t size): size(size)
+    {
+        assert(size >= 0);
+        items = new T[size];
+    }
     T &operator[](const int32_t index) { return items[index]; }
     ~Array() { delete [] items; }
 };

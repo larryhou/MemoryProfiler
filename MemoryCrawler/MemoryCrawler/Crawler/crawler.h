@@ -16,6 +16,7 @@
 #include "snapshot.h"
 #include "heap.h"
 #include "perf.h"
+#include "serialize.h"
 
 enum ConnectionKind:uint8_t { None, gcHandle, Native, Managed, Static };
 
@@ -95,7 +96,7 @@ public:
     InstanceManager<EntityConnection> connections;
     InstanceManager<EntityJoint> joints;
     
-    PackedMemorySnapshot &snapshot;
+    PackedMemorySnapshot snapshot;
     
 private:
     HeapMemoryReader *__memoryReader;
@@ -116,15 +117,10 @@ private:
     map<address_t, int32_t> __gcHandleAddressMap;
 
 public:
-    MemorySnapshotCrawler(PackedMemorySnapshot &snapshot, int32_t deltaCount = 1000): snapshot(snapshot), managedObjects(deltaCount), connections(deltaCount), joints(deltaCount)
-    {
-        __memoryReader = new HeapMemoryReader(snapshot);
-        __staticMemoryReader = new StaticMemoryReader(snapshot);
-        __vm = snapshot.virtualMachineInformation;
-        debug();
-    }
+    MemorySnapshotCrawler();
+    MemorySnapshotCrawler(const char *filepath);
     
-    void crawl();
+    MemorySnapshotCrawler &crawl();
     
     const char16_t *getString(address_t address, int32_t &size);
     

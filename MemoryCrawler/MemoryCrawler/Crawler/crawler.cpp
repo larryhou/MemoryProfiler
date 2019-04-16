@@ -8,7 +8,23 @@
 
 #include "crawler.h"
 
-void MemorySnapshotCrawler::crawl()
+MemorySnapshotCrawler::MemorySnapshotCrawler(const char *filepath)
+{
+    MemorySnapshotReader(filepath).read(snapshot);
+    
+    __memoryReader = new HeapMemoryReader(snapshot);
+    __staticMemoryReader = new StaticMemoryReader(snapshot);
+    __vm = &snapshot.virtualMachineInformation;
+}
+
+MemorySnapshotCrawler::MemorySnapshotCrawler()
+{
+    __memoryReader = new HeapMemoryReader(snapshot);
+    __staticMemoryReader = new StaticMemoryReader(snapshot);
+    __vm = &snapshot.virtualMachineInformation;
+}
+
+MemorySnapshotCrawler &MemorySnapshotCrawler::crawl()
 {
     __sampler.begin("MemorySnapshotCrawler");
     initManagedTypes();
@@ -16,6 +32,8 @@ void MemorySnapshotCrawler::crawl()
     crawlStatic();
     summarize();
     __sampler.end();
+    __sampler.summary();
+    return *this;
 }
 
 using std::ifstream;
@@ -530,8 +548,6 @@ void MemorySnapshotCrawler::crawlStatic()
 
 MemorySnapshotCrawler::~MemorySnapshotCrawler()
 {
-    __sampler.summary();
-    
     delete __mirror;
     delete __memoryReader;
     delete __staticMemoryReader;

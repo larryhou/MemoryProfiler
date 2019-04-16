@@ -38,10 +38,10 @@ struct FieldDescription
 struct TypeDescription
 {
     address_t typeInfoAddress;
-    string *assembly;
-    Array<FieldDescription>* fields; // FieldDescription[]
-    string *name;
-    Array<byte_t> *staticFieldBytes; // byte[]
+    string *assembly = nullptr;
+    Array<FieldDescription>* fields = nullptr; // FieldDescription[]
+    string *name = nullptr;
+    Array<byte_t> *staticFieldBytes = nullptr; // byte[]
     int32_t arrayRank;
     int32_t baseOrElementTypeIndex;
     int32_t size;
@@ -61,7 +61,7 @@ struct TypeDescription
 
 struct MemorySection
 {
-    Array<byte_t> *bytes; // byte[]
+    Array<byte_t> *bytes = nullptr; // byte[]
     address_t startAddress;
     int32_t heapArrayIndex = -1;
     int32_t size;
@@ -86,7 +86,7 @@ struct PackedNativeUnityEngineObject
     bool isDontDestroyOnLoad;
     bool isManager;
     bool isPersistent;
-    string *name;
+    string *name = nullptr;
     address_t nativeObjectAddress;
     int32_t nativeTypeArrayIndex;
     int32_t size;
@@ -100,7 +100,7 @@ struct PackedNativeUnityEngineObject
 
 struct PackedNativeType
 {
-    string *name;
+    string *name = nullptr;
     int32_t nativeBaseTypeArrayIndex;
     int32_t baseClassId;
     
@@ -133,7 +133,7 @@ struct PackedMemorySnapshot
     Array<PackedNativeUnityEngineObject> *nativeObjects = nullptr; // PackedNativeUnityEngineObject[]
     Array<PackedNativeType> *nativeTypes = nullptr; // PackedNativeType[]
     Array<TypeDescription> *typeDescriptions = nullptr; // TypeDescription[]
-    VirtualMachineInformation *virtualMachineInformation = nullptr;
+    VirtualMachineInformation virtualMachineInformation;
     
     std::vector<MemorySection *> *sortedHeapSections;
     

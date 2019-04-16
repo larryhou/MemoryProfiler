@@ -7,21 +7,36 @@
 //
 
 #include "serialize.h"
-#include "perf.h"
 #include <map>
 
-static TimeSampler<std::nano> sampler;
-
-PackedMemorySnapshot &MemorySnapshotReader::read(const char *filepath, bool memoryCache)
+MemorySnapshotReader::MemorySnapshotReader(const char *filepath)
 {
-    sampler.begin("MemorySnapshotReader");
-    __fs = new FileStream;
-    sampler.begin("open_snapshot");
-    __fs->open(filepath, memoryCache);
-    sampler.end();
-    sampler.begin("read_header");
+    auto size = strlen(filepath);
+    auto buffer = new char[size];
+    std::strcpy(buffer, filepath);
+    __filepath = buffer;
+}
+
+PackedMemorySnapshot &MemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
+{
+    this->__snapshot = &snapshot;
+    __sampler.begin("MemorySnapshotReader");
+    if (__fs == nullptr)
+    {
+        __fs = new FileStream;
+        __sampler.begin("open_snapshot");
+        __fs->open(__filepath, false);
+        __sampler.end();
+    }
+    else
+    {
+        __fs->seek(0, seekdir_t::beg);
+    }
+    
+    __sampler.begin("read_header");
     readHeader(*__fs);
-    sampler.end();
+    __sampler.end();
+    assert(__fs->tell() == 124);
     while (__fs->byteAvailable())
     {
         auto length = __fs->readUInt32(true);
@@ -30,6 +45,7 @@ PackedMemorySnapshot &MemorySnapshotReader::read(const char *filepath, bool memo
         {
             case '0':
                 readSnapshot(*__fs);
+                break;
             
             default:
                 __fs->ignore(length - 5);
@@ -37,13 +53,15 @@ PackedMemorySnapshot &MemorySnapshotReader::read(const char *filepath, bool memo
         }
         __fs->ignore(8);
     }
-    sampler.end();
-    return *snapshot;
+    __sampler.end();
+    __sampler.summary();
+    return snapshot;
 }
 
 void MemorySnapshotReader::readHeader(FileStream &fs)
 {
     mime = new string(fs.readString((size_t)3));
+    assert(*mime == string("PMS"));
     description = new string(fs.readString(true));
     unityVersion = new string(fs.readString(true));
     systemVersion = new string(fs.readString(true));
@@ -186,7 +204,7 @@ void readTypeDescription(TypeDescription &item, FileStream &fs)
     item.assembly = new string(fs.readString(true));
     readField(fs);
     {
-        auto size = fs.readUInt32(true);
+        auto size = fs.readInt32(true);
         item.fields = new Array<FieldDescription>(size);
         for (auto i = 0; i < size; i++)
         {
@@ -195,7 +213,7 @@ void readTypeDescription(TypeDescription &item, FileStream &fs)
     }
     readField(fs);
     {
-        auto size = fs.readUInt32(true);
+        auto size = fs.readInt32(true);
         if (size > 0)
         {
             item.staticFieldBytes = new Array<byte_t>(size);
@@ -236,100 +254,97 @@ void readVirtualMachineInformation(VirtualMachineInformation &item, FileStream &
 }
 
 static const string sPackedMemorySnapshot("PackedMemorySnapshot");
-void readPackedMemorySnapshot(PackedMemorySnapshot &item, FileStream &fs)
+void MemorySnapshotReader::readPackedMemorySnapshot(PackedMemorySnapshot &item, FileStream &fs)
 {
-    sampler.begin("readPackedMemorySnapshot");
-    sampler.begin("read_type_string");
+    __sampler.begin("readPackedMemorySnapshot");
+    __sampler.begin("read_type_string");
     fs.skipString(true);
     auto fieldCount = fs.readUInt8();
     assert(fieldCount == 7);
-    sampler.end();
+    __sampler.end();
     
     readField(fs);
     {
-        sampler.begin("read_native_types");
+        __sampler.begin("read_native_types");
         auto size = fs.readUInt32(true);
         item.nativeTypes = new Array<PackedNativeType>(size);
         for (auto i = 0; i < size; i++)
         {
             readPackedNativeType(item.nativeTypes->items[i], fs);
         }
-        sampler.end();
+        __sampler.end();
     }
     readField(fs);
     {
-        sampler.begin("read_native_objects");
+        __sampler.begin("read_native_objects");
         auto size = fs.readUInt32(true);
         item.nativeObjects = new Array<PackedNativeUnityEngineObject>(size);
         for (auto i = 0; i < size; i++)
         {
             readPackedNativeUnityEngineObject(item.nativeObjects->items[i], fs);
         }
-        sampler.end();
+        __sampler.end();
     }
     readField(fs);
     {
-        sampler.begin("read_gc_handles");
+        __sampler.begin("read_gc_handles");
         auto size = fs.readUInt32(true);
         item.gcHandles = new Array<PackedGCHandle>(size);
         for (auto i = 0; i < size; i++)
         {
             readPackedGCHandle(item.gcHandles->items[i], fs);
         }
-        sampler.end();
+        __sampler.end();
     }
     readField(fs);
     {
-        sampler.begin("read_connections");
+        __sampler.begin("read_connections");
         auto size = fs.readUInt32(true);
         item.connections = new Array<Connection>(size);
         for (auto i = 0; i < size; i++)
         {
             readConnection(item.connections->items[i], fs);
         }
-        sampler.end();
+        __sampler.end();
     }
     readField(fs);
     {
-        sampler.begin("read_heap_sections");
+        __sampler.begin("read_heap_sections");
         auto size = fs.readUInt32(true);
         item.managedHeapSections = new Array<MemorySection>(size);
         for (auto i = 0; i < size; i++)
         {
             readMemorySection(item.managedHeapSections->items[i], fs);
         }
-        sampler.end();
+        __sampler.end();
     }
     readField(fs);
     {
-        sampler.begin("read_type_descriptions");
+        __sampler.begin("read_type_descriptions");
         auto size = fs.readUInt32(true);
         item.typeDescriptions = new Array<TypeDescription>(size);
         for (auto i = 0; i < size; i++)
         {
             readTypeDescription(item.typeDescriptions->items[i], fs);
         }
-        sampler.end();
+        __sampler.end();
     }
-    sampler.begin("read_virtual_matchine_information");
-    sampler.begin("read_field_strings");
+    __sampler.begin("read_virtual_matchine_information");
+    __sampler.begin("read_field_strings");
     readField(fs);
-    sampler.end();
-    sampler.begin("read_object");
-    item.virtualMachineInformation = new VirtualMachineInformation;
-    readVirtualMachineInformation(*item.virtualMachineInformation, fs);
-    sampler.end();
-    sampler.end();
-    sampler.end();
+    __sampler.end();
+    __sampler.begin("read_object");
+    readVirtualMachineInformation(item.virtualMachineInformation, fs);
+    __sampler.end();
+    __sampler.end();
+    __sampler.end();
 }
 
 void MemorySnapshotReader::readSnapshot(FileStream &fs)
 {
     __vm = new VirtualMachineInformation;
     readVirtualMachineInformation(*__vm, fs);
-    
-    snapshot = new PackedMemorySnapshot;
-    readPackedMemorySnapshot(*snapshot, fs);
+    readPackedMemorySnapshot(*__snapshot, fs);
     
     postSnapshot();
 }
@@ -362,29 +377,29 @@ inline bool readTypeIndex(int32_t &index, const TypeDescription &type, const str
 
 void MemorySnapshotReader::postSnapshot()
 {
-    snapshot->uuid = uuid;
+    __snapshot->uuid = new std::string(*uuid);
     
-    sampler.begin("postSnapshot");
-    sampler.begin("create_sorted_heap");
-    for (auto i = 0; i < snapshot->managedHeapSections->size; i++)
+    __sampler.begin("postSnapshot");
+    __sampler.begin("create_sorted_heap");
+    for (auto i = 0; i < __snapshot->managedHeapSections->size; i++)
     {
-        MemorySection &heap = snapshot->managedHeapSections->items[i];
+        MemorySection &heap = __snapshot->managedHeapSections->items[i];
         heap.size = heap.bytes->size;
     }
-    sampler.end();
+    __sampler.end();
     
-    sampler.begin("create_type_strings");
+    __sampler.begin("create_type_strings");
     string sUnityEngineObject("UnityEngine.Object");
     string sSystemString("System.String");
     string sSystemTextGenerator("UnityEngine.TextGenerator");
     string sCachedPtr("m_CachedPtr");
-    sampler.end();
+    __sampler.end();
     
-    ManagedTypeIndex &managedTypeIndex = snapshot->managedTypeIndex;
+    ManagedTypeIndex &managedTypeIndex = __snapshot->managedTypeIndex;
     
-    sampler.begin("read_type_index");
+    __sampler.begin("read_type_index");
     bool isUnityEngineObject = false;
-    Array<TypeDescription> &typeDescriptions = *snapshot->typeDescriptions;
+    Array<TypeDescription> &typeDescriptions = *__snapshot->typeDescriptions;
     for (auto i = 0; i < typeDescriptions.size; i++)
     {
         isUnityEngineObject = false;
@@ -396,41 +411,44 @@ void MemorySnapshotReader::postSnapshot()
         else if (readTypeIndex(managedTypeIndex.system_String, type, &sSystemString)) {}
         else if (readTypeIndex(managedTypeIndex.unityengine_TextGenerator, type, &sSystemTextGenerator)) {}
         
-        Array<FieldDescription> &fieldDescriptions = *type.fields;
-        for (auto n = 0; n < fieldDescriptions.size; n++)
+        if (type.fields != nullptr)
         {
-            FieldDescription &field = fieldDescriptions[n];
-            if (isUnityEngineObject && endsWith(field.name, &sCachedPtr))
+            Array<FieldDescription> &fieldDescriptions = *type.fields;
+            for (auto n = 0; n < fieldDescriptions.size; n++)
             {
-                snapshot->cached_ptr = &field;
+                FieldDescription &field = fieldDescriptions[n];
+                if (isUnityEngineObject && endsWith(field.name, &sCachedPtr))
+                {
+                    __snapshot->cached_ptr = &field;
+                }
+                
+                field.hookTypeIndex = type.typeIndex;
+                field.fieldSlotIndex = n;
             }
-            
-            field.hookTypeIndex = type.typeIndex;
-            field.fieldSlotIndex = n;
         }
     }
-    __cachedPtr = snapshot->cached_ptr;
+    __cachedPtr = __snapshot->cached_ptr;
     assert(__cachedPtr != nullptr);
-    sampler.end();
+    __sampler.end();
     
-    sampler.begin("set_native_type_index");
-    Array<PackedNativeType> &nativeTypes = *snapshot->nativeTypes;
+    __sampler.begin("set_native_type_index");
+    Array<PackedNativeType> &nativeTypes = *__snapshot->nativeTypes;
     for (auto i = 0; i < nativeTypes.size; i++)
     {
         nativeTypes[i].typeIndex = i;
     }
-    sampler.end();
+    __sampler.end();
     
-    sampler.begin("set_gchandle_index");
-    Array<PackedGCHandle> &gcHandles = *snapshot->gcHandles;
+    __sampler.begin("set_gchandle_index");
+    Array<PackedGCHandle> &gcHandles = *__snapshot->gcHandles;
     for (auto i = 0; i < gcHandles.size; i++)
     {
         gcHandles[i].gcHandleArrayIndex = i;
     }
-    sampler.end();
+    __sampler.end();
     
-    sampler.begin("set_heap_index");
-    Array<MemorySection> &managedHeapSections = *snapshot->managedHeapSections;
+    __sampler.begin("set_heap_index");
+    Array<MemorySection> &managedHeapSections = *__snapshot->managedHeapSections;
     
     auto sortedHeapSections = new std::vector<MemorySection *>;
     for (auto i = 0; i < managedHeapSections.size; i++)
@@ -441,31 +459,31 @@ void MemorySnapshotReader::postSnapshot()
               {
                   return a->startAddress < b->startAddress;
               });
-    snapshot->sortedHeapSections = sortedHeapSections;
+    __snapshot->sortedHeapSections = sortedHeapSections;
     for (auto i = 0; i < sortedHeapSections->size(); i++)
     {
         (*sortedHeapSections)[i]->heapArrayIndex = i;
     }
-    sampler.end();
+    __sampler.end();
     
-    sampler.begin("set_native_object_index");
-    Array<PackedNativeUnityEngineObject> &nativeObjects = *snapshot->nativeObjects;
+    __sampler.begin("set_native_object_index");
+    Array<PackedNativeUnityEngineObject> &nativeObjects = *__snapshot->nativeObjects;
     for (auto i = 0; i < nativeObjects.size; i++)
     {
         nativeObjects[i].nativeObjectArrayIndex = i;
     }
-    sampler.end(); // set_native_object_index
+    __sampler.end(); // set_native_object_index
     
     summarize();
     
-    sampler.end();
+    __sampler.end();
 }
 
 void MemorySnapshotReader::summarize()
 {
-    sampler.begin("summarize_native_objects");
+    __sampler.begin("summarize_native_objects");
     
-    auto &nativeTypes = *snapshot->nativeTypes;
+    auto &nativeTypes = *__snapshot->nativeTypes;
     for (auto i = 0; i < nativeTypes.size; i++)
     {
         auto &type = nativeTypes[i];
@@ -473,7 +491,7 @@ void MemorySnapshotReader::summarize()
         type.instanceCount = 0;
     }
     
-    auto &nativeObjects = *snapshot->nativeObjects;
+    auto &nativeObjects = *__snapshot->nativeObjects;
     for (auto i = 0; i < nativeObjects.size; i++)
     {
         auto &no = nativeObjects[i];
@@ -482,12 +500,16 @@ void MemorySnapshotReader::summarize()
         type.instanceCount += 1;
     }
     
-    sampler.end();
+    __sampler.end();
 }
 
 MemorySnapshotReader::~MemorySnapshotReader()
 {
-    sampler.summary();
     delete __fs;
-    delete snapshot;
+    delete [] __filepath;
+    delete mime;
+    delete unityVersion;
+    delete description;
+    delete systemVersion;
+    delete uuid;
 }

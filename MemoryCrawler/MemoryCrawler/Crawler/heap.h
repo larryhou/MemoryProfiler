@@ -33,10 +33,10 @@ class HeapMemoryReader
     VirtualMachineInformation *__vm;
     
 protected:
-    address_t __startAddress;
-    address_t __stopAddress;
-    const byte_t *__memory;
-    int32_t __size;
+    address_t __startAddress = 0;
+    address_t __stopAddress = 0;
+    const byte_t *__memory = nullptr;
+    int32_t __size = 0;
     
     virtual int32_t seekOffset(address_t address);
     
@@ -45,7 +45,7 @@ public:
     {
         __sortedHeapSections = snapshot.sortedHeapSections;
         
-        __vm = snapshot.virtualMachineInformation;
+        __vm = &snapshot.virtualMachineInformation;
     }
     
     int8_t readInt8(address_t address) { return readScalar<int8_t>(address); }

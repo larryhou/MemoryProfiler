@@ -26,7 +26,7 @@ public:
     SnapshotCrawlerCache();
     void open(const char *filepath);
     void save(MemorySnapshotCrawler &crawler);
-    MemorySnapshotCrawler &read(const char *uuid);
+    MemorySnapshotCrawler *read(const char *uuid);
     ~SnapshotCrawlerCache();
     
 private:
