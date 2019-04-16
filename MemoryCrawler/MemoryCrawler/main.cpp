@@ -126,6 +126,10 @@ void processSnapshot(const char * filepath)
         {
             
         }
+        else if (strbeg(command, "run"))
+        {
+            
+        }
         else if (strbeg(command, "leak"))
         {
             readCommandOptions(command, [](std::vector<const char *> &options)
