@@ -77,7 +77,7 @@ void processSnapshot(const char * filepath)
     
     while (true)
     {
-        std::cout << "/> ";
+        std::cout << "\e[93m/> ";
         
         std::string input;
         while (!getline(std::cin, input))
@@ -85,11 +85,24 @@ void processSnapshot(const char * filepath)
             std::cin.clear();
             usleep(100000);
         }
+        std::cout << "\e[0m";
         
         const char *command = input.c_str();
         if (strbeg(command, "read"))
         {
-            auto crawler = SnapshotCrawlerCache().read(uuid);
+            MemorySnapshotCrawler *crawler = nullptr;
+            readCommandOptions(command, [&](std::vector<const char *> &options)
+                               {
+                                   if (options.size() == 1)
+                                   {
+                                       crawler = SnapshotCrawlerCache().read(uuid);
+                                   }
+                                   else
+                                   {
+                                       crawler = SnapshotCrawlerCache().read(options[1]);
+                                   }
+                                   //todo: comparation
+                               });
             delete crawler;
         }
         else if (strbeg(command, "save"))
@@ -98,7 +111,12 @@ void processSnapshot(const char * filepath)
         }
         else if (strbeg(command, "load"))
         {
-            
+            readCommandOptions(command, [](std::vector<const char *> &options)
+                               {
+                                   if (options.size() == 1) {return;}
+                                   MemorySnapshotCrawler crawler(options[1]);
+                                   crawler.crawl();
+                               });
         }
         else if (strbeg(command, "ref"))
         {
@@ -162,6 +180,10 @@ void processSnapshot(const char * filepath)
                                        
                                    }
                                });
+        }
+        else if (strbeg(command, "exit"))
+        {
+            return;
         }
         else
         {
