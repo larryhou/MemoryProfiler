@@ -69,7 +69,8 @@ void readCommandOptions(const char *command, std::function<void(std::vector<cons
 #include <memory>
 void processSnapshot(const char * filepath)
 {
-    auto &mainCrawler = MemorySnapshotCrawler(filepath).crawl();
+    MemorySnapshotCrawler mainCrawler(filepath);
+    mainCrawler.crawl();
     
     char uuid[40];
     std::strcpy(uuid, mainCrawler.snapshot.uuid->c_str());
@@ -93,8 +94,7 @@ void processSnapshot(const char * filepath)
         }
         else if (strbeg(command, "save"))
         {
-            SnapshotCrawlerCache cache;
-            cache.save(mainCrawler);
+            SnapshotCrawlerCache().save(mainCrawler);
         }
         else if (strbeg(command, "load"))
         {
