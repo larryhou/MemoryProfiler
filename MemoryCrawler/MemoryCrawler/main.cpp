@@ -11,6 +11,7 @@
 #include "Crawler/perf.h"
 #include "Crawler/crawler.h"
 #include "Crawler/cache.h"
+#include "Crawler/leak.h"
 
 using std::cout;
 using std::endl;
@@ -136,53 +137,7 @@ void processSnapshot(const char * filepath)
                                {
                                    if (options.size() == 1){return;}
                                    const char *subcommand = options[1];
-                                   if (0 == strcmp(subcommand, "array"))
-                                   {
-                                       Array<PackedNativeUnityEngineObject> array(1000000);
-                                       printf("[Array] size=%d\n", array.size);
-                                   }
-                                   else if (0 == strcmp(subcommand, "im"))
-                                   {
-                                       InstanceManager<PackedNativeUnityEngineObject> manager(10000);
-                                       for (auto i = 0; i < 1000000; i++) { manager.add(); }
-                                       printf("[IM] size=%d\n", manager.size());
-                                   }
-                                   else if (0 == strcmp(subcommand, "vector"))
-                                   {
-                                       std::vector<PackedNativeUnityEngineObject> vector(1000000);
-                                       printf("[Vector] size=%d\n", (int)vector.size());
-                                   }
-                                   else if (0 == strcmp(subcommand, "carray"))
-                                   {
-                                       char array[64*1024];
-                                       printf("[CArray] size=%d\n", (int)sizeof(array));
-                                   }
-                                   else if (0 == strcmp(subcommand, "t1"))
-                                   {
-                                       std::vector<const Connection *> vector;
-                                       for (auto i = 0; i < 1000; i++)
-                                       {
-                                           vector.push_back(new Connection[1000]);
-                                       }
-                                       
-                                       for (auto iter = vector.begin(); iter != vector.end(); iter++)
-                                       {
-                                           delete [] *iter;
-                                       }
-                                       
-                                       printf("total_memory=%d\n", (int)sizeof(char) * 1000000);
-                                   }
-                                   else if (0 == strcmp(subcommand, "t2"))
-                                   {
-                                       for (auto i = 0; i < 1000; i++)
-                                       {
-                                           std::allocator<PackedNativeUnityEngineObject> allocator;
-                                           auto *ptr = allocator.allocate(1000);
-                                           allocator.deallocate(ptr, 1000);
-                                       }
-                                       
-                                       
-                                   }
+                                   inspectCondition<PackedNativeUnityEngineObject>(subcommand);
                                });
         }
         else if (strbeg(command, "exit"))

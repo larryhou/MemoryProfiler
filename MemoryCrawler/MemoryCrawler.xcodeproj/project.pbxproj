@@ -43,6 +43,7 @@
 		6B74B77122548A0900A69BC0 /* snapshot.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = snapshot.cpp; sourceTree = "<group>"; };
 		6B87DD0B2261B387001B0BE3 /* args.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = args.h; sourceTree = "<group>"; };
 		6B87DD0C2261B387001B0BE3 /* args.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = args.cpp; sourceTree = "<group>"; };
+		6B87DD0F2265CCC6001B0BE3 /* leak.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = leak.h; sourceTree = "<group>"; };
 		6BCA664E22575EE100A4C96A /* crawler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = crawler.h; sourceTree = "<group>"; };
 		6BCA664F22575EE100A4C96A /* crawler.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = crawler.cpp; sourceTree = "<group>"; };
 		6BCA665122584B6100A4C96A /* heap.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = heap.h; sourceTree = "<group>"; };
@@ -109,6 +110,7 @@
 				6BE889A2225CA16B0029BB09 /* cache.cpp */,
 				6B87DD0B2261B387001B0BE3 /* args.h */,
 				6B87DD0C2261B387001B0BE3 /* args.cpp */,
+				6B87DD0F2265CCC6001B0BE3 /* leak.h */,
 			);
 			path = Crawler;
 			sourceTree = "<group>";
