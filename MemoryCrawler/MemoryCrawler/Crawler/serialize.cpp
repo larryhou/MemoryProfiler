@@ -378,7 +378,7 @@ inline bool readTypeIndex(int32_t &index, const TypeDescription &type, const str
 
 void MemorySnapshotReader::postSnapshot()
 {
-    __snapshot->uuid = new std::string(*uuid);
+    __snapshot->uuid = *uuid;
     
     __sampler.begin("postSnapshot");
     __sampler.begin("create_sorted_heap");

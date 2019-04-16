@@ -563,13 +563,13 @@ void SnapshotCrawlerCache::insertVMTable(VirtualMachineInformation &vm)
 
 void SnapshotCrawlerCache::save(MemorySnapshotCrawler &crawler)
 {
-    if (crawler.snapshot.uuid == nullptr) {return;}
+    if (crawler.snapshot.uuid == string()) {return;}
     
     __sampler.begin("SnapshotCrawlerCache::save");
     mkdir(__workspace, 0777);
     
     char filepath[64];
-    sprintf(filepath, "%s/%s.db", __workspace, crawler.snapshot.uuid->c_str());
+    sprintf(filepath, "%s/%s.db", __workspace, crawler.snapshot.uuid.c_str());
     remove(filepath);
     
     __sampler.begin("open");

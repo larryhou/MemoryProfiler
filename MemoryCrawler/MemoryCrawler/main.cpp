@@ -73,7 +73,7 @@ void processSnapshot(const char * filepath)
     mainCrawler.crawl();
     
     char uuid[40];
-    std::strcpy(uuid, mainCrawler.snapshot.uuid->c_str());
+    std::strcpy(uuid, mainCrawler.snapshot.uuid.c_str());
     
     while (true)
     {

@@ -141,7 +141,7 @@ struct PackedMemorySnapshot
     NativeTypeIndex nativeTypeIndex;
     
     FieldDescription *cached_ptr;
-    string *uuid;
+    string uuid;
     
     ~PackedMemorySnapshot();
 };
