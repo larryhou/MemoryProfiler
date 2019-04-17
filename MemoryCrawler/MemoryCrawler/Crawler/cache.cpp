@@ -223,7 +223,8 @@ void SnapshotCrawlerCache::insert(InstanceManager<EntityJoint> &joints)
                         joints, [](EntityJoint &ej, sqlite3_stmt *stmt)
                         {
                             if (!ej.isConnected){return;}
-                            sqlite3_bind_int(stmt, 1, ej.jointArrayIndex);
+                            
+                            sqlite3_bind_int(stmt, 1, ej.aliasArrayIndex == -1 ? ej.jointArrayIndex : ej.aliasArrayIndex);
                             sqlite3_bind_int(stmt, 2, ej.hookTypeIndex);
                             sqlite3_bind_int(stmt, 3, ej.hookObjectIndex);
                             sqlite3_bind_int64(stmt, 4, ej.hookObjectAddress);
