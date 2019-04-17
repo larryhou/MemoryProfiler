@@ -167,13 +167,116 @@ bool MemorySnapshotCrawler::isSubclassOfNativeType(PackedNativeType &type, int32
 
 void MemorySnapshotCrawler::dumpMRefChain(address_t address)
 {
+    auto objectIndex = findMObjectAtAddress(address);
+    if (objectIndex == -1) {return;}
     
+    auto *mo = &managedObjects[objectIndex];
+    auto fullChains = iterateMRefChain(mo, vector<int32_t>(), set<int64_t>());
+    for (auto c = fullChains.begin(); c != fullChains.end(); c++)
+    {
+        auto &chain = *c;
+        auto number = 0;
+        for (auto n = chain.rbegin(); n != chain.rend(); n++)
+        {
+            if (*n == -1)
+            {
+                printf("∞");
+                continue;
+            }
+            
+            auto &ec = connections[*n];
+            auto &node = managedObjects[ec.to];
+            auto &joint = joints[ec.jointArrayIndex];
+            auto &type = snapshot.typeDescriptions->items[node.typeIndex];
+            
+            if (number == 0)
+            {
+                if (ec.fromKind == gcHandle)
+                {
+                    printf("<GCHandle>::%s 0x%08llx\n", type.name->c_str(), node.address);
+                }
+                else
+                {
+                    auto &hookType = snapshot.typeDescriptions->items[joint.hookTypeIndex];
+                    auto &field = hookType.fields->items[joint.fieldSlotIndex];
+                    if (ec.fromKind == Static)
+                    {
+                        auto &hookType = snapshot.typeDescriptions->items[joint.hookTypeIndex];
+                        printf("<Static>::%s::", hookType.name->c_str());
+                    }
+                    
+                    printf("{%s:%s} 0x%08llx\n", field.name->c_str(), type.name->c_str(), node.address);
+                }
+            }
+            else
+            {
+                auto &hookType = snapshot.typeDescriptions->items[joint.hookTypeIndex];
+                auto &field = hookType.fields->items[joint.fieldSlotIndex];
+                if (joint.elementArrayIndex >= 0)
+                {
+                    printf("    .{%s:%s}[%d] 0x%08llx\n", field.name->c_str(), type.name->c_str(), joint.elementArrayIndex, joint.fieldAddress);
+                }
+                else
+                {
+                    printf("    .{%s:%s} 0x%08llx\n", field.name->c_str(), type.name->c_str(), joint.fieldAddress);
+                }
+            }
+            
+            ++number;
+        }
+    }
 }
 
 vector<vector<int32_t>> MemorySnapshotCrawler::iterateMRefChain(ManagedObject *mo,
                                                                 vector<int32_t> chain, set<int64_t> antiCircular)
 {
-    return vector<vector<int32_t>>();
+    vector<vector<int32_t>> result;
+    if (mo->fromConnections.size() > 0)
+    {
+        for (auto i = 0; i < mo->fromConnections.size(); i++)
+        {
+            if (i >= 2) {break;}
+            auto ci = mo->fromConnections[i];
+            auto &ec = connections[ci];
+            auto fromIndex = ec.from;
+            
+            vector<int32_t> __chain(chain);
+            __chain.push_back(ci);
+            
+            if (ec.fromKind == Static || ec.fromKind == gcHandle || fromIndex < 0)
+            {
+                result.push_back(__chain);
+                continue;
+            }
+            
+            int64_t uuid = ((int64_t)ec.fromKind << 30 | (int64_t)ec.from) << 32 | ((int64_t)ec.toKind << 30 | ec.to);
+            
+            auto match = antiCircular.find(uuid);
+            if (match == antiCircular.end())
+            {
+                set<int64_t> __antiCircular(antiCircular);
+                __antiCircular.insert(uuid);
+                
+                auto *fromObject = &managedObjects[fromIndex];
+                auto branches = iterateMRefChain(fromObject, __chain, __antiCircular);
+                if (branches.size() != 0)
+                {
+                    result.insert(result.end(), branches.begin(), branches.end());
+                }
+            }
+            else
+            {
+                __chain.push_back(-1);
+                result.push_back(__chain); // circular reference situation
+            }
+        }
+    }
+    else
+    {
+        if (chain.size() != 0){result.push_back(chain);}
+    }
+    
+    return result;
 }
 
 void MemorySnapshotCrawler::dumpNRefChain(address_t address)
@@ -198,7 +301,7 @@ void MemorySnapshotCrawler::dumpNRefChain(address_t address)
             auto &nc = nativeConnections[*n];
             if (number == 0)
             {
-                if (nc.fromKind == ConnectionKind::gcHandle)
+                if (nc.fromKind == gcHandle)
                 {
                     assert(number == 0);
                     printf("<gcHandle>.");
@@ -251,7 +354,7 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateNRefChain(PackedNativeUnit
             vector<int32_t> __chain(chain);
             __chain.push_back(ci);
             
-            if (nc.fromKind != ConnectionKind::Native)
+            if (nc.fromKind != Native)
             {
                 result.push_back(__chain);
                 continue;
@@ -540,7 +643,6 @@ bool MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
         mo->jointArrayIndex = joint.jointArrayIndex;
         mo->gcHandleIndex = joint.gcHandleIndex;
         setObjectSize(*mo, entryType, memoryReader);
-        joint.isConnected = true;
     }
     else
     {
@@ -555,7 +657,7 @@ bool MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
     if (joint.gcHandleIndex >= 0)
     {
         ec.fromKind = ConnectionKind::gcHandle;
-        ec.from = -1;
+        ec.from = joint.gcHandleIndex;
     }
     else if (joint.isStatic)
     {
@@ -570,6 +672,9 @@ bool MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
     
     ec.toKind = ConnectionKind::Managed;
     ec.to = mo->managedObjectIndex;
+    ec.jointArrayIndex = joint.jointArrayIndex;
+    joint.isConnected = true;
+    
     tryAcceptConnection(ec);
     
     if (!entryType.isValueType)
@@ -631,7 +736,7 @@ bool MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
             ej.jointArrayIndex = joints.size() - 1;
             ej.hookObjectAddress = address;
             ej.hookObjectIndex = mo->managedObjectIndex;
-            ej.hookTypeIndex = entryType.typeIndex;
+            ej.hookTypeIndex = iterType->typeIndex;
             
             // set field info
             ej.fieldAddress = fieldAddress;

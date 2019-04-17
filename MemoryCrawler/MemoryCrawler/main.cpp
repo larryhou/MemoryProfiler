@@ -125,7 +125,16 @@ void processSnapshot(const char * filepath)
         }
         else if (strbeg(command, "ref"))
         {
-            
+            std::cout << "\e[96m";
+            readCommandOptions(command, [&](std::vector<const char *> &options)
+                               {
+                                   for (auto i = 1; i < options.size(); i++)
+                                   {
+                                       auto address = strtoll(options[i], nullptr, 10);
+                                       mainCrawler.dumpMRefChain(address);
+                                   }
+                               });
+            std::cout << "\e[0m";
         }
         else if (strbeg(command, "uref"))
         {

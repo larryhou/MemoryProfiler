@@ -15,7 +15,7 @@
 
 using std::string;
 
-enum ConnectionKind:uint8_t { None, gcHandle, Native, Managed, Static };
+enum ConnectionKind:uint8_t { None, gcHandle, Static, Managed, Native };
 
 struct Connection
 {

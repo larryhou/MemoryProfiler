@@ -38,7 +38,10 @@ struct EntityJoint
     bool isConnected = false;
 };
 
-struct EntityConnection: public Connection {};
+struct EntityConnection: public Connection
+{
+    int32_t jointArrayIndex = -1;
+};
 
 struct ManagedObject
 {
