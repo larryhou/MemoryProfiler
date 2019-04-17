@@ -204,7 +204,7 @@ void SnapshotCrawlerCache::removeRedundants(MemorySnapshotCrawler &crawler)
         auto &ej = joints[i];
         if (ej.isConnected)
         {
-            ej.aliasArrayIndex = jointArrayIndex++;
+            ej.jointEntryIndex = jointArrayIndex++;
         }
     }
     
@@ -213,7 +213,7 @@ void SnapshotCrawlerCache::removeRedundants(MemorySnapshotCrawler &crawler)
     {
         auto &ec = connections[i];
         auto &ej = joints[ec.jointArrayIndex];
-        ec.jointArrayIndex = ej.aliasArrayIndex;
+        ec.jointEntryIndex = ej.jointEntryIndex;
     }
 }
 
@@ -224,7 +224,7 @@ void SnapshotCrawlerCache::insert(InstanceManager<EntityJoint> &joints)
                         {
                             if (!ej.isConnected){return;}
                             
-                            sqlite3_bind_int(stmt, 1, ej.aliasArrayIndex == -1 ? ej.jointArrayIndex : ej.aliasArrayIndex);
+                            sqlite3_bind_int(stmt, 1, ej.jointEntryIndex == -1 ? ej.jointArrayIndex : ej.jointEntryIndex);
                             sqlite3_bind_int(stmt, 2, ej.hookTypeIndex);
                             sqlite3_bind_int(stmt, 3, ej.hookObjectIndex);
                             sqlite3_bind_int64(stmt, 4, ej.hookObjectAddress);
@@ -259,7 +259,7 @@ void SnapshotCrawlerCache::insert(InstanceManager<EntityConnection> &connections
                                  sqlite3_bind_int(stmt, 3, (int)ec.fromKind);
                                  sqlite3_bind_int(stmt, 4, ec.to);
                                  sqlite3_bind_int(stmt, 5, (int)ec.toKind);
-                                 sqlite3_bind_int(stmt, 6, ec.jointArrayIndex);
+                                 sqlite3_bind_int(stmt, 6, ec.jointEntryIndex == -1 ? ec.jointArrayIndex : ec.jointEntryIndex);
                              });
 }
 

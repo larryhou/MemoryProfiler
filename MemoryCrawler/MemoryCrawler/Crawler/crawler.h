@@ -34,7 +34,7 @@ struct EntityJoint
     address_t fieldAddress = 0;
     int32_t elementArrayIndex = -1;
     int32_t jointArrayIndex = -1;
-    int32_t aliasArrayIndex = -1;
+    int32_t jointEntryIndex = -1;
     bool isStatic = false;
     bool isConnected = false;
 };
@@ -42,6 +42,7 @@ struct EntityJoint
 struct EntityConnection: public Connection
 {
     int32_t jointArrayIndex = -1;
+    int32_t jointEntryIndex = -1;
 };
 
 struct ManagedObject

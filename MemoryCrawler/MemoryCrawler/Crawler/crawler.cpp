@@ -233,9 +233,10 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateMRefChain(ManagedObject *m
     vector<vector<int32_t>> result;
     if (mo->fromConnections.size() > 0)
     {
+        set<int64_t> unique;
         for (auto i = 0; i < mo->fromConnections.size(); i++)
         {
-            if (i >= 2) {break;}
+            if (unique.size() >= 2) {break;}
             auto ci = mo->fromConnections[i];
             auto &ec = connections[ci];
             auto fromIndex = ec.from;
@@ -249,10 +250,15 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateMRefChain(ManagedObject *m
                 continue;
             }
             
+            set<int64_t>::iterator m;
             int64_t uuid = ((int64_t)ec.fromKind << 30 | (int64_t)ec.from) << 32 | ((int64_t)ec.toKind << 30 | ec.to);
             
-            auto match = antiCircular.find(uuid);
-            if (match == antiCircular.end())
+            m = unique.find(uuid);
+            if (m != unique.end()) {continue;}
+            unique.insert(uuid);
+            
+            m = antiCircular.find(uuid);
+            if (m == antiCircular.end())
             {
                 set<int64_t> __antiCircular(antiCircular);
                 __antiCircular.insert(uuid);
