@@ -204,16 +204,16 @@ void SnapshotCrawlerCache::removeRedundants(MemorySnapshotCrawler &crawler)
         auto &ej = joints[i];
         if (ej.isConnected)
         {
-            ej.jointArrayIndex = jointArrayIndex++;
+            ej.aliasArrayIndex = jointArrayIndex++;
         }
     }
     
-    auto &managedObjects = crawler.managedObjects;
-    for (auto i = 0; i < managedObjects.size(); i++)
+    auto &connections = crawler.connections;
+    for (auto i = 0; i < connections.size(); i++)
     {
-        auto &mo = managedObjects[i];
-        auto &ej = joints[mo.jointArrayIndex];
-        mo.jointArrayIndex = ej.jointArrayIndex;
+        auto &ec = connections[i];
+        auto &ej = joints[ec.jointArrayIndex];
+        ec.jointArrayIndex = ej.aliasArrayIndex;
     }
 }
 
@@ -244,12 +244,13 @@ void SnapshotCrawlerCache::createConnectionTable()
            "fromIndex INTEGER," \
            "fromKind INTEGER," \
            "toIndex INTEGER," \
-           "toKind INTEGER);");
+           "toKind INTEGER,"
+           "jointArrayIndex INTEGER REFERENCES joints (jointArrayIndex));");
 }
 
 void SnapshotCrawlerCache::insert(InstanceManager<EntityConnection> &connections)
 {
-    insert<EntityConnection>("INSERT INTO connections VALUES (?1, ?2, ?3, ?4, ?5);",
+    insert<EntityConnection>("INSERT INTO connections VALUES (?1, ?2, ?3, ?4, ?5, ?6);",
                              connections, [](EntityConnection &ec, sqlite3_stmt *stmt)
                              {
                                  sqlite3_bind_int(stmt, 1, ec.connectionArrayIndex);
@@ -257,6 +258,7 @@ void SnapshotCrawlerCache::insert(InstanceManager<EntityConnection> &connections
                                  sqlite3_bind_int(stmt, 3, (int)ec.fromKind);
                                  sqlite3_bind_int(stmt, 4, ec.to);
                                  sqlite3_bind_int(stmt, 5, (int)ec.toKind);
+                                 sqlite3_bind_int(stmt, 6, ec.jointArrayIndex);
                              });
 }
 
@@ -267,27 +269,23 @@ void SnapshotCrawlerCache::createObjectTable()
            "typeIndex INTEGER REFERENCES types (typeIndex)," \
            "managedObjectIndex INTEGER PRIMARY KEY," \
            "nativeObjectIndex INTEGER," \
-           "gcHandleIndex INTEGER," \
            "isValueType INTEGER," \
            "size INTEGER," \
-           "nativeSize INTEGER," \
-           "jointArrayIndex INTEGER REFERENCES joints (jointArrayIndex));");
+           "nativeSize INTEGER);");
 }
 
 void SnapshotCrawlerCache::insert(InstanceManager<ManagedObject> &objects)
 {
-    insert<ManagedObject>("INSERT INTO objects VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9);",
+    insert<ManagedObject>("INSERT INTO objects VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7);",
                           objects, [](ManagedObject &mo, sqlite3_stmt *stmt)
                           {
                               sqlite3_bind_int64(stmt, 1, mo.address);
                               sqlite3_bind_int(stmt, 2, mo.typeIndex);
                               sqlite3_bind_int(stmt, 3, mo.managedObjectIndex);
                               sqlite3_bind_int(stmt, 4, mo.nativeObjectIndex);
-                              sqlite3_bind_int(stmt, 5, mo.gcHandleIndex);
-                              sqlite3_bind_int(stmt, 6, mo.isValueType);
-                              sqlite3_bind_int(stmt, 7, mo.size);
-                              sqlite3_bind_int(stmt, 8, mo.nativeSize);
-                              sqlite3_bind_int(stmt, 9, mo.jointArrayIndex);
+                              sqlite3_bind_int(stmt, 5, mo.isValueType);
+                              sqlite3_bind_int(stmt, 6, mo.size);
+                              sqlite3_bind_int(stmt, 7, mo.nativeSize);
                           });
 }
 
@@ -496,11 +494,9 @@ MemorySnapshotCrawler *SnapshotCrawlerCache::read(const char *uuid)
                               mo.typeIndex = sqlite3_column_int(stmt, 1);
                               mo.managedObjectIndex = sqlite3_column_int(stmt, 2);
                               mo.nativeObjectIndex = sqlite3_column_int(stmt, 3);
-                              mo.gcHandleIndex = sqlite3_column_int(stmt, 4);
-                              mo.isValueType = (bool)sqlite3_column_int(stmt, 5);
-                              mo.size = sqlite3_column_int(stmt, 6);
-                              mo.nativeSize = sqlite3_column_int(stmt, 7);
-                              mo.jointArrayIndex = sqlite3_column_int(stmt, 8);
+                              mo.isValueType = (bool)sqlite3_column_int(stmt, 4);
+                              mo.size = sqlite3_column_int(stmt, 5);
+                              mo.nativeSize = sqlite3_column_int(stmt, 6);
                           });
     __sampler.end(); // read_managed_objects
     __sampler.begin("read_connections");
@@ -512,6 +508,7 @@ MemorySnapshotCrawler *SnapshotCrawlerCache::read(const char *uuid)
                                  ec.fromKind = (ConnectionKind)sqlite3_column_int(stmt, 2);
                                  ec.to = sqlite3_column_int(stmt, 3);
                                  ec.toKind = (ConnectionKind)sqlite3_column_int(stmt, 4);
+                                 ec.jointArrayIndex = sqlite3_column_int(stmt, 5);
                                  crawler->tryAcceptConnection(ec);
                              });
     __sampler.end(); // read_connections

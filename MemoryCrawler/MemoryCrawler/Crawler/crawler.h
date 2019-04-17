@@ -34,6 +34,7 @@ struct EntityJoint
     address_t fieldAddress = 0;
     int32_t elementArrayIndex = -1;
     int32_t jointArrayIndex = -1;
+    int32_t aliasArrayIndex = -1;
     bool isStatic = false;
     bool isConnected = false;
 };
@@ -52,10 +53,8 @@ struct ManagedObject
     int32_t typeIndex = -1;
     int32_t managedObjectIndex = -1;
     int32_t nativeObjectIndex = -1;
-    int32_t gcHandleIndex = -1;
     int32_t size = 0;
     int32_t nativeSize = 0;
-    int32_t jointArrayIndex = -1;
     bool isValueType = false;
 };
 

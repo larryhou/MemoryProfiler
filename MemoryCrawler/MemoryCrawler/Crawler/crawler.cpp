@@ -640,8 +640,6 @@ bool MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
     if (entryType.isValueType || iter == __crawlingVisit.end())
     {
         mo = &createManagedObject(address, typeIndex);
-        mo->jointArrayIndex = joint.jointArrayIndex;
-        mo->gcHandleIndex = joint.gcHandleIndex;
         setObjectSize(*mo, entryType, memoryReader);
     }
     else
