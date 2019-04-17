@@ -110,8 +110,9 @@ private:
     std::unordered_map<address_t, int32_t> __typeAddressMap;
     std::unordered_map<address_t, int32_t> __nativeObjectAddressMap;
     map<address_t, int32_t> __managedObjectAddressMap;
+    
     map<address_t, int32_t> __managedNativeAddressMap;
-    map<address_t, int32_t> __gcHandleAddressMap;
+    map<address_t, int32_t> __nativeManagedAddressMap;
 
 public:
     MemorySnapshotCrawler();
@@ -131,6 +132,9 @@ public:
     vector<vector<int32_t>> iterateMRefChain(ManagedObject *mo,
                                              vector<int32_t> chain, set<int64_t> antiCircular);
     
+    address_t findMObjectOfNObject(address_t address);
+    address_t findNObjectOfMObject(address_t address);
+    
     ~MemorySnapshotCrawler();
     
 private:
@@ -142,11 +146,10 @@ private:
     int32_t findTypeOfAddress(address_t address);
     int32_t findTypeAtTypeInfoAddress(address_t address);
     
-    int32_t findManagedObjectOfNativeObject(address_t address);
+    
     int32_t findMObjectAtAddress(address_t address);
     
     int32_t findNObjectAtAddress(address_t address);
-    int32_t findGCHandleWithTargetAddress(address_t address);
     
     bool isSubclassOfManagedType(TypeDescription &type, int32_t baseTypeIndex);
     bool isSubclassOfNativeType(PackedNativeType &type, int32_t baseTypeIndex);

@@ -123,6 +123,28 @@ void processSnapshot(const char * filepath)
         {
             printf("%s\n", mainCrawler.snapshot.uuid.c_str());
         }
+        else if (strbeg(command, "link"))
+        {
+            readCommandOptions(command, [&](std::vector<const char *> &options)
+                               {
+                                   for (auto i = 1; i < options.size(); i++)
+                                   {
+                                       auto address = strtoll(options[i], nullptr, 10);
+                                       printf("%lld\n", mainCrawler.findNObjectOfMObject(address));
+                                   }
+                               });
+        }
+        else if (strbeg(command, "ulink"))
+        {
+            readCommandOptions(command, [&](std::vector<const char *> &options)
+                               {
+                                   for (auto i = 1; i < options.size(); i++)
+                                   {
+                                       auto address = strtoll(options[i], nullptr, 10);
+                                       printf("%lld\n", mainCrawler.findMObjectOfNObject(address));
+                                   }
+                               });
+        }
         else if (strbeg(command, "ref"))
         {
             std::cout << "\e[96m";

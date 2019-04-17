@@ -451,7 +451,7 @@ int32_t MemorySnapshotCrawler::findTypeOfAddress(address_t address)
     return findTypeAtTypeInfoAddress(typePtr);
 }
 
-int32_t MemorySnapshotCrawler::findManagedObjectOfNativeObject(address_t address)
+address_t MemorySnapshotCrawler::findMObjectOfNObject(address_t address)
 {
     if (address == 0){return -1;}
     if (__managedNativeAddressMap.size() == 0)
@@ -468,7 +468,40 @@ int32_t MemorySnapshotCrawler::findManagedObjectOfNativeObject(address_t address
     }
     
     auto iter = __managedNativeAddressMap.find(address);
-    return iter != __managedNativeAddressMap.end() ? iter->second : -1;
+    if (iter == __managedNativeAddressMap.end())
+    {
+        return 0;
+    }
+    else
+    {
+        return managedObjects[iter->second].address;
+    }
+}
+
+address_t MemorySnapshotCrawler::findNObjectOfMObject(address_t address)
+{
+    if (address == 0){return -1;}
+    if (__nativeManagedAddressMap.size() == 0)
+    {
+        for (auto i = 0; i < managedObjects.size(); i++)
+        {
+            auto &mo = managedObjects[i];
+            if (mo.nativeObjectIndex >= 0)
+            {
+                __nativeManagedAddressMap.insert(pair<address_t, int32_t>(mo.address, mo.nativeObjectIndex));
+            }
+        }
+    }
+    
+    auto iter = __nativeManagedAddressMap.find(address);
+    if (iter == __nativeManagedAddressMap.end())
+    {
+        return 0;
+    }
+    else
+    {
+        return snapshot.nativeObjects->items[iter->second].nativeObjectAddress;
+    }
 }
 
 int32_t MemorySnapshotCrawler::findMObjectAtAddress(address_t address)
@@ -502,23 +535,6 @@ int32_t MemorySnapshotCrawler::findNObjectAtAddress(address_t address)
     
     auto iter = __nativeObjectAddressMap.find(address);
     return iter != __nativeObjectAddressMap.end() ? iter->second : -1;
-}
-
-int32_t MemorySnapshotCrawler::findGCHandleWithTargetAddress(address_t address)
-{
-    if (address == 0){return -1;}
-    if (__gcHandleAddressMap.size() == 0)
-    {
-        auto &gcHandles = *snapshot.gcHandles;
-        for (auto i = 0; i < gcHandles.size; i++)
-        {
-            auto &no = gcHandles[i];
-            __gcHandleAddressMap.insert(pair<address_t, int32_t>(no.target, no.gcHandleArrayIndex));
-        }
-    }
-    
-    auto iter = __gcHandleAddressMap.find(address);
-    return iter != __gcHandleAddressMap.end() ? iter->second : -1;
 }
 
 void MemorySnapshotCrawler::tryConnectWithNativeObject(ManagedObject &mo)
