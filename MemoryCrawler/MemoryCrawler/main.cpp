@@ -76,16 +76,25 @@ void processSnapshot(const char * filepath)
     char uuid[40];
     std::strcpy(uuid, mainCrawler.snapshot.uuid.c_str());
     
+    std::istream *stream = &std::cin;
     while (true)
     {
-        std::cout << "\e[93m/> ";
+        auto original = typeid(*stream) == typeid(std::cin);
         
+        std::cout << "\e[93m/> ";
         std::string input;
-        while (!getline(std::cin, input))
+        while (!getline(*stream, input))
         {
-            std::cin.clear();
+            if (!original)
+            {
+                ((ifstream *)stream)->close();
+                stream = &std::cin;
+            }
+            stream->clear();
             usleep(100000);
         }
+        
+        if (!original) {printf("%s\n", input.c_str());}
         std::cout << "\e[0m";
         
         const char *command = input.c_str();
@@ -173,7 +182,14 @@ void processSnapshot(const char * filepath)
         }
         else if (strbeg(command, "run"))
         {
-            
+            std::vector<string> commands;
+            readCommandOptions(command, [&](std::vector<const char *> &options)
+                               {
+                                   if (options.size() == 1){return;}
+                                   auto ifs = new ifstream;
+                                   ifs->open(options[1]);
+                                   stream = ifs;
+                               });
         }
         else if (strbeg(command, "leak"))
         {
