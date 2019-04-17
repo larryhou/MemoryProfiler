@@ -170,6 +170,12 @@ void MemorySnapshotCrawler::dumpMRefChain(address_t address)
     
 }
 
+vector<vector<int32_t>> MemorySnapshotCrawler::iterateMRefChain(ManagedObject *mo,
+                                                                vector<int32_t> chain, set<int64_t> antiCircular)
+{
+    return vector<vector<int32_t>>();
+}
+
 void MemorySnapshotCrawler::dumpNRefChain(address_t address)
 {
     auto objectIndex = findNObjectAtAddress(address);

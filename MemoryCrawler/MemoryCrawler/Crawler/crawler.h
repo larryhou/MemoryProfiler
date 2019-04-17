@@ -126,6 +126,8 @@ public:
     void dumpNRefChain(address_t address);
     vector<vector<int32_t>> iterateNRefChain(PackedNativeUnityEngineObject *no,
                                                    vector<int32_t> chain, set<int64_t> antiCircular);
+    vector<vector<int32_t>> iterateMRefChain(ManagedObject *mo,
+                                             vector<int32_t> chain, set<int64_t> antiCircular);
     
     ~MemorySnapshotCrawler();
     
