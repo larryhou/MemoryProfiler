@@ -8,6 +8,7 @@
 
 #include <string>
 #include <vector>
+#include <stdlib.h>
 #include "Crawler/crawler.h"
 #include "Crawler/cache.h"
 #include "Crawler/leak.h"
@@ -118,13 +119,26 @@ void processSnapshot(const char * filepath)
                                    crawler.crawl();
                                });
         }
+        else if (strbeg(command, "info"))
+        {
+            printf("%s\n", mainCrawler.snapshot.uuid.c_str());
+        }
         else if (strbeg(command, "ref"))
         {
             
         }
         else if (strbeg(command, "uref"))
         {
-            
+            std::cout << "\e[96m";
+            readCommandOptions(command, [&](std::vector<const char *> &options)
+                               {
+                                   for (auto i = 1; i < options.size(); i++)
+                                   {
+                                       auto address = strtoll(options[i], nullptr, 10);
+                                       mainCrawler.dumpNRefChain(address);
+                                   }
+                               });
+            std::cout << "\e[0m";
         }
         else if (strbeg(command, "run"))
         {

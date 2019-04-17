@@ -9,6 +9,7 @@
 #ifndef crawler_h
 #define crawler_h
 
+#include <set>
 #include <fstream>
 #include <vector>
 #include <map>
@@ -18,7 +19,8 @@
 #include "perf.h"
 #include "serialize.h"
 
-enum ConnectionKind:uint8_t { None, gcHandle, Native, Managed, Static };
+using std::vector;
+using std::set;
 
 struct EntityJoint
 {
@@ -36,14 +38,7 @@ struct EntityJoint
     bool isConnected = false;
 };
 
-struct EntityConnection
-{
-    int32_t connectionArrayIndex = -1;
-    int32_t from = -1;
-    int32_t to = -1;
-    ConnectionKind fromKind = ConnectionKind::None;
-    ConnectionKind toKind = ConnectionKind::None;
-};
+struct EntityConnection: public Connection {};
 
 struct ManagedObject
 {
@@ -127,10 +122,15 @@ public:
     void tryAcceptConnection(EntityConnection &connection);
     void tryAcceptConnection(Connection &connection);
     
+    void dumpMRefChain(address_t address);
+    void dumpNRefChain(address_t address);
+    vector<vector<int32_t>> iterateNRefChain(PackedNativeUnityEngineObject *no,
+                                                   vector<int32_t> chain, set<int64_t> antiCircular);
+    
     ~MemorySnapshotCrawler();
     
 private:
-    void initManagedTypes();
+    void prepare();
     void crawlGCHandles();
     void crawlStatic();
     void debug();
@@ -139,9 +139,9 @@ private:
     int32_t findTypeAtTypeInfoAddress(address_t address);
     
     int32_t findManagedObjectOfNativeObject(address_t address);
-    int32_t findManagedObjectAtAddress(address_t address);
+    int32_t findMObjectAtAddress(address_t address);
     
-    int32_t findNativeObjectAtAddress(address_t address);
+    int32_t findNObjectAtAddress(address_t address);
     int32_t findGCHandleWithTargetAddress(address_t address);
     
     bool isSubclassOfManagedType(TypeDescription &type, int32_t baseTypeIndex);

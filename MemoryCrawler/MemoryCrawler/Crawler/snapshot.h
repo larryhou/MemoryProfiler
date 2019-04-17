@@ -15,10 +15,15 @@
 
 using std::string;
 
+enum ConnectionKind:uint8_t { None, gcHandle, Native, Managed, Static };
+
 struct Connection
 {
+    int32_t connectionArrayIndex;
     int32_t from;
     int32_t to;
+    ConnectionKind fromKind = ConnectionKind::None;
+    ConnectionKind toKind = ConnectionKind::None;
     
     ~Connection();
 };
@@ -81,8 +86,8 @@ struct PackedGCHandle
 
 struct PackedNativeUnityEngineObject
 {
-    std::vector<Connection *> fromConnections;
-    std::vector<Connection *> toConnections;
+    std::vector<int32_t> fromConnections;
+    std::vector<int32_t> toConnections;
     
     int32_t hideFlags;
     int32_t instanceId;

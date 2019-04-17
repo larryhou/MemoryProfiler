@@ -29,7 +29,7 @@ MemorySnapshotCrawler::MemorySnapshotCrawler()
 MemorySnapshotCrawler &MemorySnapshotCrawler::crawl()
 {
     __sampler.begin("MemorySnapshotCrawler");
-    initManagedTypes();
+    prepare();
     crawlGCHandles();
     crawlStatic();
     summarize();
@@ -84,15 +84,49 @@ void MemorySnapshotCrawler::summarize()
     __sampler.end();
 }
 
-void MemorySnapshotCrawler::initManagedTypes()
+void MemorySnapshotCrawler::prepare()
 {
-    __sampler.begin("initManagedTypes");
+    __sampler.begin("prepare");
+    __sampler.begin("init_managed_types");
     Array<TypeDescription> &typeDescriptions = *snapshot.typeDescriptions;
     for (auto i = 0; i < typeDescriptions.size; i++)
     {
         TypeDescription &type = typeDescriptions[i];
         type.isUnityEngineObjectType = isSubclassOfManagedType(type, snapshot.managedTypeIndex.unityengine_Object);
     }
+    __sampler.end();
+    __sampler.begin("init_native_connections");
+    
+    auto offset = snapshot.gcHandles->size;
+    auto &nativeConnections = *snapshot.connections;
+    for (auto i = 0; i < nativeConnections.size; i++)
+    {
+        auto &nc = nativeConnections[i];
+        nc.connectionArrayIndex = i;
+        if (nc.from >= offset)
+        {
+            nc.fromKind = ConnectionKind::Native;
+            nc.from -= offset;
+        }
+        else
+        {
+            nc.fromKind = ConnectionKind::gcHandle;
+        }
+        
+        if (nc.to >= offset)
+        {
+            nc.toKind = ConnectionKind::Native;
+            nc.to -= offset;
+        }
+        else
+        {
+            nc.toKind = ConnectionKind::gcHandle;
+        }
+        
+        tryAcceptConnection(nc);
+    }
+    
+    __sampler.end();
     __sampler.end();
 }
 
@@ -129,6 +163,137 @@ bool MemorySnapshotCrawler::isSubclassOfNativeType(PackedNativeType &type, int32
     }
     
     return false;
+}
+
+void MemorySnapshotCrawler::dumpMRefChain(address_t address)
+{
+    
+}
+
+void MemorySnapshotCrawler::dumpNRefChain(address_t address)
+{
+    auto objectIndex = findNObjectAtAddress(address);
+    if (objectIndex == -1) {return;}
+    
+    auto *no = &snapshot.nativeObjects->items[objectIndex];
+    auto &nativeConnections = *snapshot.connections;
+    auto fullChains = iterateNRefChain(no, vector<int32_t>(), set<int64_t>());
+    for (auto c = fullChains.begin(); c != fullChains.end(); c++)
+    {
+        auto &chain = *c;
+        auto number = 0;
+        for (auto n = chain.rbegin(); n != chain.rend(); n++)
+        {
+            if (*n == -1)
+            {
+                printf("∞");
+                continue;
+            }
+            auto &nc = nativeConnections[*n];
+            if (number == 0)
+            {
+                if (nc.fromKind == ConnectionKind::gcHandle)
+                {
+                    assert(number == 0);
+                    printf("<gcHandle>.");
+                }
+                else
+                {
+                    auto &node = snapshot.nativeObjects->items[nc.from];
+                    auto &type = snapshot.nativeTypes->items[node.nativeTypeArrayIndex];
+                    if (node.isDontDestroyOnLoad)
+                    {
+                        printf("<DDO>.");
+                    }
+                    else if (node.isManager)
+                    {
+                        printf("<UMO>.");
+                    }
+                    else if (node.isPersistent)
+                    {
+                        printf("<SIS>.");
+                    }
+                    else
+                    {
+                        printf("<%d>.", node.instanceId);
+                    }
+                    printf("{%s:0x%08llx:'%s'}.", type.name->c_str(), node.nativeObjectAddress, node.name->c_str());
+                }
+            }
+            auto &node = snapshot.nativeObjects->items[nc.to];
+            auto &type = snapshot.nativeTypes->items[node.nativeTypeArrayIndex];
+            printf("{%s:0x%08llx:'%s'}.", type.name->c_str(), node.nativeObjectAddress, node.name->c_str());
+            ++number;
+        }
+        printf("\b \n");
+    }
+}
+
+vector<vector<int32_t>> MemorySnapshotCrawler::iterateNRefChain(PackedNativeUnityEngineObject *no,
+                                                                vector<int32_t> chain, set<int64_t> antiCircular)
+{
+    vector<vector<int32_t>> result;
+    if (no->fromConnections.size() > 0)
+    {
+        for (auto i = 0; i < no->fromConnections.size(); i++)
+        {
+            if (i >= 2) {break;}
+            auto ci = no->fromConnections[i];
+            auto &nc = snapshot.connections->items[ci];
+            auto fromIndex = nc.from;
+            
+            vector<int32_t> __chain(chain);
+            __chain.push_back(ci);
+            
+            if (nc.fromKind != ConnectionKind::Native)
+            {
+                result.push_back(__chain);
+                continue;
+            }
+            
+            int64_t uuid = (int64_t)nc.from << 32 | nc.to;
+            
+            auto match = antiCircular.find(uuid);
+            if (match == antiCircular.end())
+            {
+                set<int64_t> __antiCircular(antiCircular);
+                __antiCircular.insert(uuid);
+                
+                auto *fromObject = &snapshot.nativeObjects->items[fromIndex];
+                auto branches = iterateNRefChain(fromObject, __chain, __antiCircular);
+                if (branches.size() != 0)
+                {
+                    result.insert(result.end(), branches.begin(), branches.end());
+                }
+            }
+            else
+            {
+                __chain.push_back(-1);
+                result.push_back(__chain); // circular reference situation
+            }
+        }
+    }
+    else
+    {
+        if (chain.size() != 0){result.push_back(chain);}
+    }
+    
+    return result;
+}
+
+void MemorySnapshotCrawler::tryAcceptConnection(Connection &nc)
+{
+    if (nc.fromKind == ConnectionKind::Native)
+    {
+        auto &no = snapshot.nativeObjects->items[nc.from];
+        no.toConnections.push_back(nc.connectionArrayIndex);
+    }
+    
+    if (nc.toKind == ConnectionKind::Native)
+    {
+        auto &no = snapshot.nativeObjects->items[nc.to];
+        no.fromConnections.push_back(nc.connectionArrayIndex);
+    }
 }
 
 void MemorySnapshotCrawler::tryAcceptConnection(EntityConnection &ec)
@@ -197,7 +362,7 @@ int32_t MemorySnapshotCrawler::findManagedObjectOfNativeObject(address_t address
     return iter != __managedNativeAddressMap.end() ? iter->second : -1;
 }
 
-int32_t MemorySnapshotCrawler::findManagedObjectAtAddress(address_t address)
+int32_t MemorySnapshotCrawler::findMObjectAtAddress(address_t address)
 {
     if (address == 0){return -1;}
     if (__managedObjectAddressMap.size() == 0)
@@ -213,7 +378,7 @@ int32_t MemorySnapshotCrawler::findManagedObjectAtAddress(address_t address)
     return iter != __managedObjectAddressMap.end() ? iter->second : -1;
 }
 
-int32_t MemorySnapshotCrawler::findNativeObjectAtAddress(address_t address)
+int32_t MemorySnapshotCrawler::findNObjectAtAddress(address_t address)
 {
     if (address == 0){return -1;}
     if (__nativeObjectAddressMap.size() == 0)
@@ -258,7 +423,7 @@ void MemorySnapshotCrawler::tryConnectWithNativeObject(ManagedObject &mo)
     auto nativeAddress = __memoryReader->readPointer(mo.address + snapshot.cached_ptr->offset);
     if (nativeAddress == 0){return;}
     
-    auto nativeObjectIndex = findNativeObjectAtAddress(nativeAddress);
+    auto nativeObjectIndex = findNObjectAtAddress(nativeAddress);
     if (nativeObjectIndex == -1){return;}
     
     // connect managed/native objects
