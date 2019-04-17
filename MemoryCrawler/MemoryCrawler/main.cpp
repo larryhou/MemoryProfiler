@@ -89,6 +89,7 @@ void processSnapshot(const char * filepath)
             {
                 ((ifstream *)stream)->close();
                 stream = &std::cin;
+                original = true;
             }
             stream->clear();
             usleep(100000);
