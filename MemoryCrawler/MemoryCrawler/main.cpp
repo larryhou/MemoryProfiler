@@ -295,6 +295,13 @@ void processSnapshot(const char * filepath)
         {
             return;
         }
+        else if (strbeg(command, "color"))
+        {
+            for (auto i = 1; i <= 256; i++)
+            {
+                printf("\e[%dm\\e[%dm後沐白@moobyte\\e[0m\e[0m\n", i, i);
+            }
+        }
         else
         {
             printf("not supported command [%s]\n", command);
