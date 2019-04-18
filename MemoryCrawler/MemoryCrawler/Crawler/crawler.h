@@ -97,7 +97,7 @@ public:
     PackedMemorySnapshot snapshot;
     
 private:
-    static constexpr int64_t REF_ITERATE_CAPACITY = 1 << 24;
+    static constexpr int64_t REF_ITERATE_CAPACITY = 1 << 20;
     
     HeapMemoryReader *__memoryReader;
     StaticMemoryReader *__staticMemoryReader;
