@@ -165,7 +165,7 @@ bool MemorySnapshotCrawler::isSubclassOfNativeType(PackedNativeType &type, int32
     return false;
 }
 
-void MemorySnapshotCrawler::dumpMRefChain(address_t address)
+void MemorySnapshotCrawler::dumpMRefChain(address_t address, bool includeCircular)
 {
     auto objectIndex = findMObjectAtAddress(address);
     if (objectIndex == -1) {return;}
@@ -180,6 +180,7 @@ void MemorySnapshotCrawler::dumpMRefChain(address_t address)
         {
             if (*n == -1)
             {
+                if (!includeCircular) {break;}
                 printf("∞");
                 continue;
             }
@@ -285,7 +286,7 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateMRefChain(ManagedObject *m
     return result;
 }
 
-void MemorySnapshotCrawler::dumpNRefChain(address_t address)
+void MemorySnapshotCrawler::dumpNRefChain(address_t address, bool includeCircular)
 {
     auto objectIndex = findNObjectAtAddress(address);
     if (objectIndex == -1) {return;}
@@ -301,6 +302,7 @@ void MemorySnapshotCrawler::dumpNRefChain(address_t address)
         {
             if (*n == -1)
             {
+                if (!includeCircular){break;}
                 printf("∞");
                 continue;
             }
