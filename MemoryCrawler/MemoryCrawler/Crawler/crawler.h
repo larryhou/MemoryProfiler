@@ -57,6 +57,7 @@ struct ManagedObject
     int32_t size = 0;
     int32_t nativeSize = 0;
     bool isValueType = false;
+    CompareState state = CS_none;
 };
 
 #include <memory>
@@ -137,6 +138,8 @@ public:
     
     address_t findMObjectOfNObject(address_t address);
     address_t findNObjectOfMObject(address_t address);
+    
+    void compare(MemorySnapshotCrawler &crawler);
     
     ~MemorySnapshotCrawler();
     

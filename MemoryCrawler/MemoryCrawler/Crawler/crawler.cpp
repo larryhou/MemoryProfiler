@@ -105,22 +105,22 @@ void MemorySnapshotCrawler::prepare()
         nc.connectionArrayIndex = i;
         if (nc.from >= offset)
         {
-            nc.fromKind = ConnectionKind::Native;
+            nc.fromKind = CK_native;
             nc.from -= offset;
         }
         else
         {
-            nc.fromKind = ConnectionKind::gcHandle;
+            nc.fromKind = CK_gcHandle;
         }
         
         if (nc.to >= offset)
         {
-            nc.toKind = ConnectionKind::Native;
+            nc.toKind = CK_native;
             nc.to -= offset;
         }
         else
         {
-            nc.toKind = ConnectionKind::gcHandle;
+            nc.toKind = CK_gcHandle;
         }
         
         tryAcceptConnection(nc);
@@ -128,6 +128,12 @@ void MemorySnapshotCrawler::prepare()
     
     __sampler.end();
     __sampler.end();
+}
+
+void MemorySnapshotCrawler::compare(MemorySnapshotCrawler &crawler)
+{
+    map<address_t, int32_t> map;
+    
 }
 
 const char16_t *MemorySnapshotCrawler::getString(address_t address, int32_t &size)
@@ -200,7 +206,7 @@ void MemorySnapshotCrawler::dumpMRefChain(address_t address, bool includeCircula
             
             if (number == 0)
             {
-                if (ec.fromKind == gcHandle)
+                if (ec.fromKind == CK_gcHandle)
                 {
                     printf("<GCHandle>::%s 0x%08llx\n", type.name->c_str(), node.address);
                 }
@@ -208,7 +214,7 @@ void MemorySnapshotCrawler::dumpMRefChain(address_t address, bool includeCircula
                 {
                     auto &hookType = snapshot.typeDescriptions->items[joint.hookTypeIndex];
                     auto &field = hookType.fields->items[joint.fieldSlotIndex];
-                    if (ec.fromKind == Static)
+                    if (ec.fromKind == CK_static)
                     {
                         auto &hookType = snapshot.typeDescriptions->items[joint.hookTypeIndex];
                         printf("<Static>::%s::", hookType.name->c_str());
@@ -253,7 +259,7 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateMRefChain(ManagedObject *m
             vector<int32_t> __chain(chain);
             __chain.push_back(ci);
             
-            if (ec.fromKind == Static || ec.fromKind == gcHandle || fromIndex < 0)
+            if (ec.fromKind == CK_static || ec.fromKind == CK_gcHandle || fromIndex < 0)
             {
                 result.push_back(__chain);
                 continue;
@@ -329,7 +335,7 @@ void MemorySnapshotCrawler::dumpNRefChain(address_t address, bool includeCircula
             auto &nc = nativeConnections[index];
             if (number == 0)
             {
-                if (nc.fromKind == gcHandle)
+                if (nc.fromKind == CK_gcHandle)
                 {
                     assert(number == 0);
                     printf("<gcHandle>.");
@@ -383,7 +389,7 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateNRefChain(PackedNativeUnit
             vector<int32_t> __chain(chain);
             __chain.push_back(ci);
             
-            if (nc.fromKind != Native)
+            if (nc.fromKind != CK_native)
             {
                 result.push_back(__chain);
                 continue;
@@ -430,13 +436,13 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateNRefChain(PackedNativeUnit
 
 void MemorySnapshotCrawler::tryAcceptConnection(Connection &nc)
 {
-    if (nc.fromKind == ConnectionKind::Native)
+    if (nc.fromKind == CK_native)
     {
         auto &no = snapshot.nativeObjects->items[nc.from];
         no.toConnections.push_back(nc.connectionArrayIndex);
     }
     
-    if (nc.toKind == ConnectionKind::Native)
+    if (nc.toKind == CK_native)
     {
         auto &no = snapshot.nativeObjects->items[nc.to];
         no.fromConnections.push_back(nc.connectionArrayIndex);
@@ -445,13 +451,13 @@ void MemorySnapshotCrawler::tryAcceptConnection(Connection &nc)
 
 void MemorySnapshotCrawler::tryAcceptConnection(EntityConnection &ec)
 {
-    if (ec.fromKind != ConnectionKind::None && ec.from >= 0)
+    if (ec.fromKind != CK_none && ec.from >= 0)
     {
         auto &mo = managedObjects[ec.from];
         mo.toConnections.push_back(ec.connectionArrayIndex);
     }
     
-    if (ec.toKind != ConnectionKind::None && ec.to >= 0)
+    if (ec.toKind != CK_none && ec.to >= 0)
     {
         auto &mo = managedObjects[ec.to];
         mo.fromConnections.push_back(ec.connectionArrayIndex);
@@ -702,21 +708,21 @@ bool MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
     ec.connectionArrayIndex = connections.size() - 1;
     if (joint.gcHandleIndex >= 0)
     {
-        ec.fromKind = ConnectionKind::gcHandle;
+        ec.fromKind = CK_gcHandle;
         ec.from = joint.gcHandleIndex;
     }
     else if (joint.isStatic)
     {
-        ec.fromKind = ConnectionKind::Static;
+        ec.fromKind = CK_static;
         ec.from = -1;
     }
     else
     {
-        ec.fromKind = ConnectionKind::Managed;
+        ec.fromKind = CK_managed;
         ec.from = joint.hookObjectIndex;
     }
     
-    ec.toKind = ConnectionKind::Managed;
+    ec.toKind = CK_managed;
     ec.to = mo->managedObjectIndex;
     ec.jointArrayIndex = joint.jointArrayIndex;
     joint.isConnected = true;

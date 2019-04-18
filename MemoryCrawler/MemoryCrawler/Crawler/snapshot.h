@@ -15,15 +15,16 @@
 
 using std::string;
 
-enum ConnectionKind:uint8_t { None, gcHandle, Static, Managed, Native };
+enum ConnectionKind:uint8_t { CK_none = 0, CK_gcHandle, CK_static, CK_managed, CK_native };
+enum CompareState:uint8_t { CS_none = 0, CS_identical, CS_added, CS_deleted };
 
 struct Connection
 {
     int32_t connectionArrayIndex;
     int32_t from;
     int32_t to;
-    ConnectionKind fromKind = ConnectionKind::None;
-    ConnectionKind toKind = ConnectionKind::None;
+    ConnectionKind fromKind = CK_none;
+    ConnectionKind toKind = CK_none;
     
     ~Connection();
 };
@@ -94,6 +95,7 @@ struct PackedNativeUnityEngineObject
     bool isDontDestroyOnLoad;
     bool isManager;
     bool isPersistent;
+    CompareState state = CS_none;
     string *name = nullptr;
     address_t nativeObjectAddress;
     int32_t nativeTypeArrayIndex;
