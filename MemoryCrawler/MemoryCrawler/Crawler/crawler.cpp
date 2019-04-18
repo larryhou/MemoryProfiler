@@ -242,14 +242,14 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateMRefChain(ManagedObject *m
     vector<vector<int32_t>> result;
     if (mo->fromConnections.size() > 0)
     {
-        auto delta = limit;
-        if (delta <= 0) {delta = (int32_t)mo->fromConnections.size();}
-        __iter_capacity *= delta;
+        auto __limit = limit;
+        if (__limit <= 0) {__limit = (int32_t)mo->fromConnections.size();}
+        __iter_capacity *= __limit;
         
         set<int64_t> unique;
         for (auto i = 0; i < mo->fromConnections.size(); i++)
         {
-            if (unique.size() >= delta) {break;}
+            if (unique.size() >= __limit) {break;}
             auto ci = mo->fromConnections[i];
             auto &ec = connections[ci];
             auto fromIndex = ec.from;
@@ -376,14 +376,14 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateNRefChain(PackedNativeUnit
     vector<vector<int32_t>> result;
     if (no->fromConnections.size() > 0)
     {
-        auto delta = limit;
-        if (delta <= 0) {delta = (int32_t)no->fromConnections.size();}
-        __iter_capacity *= delta;
+        auto __limit = limit;
+        if (__limit <= 0) {__limit = (int32_t)no->fromConnections.size();}
+        __iter_capacity *= __limit;
         
         set<int64_t> unique;
         for (auto i = 0; i < no->fromConnections.size(); i++)
         {
-            if (unique.size() >= delta) {break;}
+            if (unique.size() >= __limit) {break;}
             auto ci = no->fromConnections[i];
             auto &nc = snapshot.connections->items[ci];
             auto fromIndex = nc.from;
