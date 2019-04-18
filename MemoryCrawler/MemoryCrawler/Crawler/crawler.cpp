@@ -269,7 +269,7 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateMRefChain(ManagedObject *m
             
             if (antiCircular.find(uuid) == antiCircular.end())
             {
-                if (__iter_capacity >= CRAWLER_ITERATE_CAPACITY)
+                if (__iter_capacity >= REF_ITERATE_CAPACITY)
                 {
                     __chain.push_back(-2); // interruptted signal
                     result.push_back(__chain);
@@ -403,7 +403,7 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateNRefChain(PackedNativeUnit
             
             if (antiCircular.find(uuid) == antiCircular.end())
             {
-                if (__iter_capacity >= CRAWLER_ITERATE_CAPACITY)
+                if (__iter_capacity >= REF_ITERATE_CAPACITY)
                 {
                     __chain.push_back(-2); // interruptted signal
                     result.push_back(__chain);
