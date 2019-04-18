@@ -97,7 +97,7 @@ public:
     PackedMemorySnapshot snapshot;
     
 private:
-    static constexpr int32_t CRAWLER_ITERATE_CAPACITY = 1000000;
+    static constexpr int32_t CRAWLER_ITERATE_CAPACITY = 100000;
     
     HeapMemoryReader *__memoryReader;
     StaticMemoryReader *__staticMemoryReader;
