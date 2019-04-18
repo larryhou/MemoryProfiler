@@ -237,19 +237,15 @@ void MemorySnapshotCrawler::dumpMRefChain(address_t address, bool includeCircula
 }
 
 vector<vector<int32_t>> MemorySnapshotCrawler::iterateMRefChain(ManagedObject *mo,
-                                                                vector<int32_t> chain, set<int64_t> antiCircular, int32_t limit, int32_t __iter_capacity)
+                                                                vector<int32_t> chain, set<int64_t> antiCircular, int32_t limit, int64_t __iter_capacity)
 {
     vector<vector<int32_t>> result;
     if (mo->fromConnections.size() > 0)
     {
-        auto __limit = limit;
-        if (__limit <= 0) {__limit = (int32_t)mo->fromConnections.size();}
-        __iter_capacity *= __limit;
-        
         set<int64_t> unique;
         for (auto i = 0; i < mo->fromConnections.size(); i++)
         {
-            if (unique.size() >= __limit) {break;}
+            if (limit > 0 && unique.size() >= limit) {break;}
             auto ci = mo->fromConnections[i];
             auto &ec = connections[ci];
             auto fromIndex = ec.from;
@@ -269,18 +265,18 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateMRefChain(ManagedObject *m
             
             if (antiCircular.find(uuid) == antiCircular.end())
             {
-                if (__iter_capacity >= REF_ITERATE_CAPACITY)
-                {
-                    __chain.push_back(-2); // interruptted signal
-                    result.push_back(__chain);
-                    continue;
-                }
-                
                 set<int64_t> __antiCircular(antiCircular);
                 __antiCircular.insert(uuid);
                 
                 auto *fromObject = &managedObjects[fromIndex];
-                auto branches = iterateMRefChain(fromObject, __chain, __antiCircular, limit, __iter_capacity);
+                auto depthCapacity = fromObject->fromConnections.size();
+                if (__iter_capacity * depthCapacity >= REF_ITERATE_CAPACITY && limit <= 0)
+                {
+                    chain.push_back(-2); // interruptted signal
+                    return {chain};
+                }
+                
+                auto branches = iterateMRefChain(fromObject, __chain, __antiCircular, limit, __iter_capacity * depthCapacity);
                 if (branches.size() != 0)
                 {
                     result.insert(result.end(), branches.begin(), branches.end());
@@ -371,19 +367,15 @@ void MemorySnapshotCrawler::dumpNRefChain(address_t address, bool includeCircula
 }
 
 vector<vector<int32_t>> MemorySnapshotCrawler::iterateNRefChain(PackedNativeUnityEngineObject *no,
-                                                                vector<int32_t> chain, set<int64_t> antiCircular, int32_t limit, int32_t __iter_capacity)
+                                                                vector<int32_t> chain, set<int64_t> antiCircular, int32_t limit, int64_t __iter_capacity)
 {
     vector<vector<int32_t>> result;
     if (no->fromConnections.size() > 0)
     {
-        auto __limit = limit;
-        if (__limit <= 0) {__limit = (int32_t)no->fromConnections.size();}
-        __iter_capacity *= __limit;
-        
         set<int64_t> unique;
         for (auto i = 0; i < no->fromConnections.size(); i++)
         {
-            if (unique.size() >= __limit) {break;}
+            if (limit > 0 && unique.size() >= limit) {break;}
             auto ci = no->fromConnections[i];
             auto &nc = snapshot.connections->items[ci];
             auto fromIndex = nc.from;
@@ -403,18 +395,19 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateNRefChain(PackedNativeUnit
             
             if (antiCircular.find(uuid) == antiCircular.end())
             {
-                if (__iter_capacity >= REF_ITERATE_CAPACITY)
+                set<int64_t> __antiCircular(antiCircular);
+                __antiCircular.insert(uuid);
+                
+                auto *fromObject = &snapshot.nativeObjects->items[fromIndex];
+                auto depthCapacity = fromObject->fromConnections.size();
+                if (__iter_capacity * depthCapacity >= REF_ITERATE_CAPACITY && limit <= 0)
                 {
                     __chain.push_back(-2); // interruptted signal
                     result.push_back(__chain);
                     continue;
                 }
                 
-                set<int64_t> __antiCircular(antiCircular);
-                __antiCircular.insert(uuid);
-                
-                auto *fromObject = &snapshot.nativeObjects->items[fromIndex];
-                auto branches = iterateNRefChain(fromObject, __chain, __antiCircular, limit, __iter_capacity);
+                auto branches = iterateNRefChain(fromObject, __chain, __antiCircular, limit, __iter_capacity * depthCapacity);
                 if (branches.size() != 0)
                 {
                     result.insert(result.end(), branches.begin(), branches.end());

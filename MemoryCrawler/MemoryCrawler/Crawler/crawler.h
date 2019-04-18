@@ -97,7 +97,7 @@ public:
     PackedMemorySnapshot snapshot;
     
 private:
-    static constexpr int32_t REF_ITERATE_CAPACITY = 100000;
+    static constexpr int64_t REF_ITERATE_CAPACITY = 1 << 24;
     
     HeapMemoryReader *__memoryReader;
     StaticMemoryReader *__staticMemoryReader;
@@ -131,9 +131,9 @@ public:
     void dumpMRefChain(address_t address, bool includeCircular, int32_t limit = 2);
     void dumpNRefChain(address_t address, bool includeCircular, int32_t limit = 2);
     vector<vector<int32_t>> iterateNRefChain(PackedNativeUnityEngineObject *no,
-                                             vector<int32_t> chain, set<int64_t> antiCircular, int32_t limit = 2, int32_t __iter_capacity = 1);
+                                             vector<int32_t> chain, set<int64_t> antiCircular, int32_t limit = 2, int64_t __iter_capacity = 1);
     vector<vector<int32_t>> iterateMRefChain(ManagedObject *mo,
-                                             vector<int32_t> chain, set<int64_t> antiCircular, int32_t limit = 2, int32_t __iter_capacity = 1);
+                                             vector<int32_t> chain, set<int64_t> antiCircular, int32_t limit = 2, int64_t __iter_capacity = 1);
     
     address_t findMObjectOfNObject(address_t address);
     address_t findNObjectOfMObject(address_t address);
