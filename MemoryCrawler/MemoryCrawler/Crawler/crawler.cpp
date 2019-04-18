@@ -251,15 +251,12 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateMRefChain(ManagedObject *m
                 continue;
             }
             
-            set<int64_t>::iterator m;
             int64_t uuid = ((int64_t)ec.fromKind << 30 | (int64_t)ec.from) << 32 | ((int64_t)ec.toKind << 30 | ec.to);
-            
-            m = unique.find(uuid);
-            if (m != unique.end()) {continue;}
+            if (unique.find(uuid) != unique.end()) {continue;}
             unique.insert(uuid);
             
-            m = antiCircular.find(uuid);
-            if (m == antiCircular.end())
+            auto match = antiCircular.find(uuid);
+            if (match == antiCircular.end())
             {
                 set<int64_t> __antiCircular(antiCircular);
                 __antiCircular.insert(uuid);
@@ -342,7 +339,7 @@ void MemorySnapshotCrawler::dumpNRefChain(address_t address, bool includeCircula
             printf("{%s:0x%08llx:'%s'}.", type.name->c_str(), node.nativeObjectAddress, node.name->c_str());
             ++number;
         }
-        printf("\b \n");
+        if (number != 0){printf("\b \n");}
     }
 }
 
@@ -352,9 +349,10 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateNRefChain(PackedNativeUnit
     vector<vector<int32_t>> result;
     if (no->fromConnections.size() > 0)
     {
+        set<int64_t> unique;
         for (auto i = 0; i < no->fromConnections.size(); i++)
         {
-            if (i >= 2) {break;}
+            if (unique.size() >= 2) {break;}
             auto ci = no->fromConnections[i];
             auto &nc = snapshot.connections->items[ci];
             auto fromIndex = nc.from;
@@ -369,6 +367,8 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateNRefChain(PackedNativeUnit
             }
             
             int64_t uuid = (int64_t)nc.from << 32 | nc.to;
+            if (unique.find(uuid) != unique.end()){continue;}
+            unique.insert(uuid);
             
             auto match = antiCircular.find(uuid);
             if (match == antiCircular.end())
