@@ -92,7 +92,7 @@ void MemorySnapshotCrawler::prepare()
     for (auto i = 0; i < typeDescriptions.size; i++)
     {
         TypeDescription &type = typeDescriptions[i];
-        type.isUnityEngineObjectType = isSubclassOfManagedType(type, snapshot.managedTypeIndex.unityengine_Object);
+        type.isUnityEngineObjectType = isSubclassOfMType(type, snapshot.managedTypeIndex.unityengine_Object);
     }
     __sampler.end();
     __sampler.begin("init_native_connections");
@@ -135,7 +135,7 @@ const char16_t *MemorySnapshotCrawler::getString(address_t address, int32_t &siz
     return __memoryReader->readString(address + __vm->objectHeaderSize, size);
 }
 
-bool MemorySnapshotCrawler::isSubclassOfManagedType(TypeDescription &type, int32_t baseTypeIndex)
+bool MemorySnapshotCrawler::isSubclassOfMType(TypeDescription &type, int32_t baseTypeIndex)
 {
     if (type.typeIndex == baseTypeIndex) { return true; }
     if (type.typeIndex < 0 || baseTypeIndex < 0) { return false; }
@@ -150,7 +150,7 @@ bool MemorySnapshotCrawler::isSubclassOfManagedType(TypeDescription &type, int32
     return false;
 }
 
-bool MemorySnapshotCrawler::isSubclassOfNativeType(PackedNativeType &type, int32_t baseTypeIndex)
+bool MemorySnapshotCrawler::isSubclassOfNType(PackedNativeType &type, int32_t baseTypeIndex)
 {
     if (type.typeIndex == baseTypeIndex) { return true; }
     if (type.typeIndex < 0 || baseTypeIndex < 0) { return false; }
@@ -428,7 +428,7 @@ void MemorySnapshotCrawler::tryAcceptConnection(EntityConnection &ec)
     }
 }
 
-int32_t MemorySnapshotCrawler::findTypeAtTypeInfoAddress(address_t address)
+int32_t MemorySnapshotCrawler::findTypeAtTypeAddress(address_t address)
 {
     if (address == 0) {return -1;}
     if (__typeAddressMap.size() == 0)
@@ -447,16 +447,16 @@ int32_t MemorySnapshotCrawler::findTypeAtTypeInfoAddress(address_t address)
 
 int32_t MemorySnapshotCrawler::findTypeOfAddress(address_t address)
 {
-    auto typeIndex = findTypeAtTypeInfoAddress(address);
+    auto typeIndex = findTypeAtTypeAddress(address);
     if (typeIndex != -1) {return typeIndex;}
     auto typePtr = __memoryReader->readPointer(address);
     if (typePtr == 0) {return -1;}
     auto vtablePtr = __memoryReader->readPointer(typePtr);
     if (vtablePtr != 0)
     {
-        return findTypeAtTypeInfoAddress(vtablePtr);
+        return findTypeAtTypeAddress(vtablePtr);
     }
-    return findTypeAtTypeInfoAddress(typePtr);
+    return findTypeAtTypeAddress(typePtr);
 }
 
 address_t MemorySnapshotCrawler::findMObjectOfNObject(address_t address)
@@ -571,12 +571,6 @@ void MemorySnapshotCrawler::tryConnectWithNativeObject(ManagedObject &mo)
     nativeType.managedTypeArrayIndex = type.typeIndex;
 }
 
-inline void MemorySnapshotCrawler::setObjectSize(ManagedObject &mo, TypeDescription &type, HeapMemoryReader &memoryReader)
-{
-    if (mo.size != 0){return;}
-    mo.size = memoryReader.readObjectSize(mo.address, type);
-}
-
 ManagedObject &MemorySnapshotCrawler::createManagedObject(address_t address, int32_t typeIndex)
 {
     auto &mo = managedObjects.add();
@@ -664,7 +658,7 @@ bool MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
     if (entryType.isValueType || iter == __crawlingVisit.end())
     {
         mo = &createManagedObject(address, typeIndex);
-        setObjectSize(*mo, entryType, memoryReader);
+        mo->size = memoryReader.readObjectSize(mo->address, entryType);
     }
     else
     {

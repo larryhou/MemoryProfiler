@@ -145,19 +145,15 @@ private:
     void debug();
     
     int32_t findTypeOfAddress(address_t address);
-    int32_t findTypeAtTypeInfoAddress(address_t address);
-    
+    int32_t findTypeAtTypeAddress(address_t address);
     
     int32_t findMObjectAtAddress(address_t address);
-    
     int32_t findNObjectAtAddress(address_t address);
     
-    bool isSubclassOfManagedType(TypeDescription &type, int32_t baseTypeIndex);
-    bool isSubclassOfNativeType(PackedNativeType &type, int32_t baseTypeIndex);
+    bool isSubclassOfMType(TypeDescription &type, int32_t baseTypeIndex);
+    bool isSubclassOfNType(PackedNativeType &type, int32_t baseTypeIndex);
     
     void tryConnectWithNativeObject(ManagedObject &mo);
-    
-    void setObjectSize(ManagedObject &mo, TypeDescription &type, HeapMemoryReader &memoryReader);
     
     ManagedObject &createManagedObject(address_t address, int32_t typeIndex);
     
