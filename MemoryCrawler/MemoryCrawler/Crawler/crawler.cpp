@@ -344,15 +344,15 @@ void MemorySnapshotCrawler::dumpNRefChain(address_t address, bool includeCircula
                     auto &type = snapshot.nativeTypes->items[node.nativeTypeArrayIndex];
                     if (node.isDontDestroyOnLoad)
                     {
-                        printf("<DDO>.");
+                        printf("<DDO>."); // Don't Destroy Object
                     }
                     else if (node.isManager)
                     {
-                        printf("<UMO>.");
+                        printf("<UMO>."); // Unity Managed Object
                     }
                     else if (node.isPersistent)
                     {
-                        printf("<SIS>.");
+                        printf("<SIS>."); // Store In Scene
                     }
                     else
                     {
