@@ -129,7 +129,7 @@ public:
     void dumpMRefChain(address_t address, bool includeCircular);
     void dumpNRefChain(address_t address, bool includeCircular);
     vector<vector<int32_t>> iterateNRefChain(PackedNativeUnityEngineObject *no,
-                                                   vector<int32_t> chain, set<int64_t> antiCircular);
+                                             vector<int32_t> chain, set<int64_t> antiCircular);
     vector<vector<int32_t>> iterateMRefChain(ManagedObject *mo,
                                              vector<int32_t> chain, set<int64_t> antiCircular);
     
