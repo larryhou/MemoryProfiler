@@ -37,7 +37,7 @@ void readCommandOptions(const char *command, std::function<void(std::vector<cons
 {
     std::vector<const char *> options;
     auto charCount = strlen(command);
-    char *item = new char[64];
+    char *item = new char[256];
     auto iter = 0;
     for (auto i = 0; i < charCount; i++)
     {
@@ -45,11 +45,11 @@ void readCommandOptions(const char *command, std::function<void(std::vector<cons
         {
             if (iter > 0)
             {
+                item[iter] = 0; // end c string
                 auto size = strlen(item);
                 auto option = new char[size];
                 strcpy(option, item);
                 options.push_back(option);
-                memset(item, 0, size);
                 iter = 0;
             }
         }
@@ -59,6 +59,7 @@ void readCommandOptions(const char *command, std::function<void(std::vector<cons
         }
     }
     
+    item[iter] = 0; // end c string
     if (strlen(item) > 0) { options.push_back(item); }
     
     callback(options);
@@ -123,8 +124,8 @@ void processSnapshot(const char * filepath)
                                    else
                                    {
                                        crawler = SnapshotCrawlerCache().read(options[1]);
+                                       mainCrawler.compare(*crawler);
                                    }
-                                   //todo: comparation
                                });
             delete crawler;
         }
@@ -134,11 +135,12 @@ void processSnapshot(const char * filepath)
         }
         else if (strbeg(command, "load"))
         {
-            readCommandOptions(command, [](std::vector<const char *> &options)
+            readCommandOptions(command, [&](std::vector<const char *> &options)
                                {
                                    if (options.size() == 1) {return;}
                                    MemorySnapshotCrawler crawler(options[1]);
                                    crawler.crawl();
+                                   mainCrawler.compare(crawler);
                                });
         }
         else if (strbeg(command, "info"))
@@ -290,6 +292,26 @@ void processSnapshot(const char * filepath)
                                    const char *subcommand = options[1];
                                    inspectCondition<PackedNativeUnityEngineObject>(subcommand);
                                });
+        }
+        else if (strbeg(command, "track"))
+        {
+            mainCrawler.trackingMode = !mainCrawler.trackingMode;
+            if (mainCrawler.trackingMode)
+            {
+                printf("\e[7mENTER TRACKING MODE\e[0m\n");
+            }
+            else
+            {
+                printf("\e[32m\e[7mLEAVE TRACKING MODE\e[0m\n");
+            }
+        }
+        else if (strbeg(command, "list"))
+        {
+            mainCrawler.trackMObjects();
+        }
+        else if (strbeg(command, "ulist"))
+        {
+            mainCrawler.trackNObjects();
         }
         else if (strbeg(command, "exit"))
         {

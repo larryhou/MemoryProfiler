@@ -385,7 +385,7 @@ MemorySnapshotCrawler *SnapshotCrawlerCache::read(const char *uuid)
                                               nt.isManager = (bool)sqlite3_column_int(stmt, 3);
                                               nt.isPersistent = (bool)sqlite3_column_int(stmt, 4);
                                               nt.name = new string((char *)sqlite3_column_text(stmt, 5));
-                                              nt.nativeObjectAddress = sqlite3_column_int(stmt, 6);
+                                              nt.nativeObjectAddress = sqlite3_column_int64(stmt, 6);
                                               nt.nativeTypeArrayIndex = sqlite3_column_int(stmt, 7);
                                               nt.size = sqlite3_column_int(stmt, 8);
                                               nt.managedObjectArrayIndex = sqlite3_column_int(stmt, 9);

@@ -96,6 +96,7 @@ public:
     InstanceManager<EntityJoint> joints;
     
     PackedMemorySnapshot snapshot;
+    bool trackingMode;
     
 private:
     static constexpr int64_t REF_ITERATE_CAPACITY = 1 << 20;
@@ -128,6 +129,9 @@ public:
     
     void tryAcceptConnection(EntityConnection &connection);
     void tryAcceptConnection(Connection &connection);
+    
+    void trackMObjects();
+    void trackNObjects();
     
     void dumpMRefChain(address_t address, bool includeCircular, int32_t limit = 2);
     void dumpNRefChain(address_t address, bool includeCircular, int32_t limit = 2);

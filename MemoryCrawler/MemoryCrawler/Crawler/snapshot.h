@@ -16,7 +16,7 @@
 using std::string;
 
 enum ConnectionKind:uint8_t { CK_none = 0, CK_gcHandle, CK_static, CK_managed, CK_native };
-enum CompareState:uint8_t { CS_none = 0, CS_identical, CS_added, CS_deleted };
+enum CompareState:uint8_t { CS_none = 0, CS_identical, CS_added, CS_modified, CS_deleted };
 
 struct Connection
 {

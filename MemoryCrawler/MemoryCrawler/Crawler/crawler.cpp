@@ -132,8 +132,90 @@ void MemorySnapshotCrawler::prepare()
 
 void MemorySnapshotCrawler::compare(MemorySnapshotCrawler &crawler)
 {
-    map<address_t, int32_t> map;
+    set<address_t> container;
     
+    // Compare managed objects
+    for (auto i = 0; i < crawler.managedObjects.size(); i++)
+    {
+        auto &mo = crawler.managedObjects[i];
+        if (!mo.isValueType)
+        {
+            container.insert(mo.address);
+        }
+    }
+    
+    auto itemCount = 0;
+    for (auto i = 0; i < managedObjects.size(); i++)
+    {
+        auto &mo = managedObjects[i];
+        if (!mo.isValueType)
+        {
+            mo.state = container.find(mo.address) == container.end() ? CS_added : CS_identical;
+            if (mo.state == CS_added) {itemCount++;}
+        }
+    }
+    
+    // Compare native objects
+    container.clear();
+    for (auto i = 0; i < crawler.snapshot.nativeObjects->size; i++)
+    {
+        auto &no = crawler.snapshot.nativeObjects->items[i];
+        container.insert(no.nativeObjectAddress);
+    }
+    printf("M+%d\n", itemCount);
+    
+    itemCount = 0;
+    for (auto i = 0; i < snapshot.nativeObjects->size; i++)
+    {
+        auto &no = snapshot.nativeObjects->items[i];
+        no.state = container.find(no.nativeObjectAddress) == container.end() ? CS_added : CS_identical;
+        if (no.state == CS_added){itemCount++;}
+    }
+    printf("N+%d\n", itemCount);
+}
+
+void MemorySnapshotCrawler::trackMObjects()
+{
+    for (auto i = 0; i < managedObjects.size(); i++)
+    {
+        auto &mo = managedObjects[i];
+        if (mo.state == CS_added)
+        {
+            auto &type = snapshot.typeDescriptions->items[mo.typeIndex];
+            printf("0x%08llx %6d %s\n", mo.address, mo.size, type.name->c_str());
+        }
+    }
+}
+
+void MemorySnapshotCrawler::trackNObjects()
+{
+    int32_t typeWidth = 0;
+    int32_t size = 1;
+    
+    vector<int32_t> objects;
+    for (auto i = 0; i < snapshot.nativeObjects->size; i++)
+    {
+        auto &no = snapshot.nativeObjects->items[i];
+        if (no.state == CS_added)
+        {
+            objects.push_back(no.nativeObjectArrayIndex);
+            auto &type = snapshot.nativeTypes->items[no.nativeTypeArrayIndex];
+            typeWidth = std::max(typeWidth, (int32_t)type.name->size());
+            size = std::max(size, no.size);
+        }
+    }
+    
+    auto digits = (int32_t)std::ceil(std::log10(size));
+    
+    char format[32];
+    sprintf(format, "0x%%08llx %%%dd %%%ds '%%s'\n", digits + 1, typeWidth + 1);
+    
+    for (auto index = objects.begin(); index != objects.end(); index++)
+    {
+        auto &no = snapshot.nativeObjects->items[*index];
+        auto &type = snapshot.nativeTypes->items[no.nativeTypeArrayIndex];
+        printf(format, no.nativeObjectAddress, no.size, type.name->c_str(), no.name->c_str());
+    }
 }
 
 const char16_t *MemorySnapshotCrawler::getString(address_t address, int32_t &size)
@@ -191,10 +273,13 @@ void MemorySnapshotCrawler::dumpMRefChain(address_t address, bool includeCircula
                 switch (index)
                 {
                     case -1:
-                        printf("∞");
+                        printf("∞"); // circular
                         continue;
                     case -2:
-                        printf("*");
+                        printf("*"); // more and interrupted
+                        continue;
+                    case -3:
+                        printf("~"); // ignore in tracking mode
                         continue;
                 }
             }
@@ -275,11 +360,18 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateMRefChain(ManagedObject *m
                 __antiCircular.insert(uuid);
                 
                 auto *fromObject = &managedObjects[fromIndex];
+                if (trackingMode && fromObject->state == CS_identical)
+                {
+                    __chain.push_back(-3); // ignore signal
+                    result.push_back(__chain);
+                    continue;
+                }
+                
                 auto depthCapacity = fromObject->fromConnections.size();
                 if (__iter_capacity * depthCapacity >= REF_ITERATE_CAPACITY && limit <= 0)
                 {
-                    chain.push_back(-2); // interruptted signal
-                    return {chain};
+                    __chain.push_back(-2); // interruptted signal
+                    return {__chain};
                 }
                 
                 auto branches = iterateMRefChain(fromObject, __chain, __antiCircular, limit, __iter_capacity * depthCapacity);
@@ -324,10 +416,13 @@ void MemorySnapshotCrawler::dumpNRefChain(address_t address, bool includeCircula
                 switch (index)
                 {
                     case -1:
-                        printf("∞");
+                        printf("∞"); // circular
                         continue;
                     case -2:
-                        printf("*");
+                        printf("*"); // more and interrupted
+                        continue;
+                    case -3:
+                        printf("~"); // ignore in tracking mode
                         continue;
                 }
             }
@@ -405,6 +500,13 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateNRefChain(PackedNativeUnit
                 __antiCircular.insert(uuid);
                 
                 auto *fromObject = &snapshot.nativeObjects->items[fromIndex];
+                if (trackingMode && fromObject->state == CS_identical)
+                {
+                    __chain.push_back(-3); // ignore signal
+                    result.push_back(__chain);
+                    continue;
+                }
+                
                 auto depthCapacity = fromObject->fromConnections.size();
                 if (__iter_capacity * depthCapacity >= REF_ITERATE_CAPACITY && limit <= 0)
                 {
@@ -695,6 +797,7 @@ bool MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
     {
         mo = &createManagedObject(address, typeIndex);
         mo->size = memoryReader.readObjectSize(mo->address, entryType);
+        mo->isValueType = entryType.isValueType;
     }
     else
     {
