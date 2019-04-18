@@ -255,8 +255,7 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateMRefChain(ManagedObject *m
             if (unique.find(uuid) != unique.end()) {continue;}
             unique.insert(uuid);
             
-            auto match = antiCircular.find(uuid);
-            if (match == antiCircular.end())
+            if (antiCircular.find(uuid) == antiCircular.end())
             {
                 set<int64_t> __antiCircular(antiCircular);
                 __antiCircular.insert(uuid);
@@ -370,8 +369,7 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateNRefChain(PackedNativeUnit
             if (unique.find(uuid) != unique.end()){continue;}
             unique.insert(uuid);
             
-            auto match = antiCircular.find(uuid);
-            if (match == antiCircular.end())
+            if (antiCircular.find(uuid) == antiCircular.end())
             {
                 set<int64_t> __antiCircular(antiCircular);
                 __antiCircular.insert(uuid);
