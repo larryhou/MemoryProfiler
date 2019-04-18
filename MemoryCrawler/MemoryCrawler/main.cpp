@@ -66,6 +66,18 @@ void readCommandOptions(const char *command, std::function<void(std::vector<cons
     for (auto i = 0; i < options.size(); i++) { delete [] options[i]; }
 }
 
+address_t castAddress(const char *v)
+{
+    if (v[0] == '0')
+    {
+        return strtoll(v, nullptr, 0);
+    }
+    else
+    {
+        return strtoll(v, nullptr, 10);
+    }
+}
+
 #include <unistd.h>
 #include <memory>
 void processSnapshot(const char * filepath)
@@ -139,7 +151,7 @@ void processSnapshot(const char * filepath)
                                {
                                    for (auto i = 1; i < options.size(); i++)
                                    {
-                                       auto address = strtoll(options[i], nullptr, 10);
+                                       auto address = castAddress(options[i]);
                                        printf("%lld\n", mainCrawler.findNObjectOfMObject(address));
                                    }
                                });
@@ -150,7 +162,7 @@ void processSnapshot(const char * filepath)
                                {
                                    for (auto i = 1; i < options.size(); i++)
                                    {
-                                       auto address = strtoll(options[i], nullptr, 10);
+                                       auto address = castAddress(options[i]);
                                        printf("%lld\n", mainCrawler.findMObjectOfNObject(address));
                                    }
                                });
@@ -162,7 +174,7 @@ void processSnapshot(const char * filepath)
                                {
                                    for (auto i = 1; i < options.size(); i++)
                                    {
-                                       auto address = strtoll(options[i], nullptr, 10);
+                                       auto address = castAddress(options[i]);
                                        mainCrawler.dumpMRefChain(address, false, -1);
                                    }
                                });
@@ -175,7 +187,7 @@ void processSnapshot(const char * filepath)
                                {
                                    for (auto i = 1; i < options.size(); i++)
                                    {
-                                       auto address = strtoll(options[i], nullptr, 10);
+                                       auto address = castAddress(options[i]);
                                        mainCrawler.dumpNRefChain(address, false, -1);
                                    }
                                });
@@ -188,7 +200,7 @@ void processSnapshot(const char * filepath)
                                {
                                    for (auto i = 1; i < options.size(); i++)
                                    {
-                                       auto address = strtoll(options[i], nullptr, 10);
+                                       auto address = castAddress(options[i]);
                                        mainCrawler.dumpMRefChain(address, true, -1);
                                    }
                                });
@@ -201,7 +213,7 @@ void processSnapshot(const char * filepath)
                                {
                                    for (auto i = 1; i < options.size(); i++)
                                    {
-                                       auto address = strtoll(options[i], nullptr, 10);
+                                       auto address = castAddress(options[i]);
                                        mainCrawler.dumpNRefChain(address, true, -1);
                                    }
                                });
@@ -214,7 +226,7 @@ void processSnapshot(const char * filepath)
                                {
                                    for (auto i = 1; i < options.size(); i++)
                                    {
-                                       auto address = strtoll(options[i], nullptr, 10);
+                                       auto address = castAddress(options[i]);
                                        mainCrawler.dumpMRefChain(address, false);
                                    }
                                });
@@ -227,7 +239,7 @@ void processSnapshot(const char * filepath)
                                {
                                    for (auto i = 1; i < options.size(); i++)
                                    {
-                                       auto address = strtoll(options[i], nullptr, 10);
+                                       auto address = castAddress(options[i]);
                                        mainCrawler.dumpNRefChain(address, false);
                                    }
                                });
@@ -240,7 +252,7 @@ void processSnapshot(const char * filepath)
                                {
                                    for (auto i = 1; i < options.size(); i++)
                                    {
-                                       auto address = strtoll(options[i], nullptr, 10);
+                                       auto address = castAddress(options[i]);
                                        mainCrawler.dumpMRefChain(address, true);
                                    }
                                });
@@ -253,7 +265,7 @@ void processSnapshot(const char * filepath)
                                {
                                    for (auto i = 1; i < options.size(); i++)
                                    {
-                                       auto address = strtoll(options[i], nullptr, 10);
+                                       auto address = castAddress(options[i]);
                                        mainCrawler.dumpNRefChain(address, true);
                                    }
                                });
