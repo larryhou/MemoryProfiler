@@ -165,27 +165,35 @@ bool MemorySnapshotCrawler::isSubclassOfNType(PackedNativeType &type, int32_t ba
     return false;
 }
 
-void MemorySnapshotCrawler::dumpMRefChain(address_t address, bool includeCircular)
+void MemorySnapshotCrawler::dumpMRefChain(address_t address, bool includeCircular, int32_t limit)
 {
     auto objectIndex = findMObjectAtAddress(address);
     if (objectIndex == -1) {return;}
     
     auto *mo = &managedObjects[objectIndex];
-    auto fullChains = iterateMRefChain(mo, vector<int32_t>(), set<int64_t>());
+    auto fullChains = iterateMRefChain(mo, vector<int32_t>(), set<int64_t>(), limit);
     for (auto c = fullChains.begin(); c != fullChains.end(); c++)
     {
         auto &chain = *c;
         auto number = 0;
         for (auto n = chain.rbegin(); n != chain.rend(); n++)
         {
-            if (*n == -1)
+            auto index = *n;
+            if (index < 0)
             {
                 if (!includeCircular) {break;}
-                printf("∞");
-                continue;
+                switch (index)
+                {
+                    case -1:
+                        printf("∞");
+                        continue;
+                    case -2:
+                        printf("*");
+                        continue;
+                }
             }
             
-            auto &ec = connections[*n];
+            auto &ec = connections[index];
             auto &node = managedObjects[ec.to];
             auto &joint = joints[ec.jointArrayIndex];
             auto &type = snapshot.typeDescriptions->items[node.typeIndex];
@@ -229,15 +237,18 @@ void MemorySnapshotCrawler::dumpMRefChain(address_t address, bool includeCircula
 }
 
 vector<vector<int32_t>> MemorySnapshotCrawler::iterateMRefChain(ManagedObject *mo,
-                                                                vector<int32_t> chain, set<int64_t> antiCircular)
+                                                                vector<int32_t> chain, set<int64_t> antiCircular, int32_t limit, int32_t __iter_capacity)
 {
     vector<vector<int32_t>> result;
     if (mo->fromConnections.size() > 0)
     {
+        if (limit <= 0) {limit = (int32_t)mo->fromConnections.size();}
+        __iter_capacity *= limit;
+        
         set<int64_t> unique;
         for (auto i = 0; i < mo->fromConnections.size(); i++)
         {
-            if (unique.size() >= 2) {break;}
+            if (unique.size() >= limit) {break;}
             auto ci = mo->fromConnections[i];
             auto &ec = connections[ci];
             auto fromIndex = ec.from;
@@ -257,11 +268,18 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateMRefChain(ManagedObject *m
             
             if (antiCircular.find(uuid) == antiCircular.end())
             {
+                if (__iter_capacity >= CRAWLER_ITERATE_CAPACITY)
+                {
+                    __chain.push_back(-2); // interruptted signal
+                    result.push_back(__chain);
+                    continue;
+                }
+                
                 set<int64_t> __antiCircular(antiCircular);
                 __antiCircular.insert(uuid);
                 
                 auto *fromObject = &managedObjects[fromIndex];
-                auto branches = iterateMRefChain(fromObject, __chain, __antiCircular);
+                auto branches = iterateMRefChain(fromObject, __chain, __antiCircular, limit, __iter_capacity);
                 if (branches.size() != 0)
                 {
                     result.insert(result.end(), branches.begin(), branches.end());
@@ -269,7 +287,7 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateMRefChain(ManagedObject *m
             }
             else
             {
-                __chain.push_back(-1);
+                __chain.push_back(-1); // circular signal
                 result.push_back(__chain); // circular reference situation
             }
         }
@@ -282,27 +300,36 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateMRefChain(ManagedObject *m
     return result;
 }
 
-void MemorySnapshotCrawler::dumpNRefChain(address_t address, bool includeCircular)
+void MemorySnapshotCrawler::dumpNRefChain(address_t address, bool includeCircular, int32_t limit)
 {
     auto objectIndex = findNObjectAtAddress(address);
     if (objectIndex == -1) {return;}
     
     auto *no = &snapshot.nativeObjects->items[objectIndex];
     auto &nativeConnections = *snapshot.connections;
-    auto fullChains = iterateNRefChain(no, vector<int32_t>(), set<int64_t>());
+    auto fullChains = iterateNRefChain(no, vector<int32_t>(), set<int64_t>(), limit);
     for (auto c = fullChains.begin(); c != fullChains.end(); c++)
     {
         auto &chain = *c;
         auto number = 0;
         for (auto n = chain.rbegin(); n != chain.rend(); n++)
         {
-            if (*n == -1)
+            auto index = *n;
+            if (index < 0)
             {
-                if (!includeCircular){break;}
-                printf("∞");
-                continue;
+                if (!includeCircular) {break;}
+                switch (index)
+                {
+                    case -1:
+                        printf("∞");
+                        continue;
+                    case -2:
+                        printf("*");
+                        continue;
+                }
             }
-            auto &nc = nativeConnections[*n];
+            
+            auto &nc = nativeConnections[index];
             if (number == 0)
             {
                 if (nc.fromKind == gcHandle)
@@ -343,15 +370,18 @@ void MemorySnapshotCrawler::dumpNRefChain(address_t address, bool includeCircula
 }
 
 vector<vector<int32_t>> MemorySnapshotCrawler::iterateNRefChain(PackedNativeUnityEngineObject *no,
-                                                                vector<int32_t> chain, set<int64_t> antiCircular)
+                                                                vector<int32_t> chain, set<int64_t> antiCircular, int32_t limit, int32_t __iter_capacity)
 {
     vector<vector<int32_t>> result;
     if (no->fromConnections.size() > 0)
     {
+        if (limit <= 0) {limit = (int32_t)no->fromConnections.size();}
+        __iter_capacity *= limit;
+        
         set<int64_t> unique;
         for (auto i = 0; i < no->fromConnections.size(); i++)
         {
-            if (unique.size() >= 2) {break;}
+            if (unique.size() >= limit) {break;}
             auto ci = no->fromConnections[i];
             auto &nc = snapshot.connections->items[ci];
             auto fromIndex = nc.from;
@@ -371,11 +401,18 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateNRefChain(PackedNativeUnit
             
             if (antiCircular.find(uuid) == antiCircular.end())
             {
+                if (__iter_capacity >= CRAWLER_ITERATE_CAPACITY)
+                {
+                    __chain.push_back(-2); // interruptted signal
+                    result.push_back(__chain);
+                    continue;
+                }
+                
                 set<int64_t> __antiCircular(antiCircular);
                 __antiCircular.insert(uuid);
                 
                 auto *fromObject = &snapshot.nativeObjects->items[fromIndex];
-                auto branches = iterateNRefChain(fromObject, __chain, __antiCircular);
+                auto branches = iterateNRefChain(fromObject, __chain, __antiCircular, limit, __iter_capacity);
                 if (branches.size() != 0)
                 {
                     result.insert(result.end(), branches.begin(), branches.end());
@@ -383,7 +420,7 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateNRefChain(PackedNativeUnit
             }
             else
             {
-                __chain.push_back(-1);
+                __chain.push_back(-1); // circular signal
                 result.push_back(__chain); // circular reference situation
             }
         }

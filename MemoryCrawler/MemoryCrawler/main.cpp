@@ -155,7 +155,59 @@ void processSnapshot(const char * filepath)
                                    }
                                });
         }
-        else if (strbeg(command, "kref"))
+        else if (strbeg(command, "KREF")) // complete managed object reference chains except circular ones
+        {
+            std::cout << "\e[96m";
+            readCommandOptions(command, [&](std::vector<const char *> &options)
+                               {
+                                   for (auto i = 1; i < options.size(); i++)
+                                   {
+                                       auto address = strtoll(options[i], nullptr, 10);
+                                       mainCrawler.dumpMRefChain(address, false, -1);
+                                   }
+                               });
+            std::cout << "\e[0m";
+        }
+        else if (strbeg(command, "UKREF")) // complete native object reference chains except circular ones
+        {
+            std::cout << "\e[96m";
+            readCommandOptions(command, [&](std::vector<const char *> &options)
+                               {
+                                   for (auto i = 1; i < options.size(); i++)
+                                   {
+                                       auto address = strtoll(options[i], nullptr, 10);
+                                       mainCrawler.dumpNRefChain(address, false, -1);
+                                   }
+                               });
+            std::cout << "\e[0m";
+        }
+        else if (strbeg(command, "REF")) // complete managed object reference chains
+        {
+            std::cout << "\e[96m";
+            readCommandOptions(command, [&](std::vector<const char *> &options)
+                               {
+                                   for (auto i = 1; i < options.size(); i++)
+                                   {
+                                       auto address = strtoll(options[i], nullptr, 10);
+                                       mainCrawler.dumpMRefChain(address, true, -1);
+                                   }
+                               });
+            std::cout << "\e[0m";
+        }
+        else if (strbeg(command, "UREF")) // complete native object reference chains
+        {
+            std::cout << "\e[96m";
+            readCommandOptions(command, [&](std::vector<const char *> &options)
+                               {
+                                   for (auto i = 1; i < options.size(); i++)
+                                   {
+                                       auto address = strtoll(options[i], nullptr, 10);
+                                       mainCrawler.dumpNRefChain(address, true, -1);
+                                   }
+                               });
+            std::cout << "\e[0m";
+        }
+        else if (strbeg(command, "kref")) // partial managed object reference chains except circular ones
         {
             std::cout << "\e[96m";
             readCommandOptions(command, [&](std::vector<const char *> &options)
@@ -168,7 +220,7 @@ void processSnapshot(const char * filepath)
                                });
             std::cout << "\e[0m";
         }
-        else if (strbeg(command, "ukref"))
+        else if (strbeg(command, "ukref")) // partial native object reference chains except circular ones
         {
             std::cout << "\e[96m";
             readCommandOptions(command, [&](std::vector<const char *> &options)
@@ -181,7 +233,7 @@ void processSnapshot(const char * filepath)
                                });
             std::cout << "\e[0m";
         }
-        else if (strbeg(command, "ref"))
+        else if (strbeg(command, "ref")) // partial managed object reference chains
         {
             std::cout << "\e[96m";
             readCommandOptions(command, [&](std::vector<const char *> &options)
@@ -194,7 +246,7 @@ void processSnapshot(const char * filepath)
                                });
             std::cout << "\e[0m";
         }
-        else if (strbeg(command, "uref"))
+        else if (strbeg(command, "uref")) // partial native object reference chains
         {
             std::cout << "\e[96m";
             readCommandOptions(command, [&](std::vector<const char *> &options)
