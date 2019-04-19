@@ -285,11 +285,11 @@ void processSnapshot(const char * filepath)
             mainCrawler.trackingMode = !mainCrawler.trackingMode;
             if (mainCrawler.trackingMode)
             {
-                printf("\e[92m\e[7mENTER LEAK TRACKING MODE\e[0m\n");
+                printf("\e[92m\e[7mENTER TRACKING MODE\e[0m\n");
             }
             else
             {
-                printf("\e[32m\e[7mLEAVE LEAK TRACKING MODE\e[0m\n");
+                printf("\e[32m\e[7mLEAVE TRACKING MODE\e[0m\n");
             }
         }
         else if (strbeg(command, "stat"))
