@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		6B0AC7432252FC5D00B58C69 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6B0AC7422252FC5D00B58C69 /* main.cpp */; };
+		6B3498DB2269643400E7E4EC /* stat.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6B3498DA2269643400E7E4EC /* stat.cpp */; };
 		6B5343722255B43F003CDBD0 /* serialize.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6B5343712255B43F003CDBD0 /* serialize.cpp */; };
 		6B74B76F2254748200A69BC0 /* stream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6B74B76D2254748200A69BC0 /* stream.cpp */; };
 		6B74B77222548A0900A69BC0 /* snapshot.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6B74B77122548A0900A69BC0 /* snapshot.cpp */; };
@@ -32,6 +33,8 @@
 /* Begin PBXFileReference section */
 		6B0AC73F2252FC5D00B58C69 /* MemoryCrawler */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = MemoryCrawler; sourceTree = BUILT_PRODUCTS_DIR; };
 		6B0AC7422252FC5D00B58C69 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		6B3498D92269643400E7E4EC /* stat.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = stat.h; sourceTree = "<group>"; };
+		6B3498DA2269643400E7E4EC /* stat.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = stat.cpp; sourceTree = "<group>"; };
 		6B51B439225470A000E05EAE /* snapshot.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = snapshot.h; sourceTree = "<group>"; };
 		6B5343702255B43E003CDBD0 /* serialize.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = serialize.h; sourceTree = "<group>"; };
 		6B5343712255B43F003CDBD0 /* serialize.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = serialize.cpp; sourceTree = "<group>"; };
@@ -106,6 +109,8 @@
 				6BE889A1225CA16B0029BB09 /* cache.h */,
 				6BE889A2225CA16B0029BB09 /* cache.cpp */,
 				6B87DD0F2265CCC6001B0BE3 /* leak.h */,
+				6B3498D92269643400E7E4EC /* stat.h */,
+				6B3498DA2269643400E7E4EC /* stat.cpp */,
 			);
 			path = Crawler;
 			sourceTree = "<group>";
@@ -179,6 +184,7 @@
 				6B74B77222548A0900A69BC0 /* snapshot.cpp in Sources */,
 				6B0AC7432252FC5D00B58C69 /* main.cpp in Sources */,
 				6B5343722255B43F003CDBD0 /* serialize.cpp in Sources */,
+				6B3498DB2269643400E7E4EC /* stat.cpp in Sources */,
 				6B74B76F2254748200A69BC0 /* stream.cpp in Sources */,
 				6BCA665322584B6100A4C96A /* heap.cpp in Sources */,
 			);

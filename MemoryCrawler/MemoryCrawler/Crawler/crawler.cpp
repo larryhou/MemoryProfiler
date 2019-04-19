@@ -150,8 +150,8 @@ void MemorySnapshotCrawler::compare(MemorySnapshotCrawler &crawler)
         auto &mo = managedObjects[i];
         if (!mo.isValueType)
         {
-            mo.state = container.find(mo.address) == container.end() ? CS_added : CS_identical;
-            if (mo.state == CS_added) {itemCount++;}
+            mo.state = container.find(mo.address) == container.end() ? CS_new : CS_identical;
+            if (mo.state == CS_new) {itemCount++;}
         }
     }
     
@@ -168,18 +168,18 @@ void MemorySnapshotCrawler::compare(MemorySnapshotCrawler &crawler)
     for (auto i = 0; i < snapshot.nativeObjects->size; i++)
     {
         auto &no = snapshot.nativeObjects->items[i];
-        no.state = container.find(no.nativeObjectAddress) == container.end() ? CS_added : CS_identical;
-        if (no.state == CS_added){itemCount++;}
+        no.state = container.find(no.nativeObjectAddress) == container.end() ? CS_new : CS_identical;
+        if (no.state == CS_new){itemCount++;}
     }
     printf("N+%d\n", itemCount);
 }
 
-void MemorySnapshotCrawler::trackMObjects()
+void MemorySnapshotCrawler::trackMObjects(CompareState state, int32_t depth)
 {
     for (auto i = 0; i < managedObjects.size(); i++)
     {
         auto &mo = managedObjects[i];
-        if (mo.state == CS_added)
+        if (mo.state == state)
         {
             auto &type = snapshot.typeDescriptions->items[mo.typeIndex];
             printf("0x%08llx %6d %s\n", mo.address, mo.size, type.name->c_str());
@@ -187,20 +187,16 @@ void MemorySnapshotCrawler::trackMObjects()
     }
 }
 
-void MemorySnapshotCrawler::trackNObjects()
+void MemorySnapshotCrawler::trackNObjects(CompareState state, int32_t depth)
 {
-    int32_t typeWidth = 0;
     int32_t size = 1;
-    
-    vector<int32_t> objects;
+    TrackStatistics objects;
     for (auto i = 0; i < snapshot.nativeObjects->size; i++)
     {
         auto &no = snapshot.nativeObjects->items[i];
-        if (no.state == CS_added)
+        if (no.state == state)
         {
-            objects.push_back(no.nativeObjectArrayIndex);
-            auto &type = snapshot.nativeTypes->items[no.nativeTypeArrayIndex];
-            typeWidth = std::max(typeWidth, (int32_t)type.name->size());
+            objects.collect(i, no.nativeTypeArrayIndex, no.size);
             size = std::max(size, no.size);
         }
     }
@@ -208,14 +204,45 @@ void MemorySnapshotCrawler::trackNObjects()
     auto digits = (int32_t)std::ceil(std::log10(size));
     
     char format[32];
-    sprintf(format, "0x%%08llx %%%dd %%%ds '%%s'\n", digits + 1, typeWidth + 1);
+    sprintf(format, "0x%%08llx %%%dd '%%s'\n", digits);
+    objects.summarize();
     
-    for (auto index = objects.begin(); index != objects.end(); index++)
-    {
-        auto &no = snapshot.nativeObjects->items[*index];
-        auto &type = snapshot.nativeTypes->items[no.nativeTypeArrayIndex];
-        printf(format, no.nativeObjectAddress, no.size, type.name->c_str(), no.name->c_str());
-    }
+    int32_t total = 0;
+    int32_t count = 0;
+    objects.foreach([&](int32_t itemIndex, int32_t typeIndex, int64_t size)
+                    {
+                        auto &type = snapshot.nativeTypes->items[typeIndex];
+                        switch (itemIndex)
+                        {
+                            case -1:
+                            {
+                                total += size;
+                                printf("[%s][=] memory=%d\n", type.name->c_str(), (int32_t)size);
+                                break;
+                            }
+                            case -2:
+                            {
+                                auto __count = (int32_t)(size >> 32);
+                                auto skipCount = __count >> 16;
+                                auto typeCount = __count & 0xFFFF;
+                                auto __size = (int32_t)(size & 0xFFFFFFFF);
+                                if (skipCount > 0){printf("[%s][~] %d/%d=%d\n", type.name->c_str(), skipCount, typeCount, __size);}
+                                total += __size;
+                                count += skipCount;
+                                printf("\n");
+                                break;
+                            }
+                            default:
+                            {
+                                total += size;
+                                count ++;
+                                auto &no = snapshot.nativeObjects->items[itemIndex];
+                                printf(format, no.nativeObjectAddress, no.size, no.name->c_str());
+                                break;
+                            }
+                        }
+                    }, depth);
+    printf("\n[SUMMARY] count=%d memory=%d\n", count, total);
 }
 
 const char16_t *MemorySnapshotCrawler::getString(address_t address, int32_t &size)

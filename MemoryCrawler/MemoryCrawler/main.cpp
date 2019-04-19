@@ -298,20 +298,65 @@ void processSnapshot(const char * filepath)
             mainCrawler.trackingMode = !mainCrawler.trackingMode;
             if (mainCrawler.trackingMode)
             {
-                printf("\e[7mENTER TRACKING MODE\e[0m\n");
+                printf("\e[7mENTER LEAK TRACKING MODE\e[0m\n");
             }
             else
             {
-                printf("\e[32m\e[7mLEAVE TRACKING MODE\e[0m\n");
+                printf("\e[32m\e[7mLEAVE LEAK TRACKING MODE\e[0m\n");
             }
         }
         else if (strbeg(command, "list"))
         {
-            mainCrawler.trackMObjects();
+            readCommandOptions(command, [&](std::vector<const char *> options)
+                               {
+                                   if (options.size() == 1)
+                                   {
+                                       mainCrawler.trackMObjects(CS_new);
+                                   }
+                                   else
+                                   {
+                                       const char *subcommand = options[1];
+                                       if (0 == strcmp(subcommand, "new"))
+                                       {
+                                           mainCrawler.trackMObjects(CS_new);
+                                       }
+                                       else if (0 == strcmp(subcommand, "leak"))
+                                       {
+                                           mainCrawler.trackMObjects(CS_identical);
+                                       }
+                                   }
+                               });
         }
         else if (strbeg(command, "ulist"))
         {
-            mainCrawler.trackNObjects();
+            readCommandOptions(command, [&](std::vector<const char *> options)
+                               {
+                                   if (options.size() == 1)
+                                   {
+                                       mainCrawler.trackNObjects(CS_new);
+                                   }
+                                   else
+                                   {
+                                       const char *subcommand = options[1];
+                                       int32_t depth = options.size() > 2 ? atoi(options[2]) : 5;
+                                       if (0 == strcmp(subcommand, "new"))
+                                       {
+                                           mainCrawler.trackNObjects(CS_new, depth);
+                                       }
+                                       else if (0 == strcmp(subcommand, "leak"))
+                                       {
+                                           mainCrawler.trackNObjects(CS_identical, depth);
+                                       }
+                                   }
+                               });
+        }
+        else if (strbeg(command, "sum"))
+        {
+            
+        }
+        else if (strbeg(command, "usum"))
+        {
+            
         }
         else if (strbeg(command, "exit"))
         {

@@ -18,6 +18,7 @@
 #include "heap.h"
 #include "perf.h"
 #include "serialize.h"
+#include "stat.h"
 
 using std::vector;
 using std::set;
@@ -130,8 +131,8 @@ public:
     void tryAcceptConnection(EntityConnection &connection);
     void tryAcceptConnection(Connection &connection);
     
-    void trackMObjects();
-    void trackNObjects();
+    void trackMObjects(CompareState state, int32_t depth = 5);
+    void trackNObjects(CompareState state, int32_t depth = 5);
     
     void dumpMRefChain(address_t address, bool includeCircular, int32_t limit = 2);
     void dumpNRefChain(address_t address, bool includeCircular, int32_t limit = 2);
