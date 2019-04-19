@@ -21,7 +21,7 @@ void TrackStatistics::collect(int32_t itemIndex, int32_t typeIndex, int32_t size
     iter->second += size;
 }
 
-void TrackStatistics::summarize()
+void TrackStatistics::summarize(bool reverse)
 {
     std::sort(__samples.begin(), __samples.end(), [&](sample_t &a, sample_t &b)->bool
               {
@@ -33,6 +33,12 @@ void TrackStatistics::summarize()
                   if (size_a != size_b) {return size_a > size_b;}
                   return std::get<0>(a) < std::get<0>(b);
               });
+    if (reverse) {this->reverse();}
+}
+
+void TrackStatistics::reverse()
+{
+    std::reverse(__samples.begin(), __samples.end());
 }
 
 void TrackStatistics::foreach(std::function<void (int32_t, int32_t, int64_t)> callback, int32_t depth)
@@ -75,4 +81,6 @@ void TrackStatistics::foreach(std::function<void (int32_t, int32_t, int64_t)> ca
             __skipCount++;
         }
     }
+    
+    callback(-2, __index, (__skipCount << 16 | __typeCount) << 32 | __remain);
 }

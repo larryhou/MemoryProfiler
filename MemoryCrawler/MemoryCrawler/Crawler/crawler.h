@@ -131,8 +131,11 @@ public:
     void tryAcceptConnection(EntityConnection &connection);
     void tryAcceptConnection(Connection &connection);
     
-    void trackMObjects(CompareState state, int32_t depth = 5);
-    void trackNObjects(CompareState state, int32_t depth = 5);
+    void trackMStatistics(CompareState state, int32_t depth = 5);
+    void trackNStatistics(CompareState state, int32_t depth = 5);
+    
+    void trackMTypeOjbects(int32_t typeIndex);
+    void trackNTypeOjbects(int32_t typeIndex);
     
     void dumpMRefChain(address_t address, bool includeCircular, int32_t limit = 2);
     void dumpNRefChain(address_t address, bool includeCircular, int32_t limit = 2);

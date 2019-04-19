@@ -292,13 +292,13 @@ void processSnapshot(const char * filepath)
                 printf("\e[32m\e[7mLEAVE LEAK TRACKING MODE\e[0m\n");
             }
         }
-        else if (strbeg(command, "list"))
+        else if (strbeg(command, "stat"))
         {
             readCommandOptions(command, [&](std::vector<const char *> options)
                                {
                                    if (options.size() == 1)
                                    {
-                                       mainCrawler.trackMObjects(CS_new);
+                                       mainCrawler.trackMStatistics(CS_new);
                                    }
                                    else
                                    {
@@ -306,12 +306,45 @@ void processSnapshot(const char * filepath)
                                        int32_t depth = options.size() > 2 ? atoi(options[2]) : 5;
                                        if (0 == strcmp(subcommand, "new"))
                                        {
-                                           mainCrawler.trackMObjects(CS_new, depth);
+                                           mainCrawler.trackMStatistics(CS_new, depth);
                                        }
                                        else if (0 == strcmp(subcommand, "leak"))
                                        {
-                                           mainCrawler.trackMObjects(CS_identical, depth);
+                                           mainCrawler.trackMStatistics(CS_identical, depth);
                                        }
+                                   }
+                               });
+        }
+        else if (strbeg(command, "ustat"))
+        {
+            readCommandOptions(command, [&](std::vector<const char *> options)
+                               {
+                                   if (options.size() == 1)
+                                   {
+                                       mainCrawler.trackNStatistics(CS_new);
+                                   }
+                                   else
+                                   {
+                                       const char *subcommand = options[1];
+                                       int32_t depth = options.size() > 2 ? atoi(options[2]) : 5;
+                                       if (0 == strcmp(subcommand, "new"))
+                                       {
+                                           mainCrawler.trackNStatistics(CS_new, depth);
+                                       }
+                                       else if (0 == strcmp(subcommand, "leak"))
+                                       {
+                                           mainCrawler.trackNStatistics(CS_identical, depth);
+                                       }
+                                   }
+                               });
+        }
+        else if (strbeg(command, "list"))
+        {
+            readCommandOptions(command, [&](std::vector<const char *> options)
+                               {
+                                   for (auto i = 1; i < options.size(); i++)
+                                   {
+                                       mainCrawler.trackMTypeOjbects(atoi(options[i]));
                                    }
                                });
         }
@@ -319,22 +352,9 @@ void processSnapshot(const char * filepath)
         {
             readCommandOptions(command, [&](std::vector<const char *> options)
                                {
-                                   if (options.size() == 1)
+                                   for (auto i = 1; i < options.size(); i++)
                                    {
-                                       mainCrawler.trackNObjects(CS_new);
-                                   }
-                                   else
-                                   {
-                                       const char *subcommand = options[1];
-                                       int32_t depth = options.size() > 2 ? atoi(options[2]) : 5;
-                                       if (0 == strcmp(subcommand, "new"))
-                                       {
-                                           mainCrawler.trackNObjects(CS_new, depth);
-                                       }
-                                       else if (0 == strcmp(subcommand, "leak"))
-                                       {
-                                           mainCrawler.trackNObjects(CS_identical, depth);
-                                       }
+                                       mainCrawler.trackNTypeOjbects(atoi(options[i]));
                                    }
                                });
         }
@@ -349,7 +369,7 @@ void processSnapshot(const char * filepath)
                                        int32_t size = 0;
                                        auto data = mainCrawler.getString(address, size);
                                        if (data == nullptr) {continue;}
-                                       printf("0x%08llx %d \e[32m%s\n", address, size, convertor.to_bytes(data).c_str());
+                                       printf("0x%08llx %d \e[32m'%s'\n", address, size, convertor.to_bytes(data).c_str());
                                    }
                                });
         }

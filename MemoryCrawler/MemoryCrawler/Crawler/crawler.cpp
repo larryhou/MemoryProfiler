@@ -174,7 +174,7 @@ void MemorySnapshotCrawler::compare(MemorySnapshotCrawler &crawler)
     printf("N+%d\n", itemCount);
 }
 
-void MemorySnapshotCrawler::trackMObjects(CompareState state, int32_t depth)
+void MemorySnapshotCrawler::trackMStatistics(CompareState state, int32_t depth)
 {
     TrackStatistics objects;
     for (auto i = 0; i < managedObjects.size(); i++)
@@ -196,8 +196,7 @@ void MemorySnapshotCrawler::trackMObjects(CompareState state, int32_t depth)
                         {
                             case -1:
                             {
-                                total += size;
-                                printf("[%s][=] memory=%d\n", type.name->c_str(), (int32_t)size);
+                                printf("[%s][=] memory=%d type_index=%d\n", type.name->c_str(), (int32_t)size, type.typeIndex);
                                 break;
                             }
                             case -2:
@@ -222,10 +221,10 @@ void MemorySnapshotCrawler::trackMObjects(CompareState state, int32_t depth)
                             }
                         }
                     }, depth);
-    printf("\n[SUMMARY] count=%d memory=%d\n", count, total);
+    printf("[SUMMARY] count=%d memory=%d\n", count, total);
 }
 
-void MemorySnapshotCrawler::trackNObjects(CompareState state, int32_t depth)
+void MemorySnapshotCrawler::trackNStatistics(CompareState state, int32_t depth)
 {
     int32_t size = 1;
     TrackStatistics objects;
@@ -254,8 +253,7 @@ void MemorySnapshotCrawler::trackNObjects(CompareState state, int32_t depth)
                         {
                             case -1:
                             {
-                                total += size;
-                                printf("[%s][=] memory=%d\n", type.name->c_str(), (int32_t)size);
+                                printf("[%s][=] memory=%d type_index=%d\n", type.name->c_str(), (int32_t)size, type.typeIndex);
                                 break;
                             }
                             case -2:
@@ -280,7 +278,71 @@ void MemorySnapshotCrawler::trackNObjects(CompareState state, int32_t depth)
                             }
                         }
                     }, depth);
-    printf("\n[SUMMARY] count=%d memory=%d\n", count, total);
+    printf("[SUMMARY] count=%d memory=%d\n", count, total);
+}
+
+void MemorySnapshotCrawler::trackMTypeOjbects(int32_t typeIndex)
+{
+    TrackStatistics objects;
+    for (auto i = 0; i < managedObjects.size(); i++)
+    {
+        auto &mo = managedObjects[i];
+        if (mo.state == CS_new && mo.typeIndex == typeIndex)
+        {
+            objects.collect(i, mo.typeIndex, mo.size);
+        }
+    }
+    
+    objects.summarize(true);
+    
+    int32_t total = 0;
+    int32_t count = 0;
+    objects.foreach([&](int32_t itemIndex, int32_t typeIndex, int64_t size)
+                    {
+                        auto &type = snapshot.typeDescriptions->items[typeIndex];
+                        if (itemIndex < 0)
+                        {
+                            if (itemIndex == -1){printf("[%s][=] memory=%d\n", type.name->c_str(), (int32_t)size);}
+                            return;
+                        }
+                        count++;
+                        total += size;
+                        auto &mo = managedObjects[itemIndex];
+                        printf("0x%08llx %6d %s\n", mo.address, mo.size, type.name->c_str());
+                    }, 0);
+    printf("[SUMMARY] count=%d memory=%d\n", count, total);
+}
+
+void MemorySnapshotCrawler::trackNTypeOjbects(int32_t typeIndex)
+{
+    TrackStatistics objects;
+    for (auto i = 0; i < snapshot.nativeObjects->size; i++)
+    {
+        auto &no = snapshot.nativeObjects->items[i];
+        if (no.state == CS_new && no.nativeTypeArrayIndex == typeIndex)
+        {
+            objects.collect(i, no.nativeTypeArrayIndex, no.size);
+        }
+    }
+    
+    objects.summarize(true);
+    
+    int32_t total = 0;
+    int32_t count = 0;
+    objects.foreach([&](int32_t itemIndex, int32_t typeIndex, int64_t size)
+                    {
+                        auto &type = snapshot.nativeTypes->items[typeIndex];
+                        if (itemIndex < 0)
+                        {
+                            if (itemIndex == -1){printf("[%s][=] memory=%d\n", type.name->c_str(), (int32_t)size);}
+                            return;
+                        }
+                        count++;
+                        total += size;
+                        auto &no = snapshot.nativeObjects->items[itemIndex];
+                        printf("0x%08llx %6d %s\n", no.nativeObjectAddress, no.size, no.name->c_str());
+                    }, 0);
+    printf("[SUMMARY] count=%d memory=%d\n", count, total);
 }
 
 const char16_t *MemorySnapshotCrawler::getString(address_t address, int32_t &size)

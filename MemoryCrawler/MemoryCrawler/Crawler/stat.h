@@ -101,9 +101,17 @@ private:
     std::map<int32_t, int32_t> __memory;
     
 public:
-    void summarize();
+    void summarize(bool reverse = false);
     void collect(int32_t itemIndex, int32_t typeIndex, int32_t size);
     void foreach(std::function<void(int32_t, int32_t, int64_t)> callback, int32_t depth = 10);
+    void reverse();
+};
+
+template <class T>
+struct IterRange
+{
+    T begin;
+    T end;
 };
 
 #endif /* stat_h */
