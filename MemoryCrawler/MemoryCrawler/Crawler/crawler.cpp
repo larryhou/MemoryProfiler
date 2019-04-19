@@ -215,7 +215,7 @@ void MemorySnapshotCrawler::trackMStatistics(CompareState state, int32_t depth)
                             }
                         }
                     }, depth);
-    printf("[SUMMARY] count=%d memory=%d\n", count, total);
+    printf("\e[37m[SUMMARY] count=%d memory=%d\n", count, total);
 }
 
 void MemorySnapshotCrawler::trackNStatistics(CompareState state, int32_t depth)
@@ -272,7 +272,7 @@ void MemorySnapshotCrawler::trackNStatistics(CompareState state, int32_t depth)
                             }
                         }
                     }, depth);
-    printf("[SUMMARY] count=%d memory=%d\n", count, total);
+    printf("\e[37m[SUMMARY] count=%d memory=%d\n", count, total);
 }
 
 void MemorySnapshotCrawler::trackMTypeOjbects(int32_t typeIndex)
@@ -302,9 +302,9 @@ void MemorySnapshotCrawler::trackMTypeOjbects(int32_t typeIndex)
                         count++;
                         total += size;
                         auto &mo = managedObjects[itemIndex];
-                        printf("0x%08llx %6d %s\n", mo.address, mo.size, type.name->c_str());
+                        printf("0x%08llx %8d %s\n", mo.address, mo.size, type.name->c_str());
                     }, 0);
-    printf("[SUMMARY] count=%d memory=%d\n", count, total);
+    printf("\e[37m[SUMMARY] count=%d memory=%d\n", count, total);
 }
 
 void MemorySnapshotCrawler::trackNTypeOjbects(int32_t typeIndex)
@@ -334,9 +334,9 @@ void MemorySnapshotCrawler::trackNTypeOjbects(int32_t typeIndex)
                         count++;
                         total += size;
                         auto &no = snapshot.nativeObjects->items[itemIndex];
-                        printf("0x%08llx %6d %s\n", no.nativeObjectAddress, no.size, no.name->c_str());
+                        printf("0x%08llx %8d '%s'\n", no.nativeObjectAddress, no.size, no.name->c_str());
                     }, 0);
-    printf("[SUMMARY] count=%d memory=%d\n", count, total);
+    printf("\e[37m[SUMMARY] count=%d memory=%d\n", count, total);
 }
 
 const char16_t *MemorySnapshotCrawler::getString(address_t address, int32_t &size)
