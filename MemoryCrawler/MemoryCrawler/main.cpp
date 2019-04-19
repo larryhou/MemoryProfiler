@@ -344,7 +344,7 @@ void processSnapshot(const char * filepath)
                                {
                                    for (auto i = 1; i < options.size(); i++)
                                    {
-                                       mainCrawler.trackMTypeOjbects(atoi(options[i]));
+                                       mainCrawler.trackMTypeObjects(atoi(options[i]));
                                    }
                                });
         }
@@ -354,7 +354,7 @@ void processSnapshot(const char * filepath)
                                {
                                    for (auto i = 1; i < options.size(); i++)
                                    {
-                                       mainCrawler.trackNTypeOjbects(atoi(options[i]));
+                                       mainCrawler.trackNTypeObjects(atoi(options[i]));
                                    }
                                });
         }

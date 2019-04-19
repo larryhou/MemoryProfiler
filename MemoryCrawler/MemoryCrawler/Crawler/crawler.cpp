@@ -275,7 +275,7 @@ void MemorySnapshotCrawler::trackNStatistics(CompareState state, int32_t depth)
     printf("\e[37m[SUMMARY] count=%d memory=%d\n", count, total);
 }
 
-void MemorySnapshotCrawler::trackMTypeOjbects(int32_t typeIndex)
+void MemorySnapshotCrawler::trackMTypeObjects(int32_t typeIndex)
 {
     TrackStatistics objects;
     for (auto i = 0; i < managedObjects.size(); i++)
@@ -307,7 +307,7 @@ void MemorySnapshotCrawler::trackMTypeOjbects(int32_t typeIndex)
     printf("\e[37m[SUMMARY] count=%d memory=%d\n", count, total);
 }
 
-void MemorySnapshotCrawler::trackNTypeOjbects(int32_t typeIndex)
+void MemorySnapshotCrawler::trackNTypeObjects(int32_t typeIndex)
 {
     TrackStatistics objects;
     for (auto i = 0; i < snapshot.nativeObjects->size; i++)
