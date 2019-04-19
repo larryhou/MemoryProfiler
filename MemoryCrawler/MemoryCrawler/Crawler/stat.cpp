@@ -27,7 +27,7 @@ void TrackStatistics::summarize()
               {
                   auto mem_a = __memory.at(std::get<1>(a));
                   auto mem_b = __memory.at(std::get<1>(b));
-                  if (mem_a != mem_b) {return mem_a > mem_b;}
+                  if (mem_a != mem_b) {return mem_a < mem_b;}
                   auto size_a = std::get<2>(a);
                   auto size_b = std::get<2>(b);
                   if (size_a != size_b) {return size_a > size_b;}

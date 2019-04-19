@@ -8,6 +8,8 @@
 
 #include <string>
 #include <vector>
+#include <locale>
+#include <codecvt>
 #include <stdlib.h>
 #include "Crawler/crawler.h"
 #include "Crawler/cache.h"
@@ -111,6 +113,7 @@ void processSnapshot(const char * filepath)
         if (!original) {printf("%s\n", input.c_str());}
         std::cout << "\e[0m";
         
+        std::cout << "\e[36m";
         const char *command = input.c_str();
         if (strbeg(command, "read"))
         {
@@ -171,7 +174,6 @@ void processSnapshot(const char * filepath)
         }
         else if (strbeg(command, "KREF")) // complete managed object reference chains except circular ones
         {
-            std::cout << "\e[96m";
             readCommandOptions(command, [&](std::vector<const char *> &options)
                                {
                                    for (auto i = 1; i < options.size(); i++)
@@ -180,11 +182,9 @@ void processSnapshot(const char * filepath)
                                        mainCrawler.dumpMRefChain(address, false, -1);
                                    }
                                });
-            std::cout << "\e[0m";
         }
         else if (strbeg(command, "UKREF")) // complete native object reference chains except circular ones
         {
-            std::cout << "\e[96m";
             readCommandOptions(command, [&](std::vector<const char *> &options)
                                {
                                    for (auto i = 1; i < options.size(); i++)
@@ -193,11 +193,9 @@ void processSnapshot(const char * filepath)
                                        mainCrawler.dumpNRefChain(address, false, -1);
                                    }
                                });
-            std::cout << "\e[0m";
         }
         else if (strbeg(command, "REF")) // complete managed object reference chains
         {
-            std::cout << "\e[96m";
             readCommandOptions(command, [&](std::vector<const char *> &options)
                                {
                                    for (auto i = 1; i < options.size(); i++)
@@ -206,11 +204,9 @@ void processSnapshot(const char * filepath)
                                        mainCrawler.dumpMRefChain(address, true, -1);
                                    }
                                });
-            std::cout << "\e[0m";
         }
         else if (strbeg(command, "UREF")) // complete native object reference chains
         {
-            std::cout << "\e[96m";
             readCommandOptions(command, [&](std::vector<const char *> &options)
                                {
                                    for (auto i = 1; i < options.size(); i++)
@@ -219,11 +215,9 @@ void processSnapshot(const char * filepath)
                                        mainCrawler.dumpNRefChain(address, true, -1);
                                    }
                                });
-            std::cout << "\e[0m";
         }
         else if (strbeg(command, "kref")) // partial managed object reference chains except circular ones
         {
-            std::cout << "\e[96m";
             readCommandOptions(command, [&](std::vector<const char *> &options)
                                {
                                    for (auto i = 1; i < options.size(); i++)
@@ -232,11 +226,9 @@ void processSnapshot(const char * filepath)
                                        mainCrawler.dumpMRefChain(address, false);
                                    }
                                });
-            std::cout << "\e[0m";
         }
         else if (strbeg(command, "ukref")) // partial native object reference chains except circular ones
         {
-            std::cout << "\e[96m";
             readCommandOptions(command, [&](std::vector<const char *> &options)
                                {
                                    for (auto i = 1; i < options.size(); i++)
@@ -245,11 +237,9 @@ void processSnapshot(const char * filepath)
                                        mainCrawler.dumpNRefChain(address, false);
                                    }
                                });
-            std::cout << "\e[0m";
         }
         else if (strbeg(command, "ref")) // partial managed object reference chains
         {
-            std::cout << "\e[96m";
             readCommandOptions(command, [&](std::vector<const char *> &options)
                                {
                                    for (auto i = 1; i < options.size(); i++)
@@ -258,11 +248,9 @@ void processSnapshot(const char * filepath)
                                        mainCrawler.dumpMRefChain(address, true);
                                    }
                                });
-            std::cout << "\e[0m";
         }
         else if (strbeg(command, "uref")) // partial native object reference chains
         {
-            std::cout << "\e[96m";
             readCommandOptions(command, [&](std::vector<const char *> &options)
                                {
                                    for (auto i = 1; i < options.size(); i++)
@@ -271,7 +259,6 @@ void processSnapshot(const char * filepath)
                                        mainCrawler.dumpNRefChain(address, true);
                                    }
                                });
-            std::cout << "\e[0m";
         }
         else if (strbeg(command, "run"))
         {
@@ -316,13 +303,14 @@ void processSnapshot(const char * filepath)
                                    else
                                    {
                                        const char *subcommand = options[1];
+                                       int32_t depth = options.size() > 2 ? atoi(options[2]) : 5;
                                        if (0 == strcmp(subcommand, "new"))
                                        {
-                                           mainCrawler.trackMObjects(CS_new);
+                                           mainCrawler.trackMObjects(CS_new, depth);
                                        }
                                        else if (0 == strcmp(subcommand, "leak"))
                                        {
-                                           mainCrawler.trackMObjects(CS_identical);
+                                           mainCrawler.trackMObjects(CS_identical, depth);
                                        }
                                    }
                                });
@@ -350,16 +338,24 @@ void processSnapshot(const char * filepath)
                                    }
                                });
         }
-        else if (strbeg(command, "sum"))
+        else if (strbeg(command, "str"))
         {
-            
-        }
-        else if (strbeg(command, "usum"))
-        {
-            
+            readCommandOptions(command, [&](std::vector<const char *> options)
+                               {
+                                   std::wstring_convert<std::codecvt_utf8<char16_t>, char16_t> convertor;
+                                   for (auto i = 1; i < options.size(); i++)
+                                   {
+                                       auto address = castAddress(options[i]);
+                                       int32_t size = 0;
+                                       auto data = mainCrawler.getString(address, size);
+                                       if (data == nullptr) {continue;}
+                                       printf("0x%08llx %d \e[32m%s\n", address, size, convertor.to_bytes(data).c_str());
+                                   }
+                               });
         }
         else if (strbeg(command, "exit"))
         {
+            printf("\e[0m");
             return;
         }
         else if (strbeg(command, "color"))

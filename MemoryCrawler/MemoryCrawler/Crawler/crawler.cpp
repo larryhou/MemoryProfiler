@@ -176,15 +176,53 @@ void MemorySnapshotCrawler::compare(MemorySnapshotCrawler &crawler)
 
 void MemorySnapshotCrawler::trackMObjects(CompareState state, int32_t depth)
 {
+    TrackStatistics objects;
     for (auto i = 0; i < managedObjects.size(); i++)
     {
         auto &mo = managedObjects[i];
         if (mo.state == state)
         {
-            auto &type = snapshot.typeDescriptions->items[mo.typeIndex];
-            printf("0x%08llx %6d %s\n", mo.address, mo.size, type.name->c_str());
+            objects.collect(i, mo.typeIndex, mo.size);
         }
     }
+    
+    int32_t total = 0;
+    int32_t count = 0;
+    objects.summarize();
+    objects.foreach([&](int32_t itemIndex, int32_t typeIndex, int64_t size)
+                    {
+                        auto &type = snapshot.typeDescriptions->items[typeIndex];
+                        switch (itemIndex)
+                        {
+                            case -1:
+                            {
+                                total += size;
+                                printf("[%s][=] memory=%d\n", type.name->c_str(), (int32_t)size);
+                                break;
+                            }
+                            case -2:
+                            {
+                                auto __count = (int32_t)(size >> 32);
+                                auto skipCount = __count >> 16;
+                                auto typeCount = __count & 0xFFFF;
+                                auto __size = (int32_t)(size & 0xFFFFFFFF);
+                                if (skipCount > 0){printf("[%s][~] %d/%d=%d\n", type.name->c_str(), skipCount, typeCount, __size);}
+                                total += __size;
+                                count += skipCount;
+                                printf("\n");
+                                break;
+                            }
+                            default:
+                            {
+                                total += size;
+                                count ++;
+                                auto &mo = managedObjects[itemIndex];
+                                printf("0x%08llx %6d %s\n", mo.address, mo.size, type.name->c_str());
+                                break;
+                            }
+                        }
+                    }, depth);
+    printf("\n[SUMMARY] count=%d memory=%d\n", count, total);
 }
 
 void MemorySnapshotCrawler::trackNObjects(CompareState state, int32_t depth)
