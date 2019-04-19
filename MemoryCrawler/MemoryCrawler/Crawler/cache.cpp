@@ -467,8 +467,9 @@ MemorySnapshotCrawler *SnapshotCrawlerCache::read(const char *uuid)
     __sampler.end(); // read_snapshot
     
     __sampler.begin("read_MemorySnapshotCrawler");
-    __sampler.begin("read_joints");
     
+#if FULL_CACHE_ENABLED
+    __sampler.begin("read_joints");
     select<EntityJoint>("select * from joints;", selectCount("joints"), crawler->joints,
                         [](EntityJoint &ej, sqlite3_stmt *stmt)
                         {
@@ -486,6 +487,20 @@ MemorySnapshotCrawler *SnapshotCrawlerCache::read(const char *uuid)
                             ej.isStatic = (bool)sqlite3_column_int(stmt, 10);
                         });
     __sampler.end(); // read_joints
+    __sampler.begin("read_connections");
+    select<EntityConnection>("select * from connections;", selectCount("connections"), crawler->connections,
+                             [&](EntityConnection &ec, sqlite3_stmt *stmt)
+                             {
+                                 ec.connectionArrayIndex = sqlite3_column_int(stmt, 0);
+                                 ec.from = sqlite3_column_int(stmt, 1);
+                                 ec.fromKind = (ConnectionKind)sqlite3_column_int(stmt, 2);
+                                 ec.to = sqlite3_column_int(stmt, 3);
+                                 ec.toKind = (ConnectionKind)sqlite3_column_int(stmt, 4);
+                                 ec.jointArrayIndex = sqlite3_column_int(stmt, 5);
+                                 crawler->tryAcceptConnection(ec);
+                             });
+    __sampler.end(); // read_connections
+#endif
     
     __sampler.begin("read_managed_objects");
     select<ManagedObject>("select * from objects;", selectCount("objects"), crawler->managedObjects,
@@ -500,19 +515,6 @@ MemorySnapshotCrawler *SnapshotCrawlerCache::read(const char *uuid)
                               mo.nativeSize = sqlite3_column_int(stmt, 6);
                           });
     __sampler.end(); // read_managed_objects
-    __sampler.begin("read_connections");
-    select<EntityConnection>("select * from connections;", selectCount("connections"), crawler->connections,
-                             [&](EntityConnection &ec, sqlite3_stmt *stmt)
-                             {
-                                 ec.connectionArrayIndex = sqlite3_column_int(stmt, 0);
-                                 ec.from = sqlite3_column_int(stmt, 1);
-                                 ec.fromKind = (ConnectionKind)sqlite3_column_int(stmt, 2);
-                                 ec.to = sqlite3_column_int(stmt, 3);
-                                 ec.toKind = (ConnectionKind)sqlite3_column_int(stmt, 4);
-                                 ec.jointArrayIndex = sqlite3_column_int(stmt, 5);
-                                 crawler->tryAcceptConnection(ec);
-                             });
-    __sampler.end(); // read_connections
     __sampler.end(); // read_crawler
     __sampler.end(); // ::read
     
@@ -590,16 +592,18 @@ void SnapshotCrawlerCache::save(MemorySnapshotCrawler &crawler)
     createFieldTable();
     __sampler.end();
     
+#if FULL_CACHE_ENABLED
     __sampler.begin("create_joints");
     createJointTable();
     __sampler.end();
     
-    __sampler.begin("create_objects");
-    createObjectTable();
-    __sampler.end();
-    
     __sampler.begin("create_connections");
     createConnectionTable();
+    __sampler.end();
+#endif
+    
+    __sampler.begin("create_objects");
+    createObjectTable();
     __sampler.end();
     
     __sampler.begin("insert_native_types");
@@ -618,18 +622,20 @@ void SnapshotCrawlerCache::save(MemorySnapshotCrawler &crawler)
     removeRedundants(crawler);
     __sampler.end();
     
+#if FULL_CACHE_ENABLED
     __sampler.begin("insert_joints");
     insert(crawler.joints);
-    __sampler.end();
-    
-    __sampler.begin("insert_objects");
-    insert(crawler.managedObjects);
     __sampler.end();
     
     __sampler.begin("insert_connections");
     insert(crawler.connections);
     __sampler.end();
+#endif
     
+    __sampler.begin("insert_objects");
+    insert(crawler.managedObjects);
+    __sampler.end();
+
     __sampler.begin("insert_vm");
     createVMTable();
     insertVMTable(crawler.snapshot.virtualMachineInformation);

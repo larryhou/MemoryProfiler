@@ -144,14 +144,12 @@ void MemorySnapshotCrawler::compare(MemorySnapshotCrawler &crawler)
         }
     }
     
-    auto itemCount = 0;
     for (auto i = 0; i < managedObjects.size(); i++)
     {
         auto &mo = managedObjects[i];
         if (!mo.isValueType)
         {
             mo.state = container.find(mo.address) == container.end() ? CS_new : CS_identical;
-            if (mo.state == CS_new) {itemCount++;}
         }
     }
     
@@ -162,16 +160,12 @@ void MemorySnapshotCrawler::compare(MemorySnapshotCrawler &crawler)
         auto &no = crawler.snapshot.nativeObjects->items[i];
         container.insert(no.nativeObjectAddress);
     }
-    printf("M+%d\n", itemCount);
     
-    itemCount = 0;
     for (auto i = 0; i < snapshot.nativeObjects->size; i++)
     {
         auto &no = snapshot.nativeObjects->items[i];
         no.state = container.find(no.nativeObjectAddress) == container.end() ? CS_new : CS_identical;
-        if (no.state == CS_new){itemCount++;}
     }
-    printf("N+%d\n", itemCount);
 }
 
 void MemorySnapshotCrawler::trackMStatistics(CompareState state, int32_t depth)
