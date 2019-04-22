@@ -1037,6 +1037,129 @@ bool MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
     return successCount != 0;
 }
 
+void MemorySnapshotCrawler::inspectMObject(address_t address, int32_t depth)
+{
+    dumpMObjectHierarchy(address, nullptr, set<int64_t>(), depth, "");
+}
+
+void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescription *type,
+                                                 set<int64_t> antiCircular, int32_t limit, const char *indent, int32_t __iter_depth)
+{
+    auto __size = strlen(indent);
+    char __indent[__size + 2 + 2*3 + 1]; // indent + 2×space + 2×tabulator + \0
+    memcpy(__indent, indent, __size);
+    memset(__indent + __size, '\x20', 2);
+    char *tabular = __indent + __size + 2;
+    memcpy(tabular + 3, "─", 3);
+    tabular[6] = 0;
+    
+    if (type == nullptr || !type->isValueType)
+    {
+        auto typeIndex = __memoryReader->findHeapOfAddress(address);
+        if (typeIndex == -1){return;}
+        
+        type = &snapshot.typeDescriptions->items[typeIndex];
+    }
+    
+    auto &memoryReader = *__memoryReader;
+    
+    auto &entryType = *type;
+    if (entryType.isArray)
+    {
+        auto &elementType = snapshot.typeDescriptions->items[entryType.baseOrElementTypeIndex];
+        
+        address_t elementAddress = 0;
+        auto elementCount = memoryReader.readArrayLength(address, entryType);
+        for (auto i = 0; i < elementCount; i++)
+        {
+            bool closed = i + 1 == elementCount;
+            decltype(antiCircular) __antiCircular(antiCircular);
+            if (elementType.isValueType)
+            {
+                elementAddress = address + __vm->arrayHeaderSize + i *elementType.size - __vm->objectHeaderSize;
+            }
+            else
+            {
+                auto ptrAddress = address + __vm->arrayHeaderSize + i * __vm->pointerSize;
+                elementAddress = memoryReader.readPointer(ptrAddress);
+                
+                __antiCircular.insert(elementAddress);
+            }
+            
+            printf("%s[%d]\n", indent, i);
+            if (closed)
+            {
+                char __nest_indent[__size + 1 + 2 + 1]; // indent + space + 2×space + \0
+                memcpy(__nest_indent, __indent, __size);
+                memset(__nest_indent + __size, '\x20', 3);
+                memset(__nest_indent + __size + 3, 0, 1);
+                dumpMObjectHierarchy(address, &elementType, __antiCircular, limit, __nest_indent);
+            }
+            else
+            {
+                char __nest_indent[__size + 3 + 2 + 1]; // indent + tabulator + 2×space + \0
+                char *iter = __nest_indent + __size;
+                memcpy(__nest_indent, __indent, __size);
+                memcpy(iter, "│", 3);
+                memset(iter + 3, '\x20', 2);
+                memset(iter + 5, 0, 1);
+                dumpMObjectHierarchy(address, &elementType, __antiCircular, limit, __nest_indent);
+            }
+        }
+        
+        return;
+    }
+    
+    auto fieldCount = entryType.fields->size;
+    for (auto i = 0; i < fieldCount; i++)
+    {
+        auto closed = i + 1 == fieldCount;
+        auto &field = entryType.fields->items[i];
+        if (field.isStatic) {continue;}
+        
+        address_t fieldAddress = 0;
+        auto &fieldType = snapshot.typeDescriptions->items[field.typeIndex];
+        if (!fieldType.isValueType)
+        {
+            fieldAddress = memoryReader.readPointer(address + field.offset);
+            if (fieldAddress == 0){continue;}
+        }
+        else
+        {
+            fieldAddress = address + field.offset - __vm->objectHeaderSize;
+            if (field.typeIndex == entryType.typeIndex) {continue;}
+        }
+        
+        closed ? memcpy(tabular, "└", 3) : memcpy(tabular, "├", 3);
+        printf("%s%s:%s\n", __indent, field.name->c_str(), fieldType.name->c_str());
+        
+        if (antiCircular.find(fieldAddress) == antiCircular.end())
+        {
+            decltype(antiCircular) __antiCircular(antiCircular);
+            __antiCircular.insert(fieldAddress);
+            
+            if (closed)
+            {
+                char __nest_indent[__size + 1 + 2 + 1]; // indent + space + 2×space + \0
+                memcpy(__nest_indent, __indent, __size);
+                memset(__nest_indent + __size, '\x20', 3);
+                memset(__nest_indent + __size + 3, 0, 1);
+                dumpMObjectHierarchy(fieldAddress, &fieldType, __antiCircular, limit, __nest_indent);
+            }
+            else
+            {
+                char __nest_indent[__size + 3 + 2 + 1]; // indent + tabulator + 2×space + \0
+                char *iter = __nest_indent + __size;
+                memcpy(__nest_indent, __indent, __size);
+                memcpy(iter, "│", 3);
+                memset(iter + 3, '\x20', 2);
+                memset(iter + 5, 0, 1);
+                dumpMObjectHierarchy(fieldAddress, &fieldType, __antiCircular, limit, __nest_indent);
+            }
+        }
+    }
+}
+
 void MemorySnapshotCrawler::crawlGCHandles()
 {
     __sampler.begin("crawlGCHandles");

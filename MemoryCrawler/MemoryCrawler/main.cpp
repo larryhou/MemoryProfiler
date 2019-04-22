@@ -358,6 +358,20 @@ void processSnapshot(const char * filepath)
                                    }
                                });
         }
+        else if (strbeg(command, "show"))
+        {
+            readCommandOptions(command, [&](std::vector<const char *> options)
+                               {
+                                   for (auto i = 1; i < options.size(); i++)
+                                   {
+                                       mainCrawler.inspectMObject(castAddress(options[i]), 0);
+                                   }
+                               });
+        }
+        else if (strbeg(command, "ushow"))
+        {
+            
+        }
         else if (strbeg(command, "str"))
         {
             readCommandOptions(command, [&](std::vector<const char *> options)

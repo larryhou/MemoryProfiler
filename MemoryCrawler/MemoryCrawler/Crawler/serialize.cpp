@@ -390,8 +390,25 @@ void MemorySnapshotReader::postSnapshot()
     __sampler.end();
     
     __sampler.begin("create_type_strings");
-    string sUnityEngineObject("UnityEngine.Object");
+    
+    // Premitive C# types
     string sSystemString("System.String");
+    string sSystemInt64("System.Int64");
+    string sSystemInt32("System.Int32");
+    string sSystemInt16("System.Int16");
+    string sSystemSByte("System.SByte");
+    string sSystemUInt64("System.UInt64");
+    string sSystemUInt32("System.UInt32");
+    string sSystemUInt16("System.UInt16");
+    string sSystemByte("System.Byte");
+    string sSystemChar("System.Char");
+    string sSystemSingle("System.Single");
+    string sSystemDouble("System.Double");
+    string sSystemIntPtr("System.IntPtr");
+    string sSystemBoolean("System.Boolean");
+    
+    // Unity object types
+    string sUnityEngineObject("UnityEngine.Object");
     string sSystemTextGenerator("UnityEngine.TextGenerator");
     string sCachedPtr("m_CachedPtr");
     __sampler.end();
@@ -409,8 +426,21 @@ void MemorySnapshotReader::postSnapshot()
         {
             isUnityEngineObject = true;
         }
-        else if (readTypeIndex(managedTypeIndex.system_String, type, &sSystemString)) {}
         else if (readTypeIndex(managedTypeIndex.unityengine_TextGenerator, type, &sSystemTextGenerator)) {}
+        else if (readTypeIndex(managedTypeIndex.system_String, type, &sSystemString)) {}
+        else if (readTypeIndex(managedTypeIndex.system_Int64, type, &sSystemInt64)) {}
+        else if (readTypeIndex(managedTypeIndex.system_Int32, type, &sSystemInt32)) {}
+        else if (readTypeIndex(managedTypeIndex.system_Int16, type, &sSystemInt16)) {}
+        else if (readTypeIndex(managedTypeIndex.system_SByte, type, &sSystemSByte)) {}
+        else if (readTypeIndex(managedTypeIndex.system_UInt64, type, &sSystemUInt64)) {}
+        else if (readTypeIndex(managedTypeIndex.system_UInt32, type, &sSystemUInt32)) {}
+        else if (readTypeIndex(managedTypeIndex.system_UInt16, type, &sSystemUInt16)) {}
+        else if (readTypeIndex(managedTypeIndex.system_Byte, type, &sSystemByte)) {}
+        else if (readTypeIndex(managedTypeIndex.system_Char, type, &sSystemChar)) {}
+        else if (readTypeIndex(managedTypeIndex.system_Single, type, &sSystemSingle)) {}
+        else if (readTypeIndex(managedTypeIndex.system_Double, type, &sSystemDouble)) {}
+        else if (readTypeIndex(managedTypeIndex.system_IntPtr, type, &sSystemIntPtr)) {}
+        else if (readTypeIndex(managedTypeIndex.system_Boolean, type, &sSystemBoolean)) {}
         
         if (type.fields != nullptr)
         {
