@@ -437,7 +437,7 @@ void MemorySnapshotCrawler::dumpPremitiveValue(address_t address, int32_t typeIn
     if (typeIndex == mtypes.system_UInt16) {printf("%d", memoryReader.readUInt16(address));}
     if (typeIndex == mtypes.system_Byte) {printf("%d", memoryReader.readUInt8(address));}
 
-    if (typeIndex == mtypes.system_Char) {printf("%d", memoryReader.readUInt16(address));}
+    if (typeIndex == mtypes.system_Char) {printf("\\u%04x", memoryReader.readUInt16(address));}
 
     if (typeIndex == mtypes.system_Single) {printf("%f", memoryReader.readFloat(address));}
     if (typeIndex == mtypes.system_Double) {printf("%f", memoryReader.readDouble(address));}
@@ -1258,6 +1258,7 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
         auto code = 0;
         auto closed = i + 1 == fieldCount;
         auto &field = *typeMembers[i];
+        auto __is_premitive = isPremitiveType(field.typeIndex);
         
         address_t fieldAddress = 0;
         auto *fieldType = &snapshot.typeDescriptions->items[field.typeIndex];
@@ -1283,7 +1284,7 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
         else
         {
             fieldAddress = address + field.offset - __vm->objectHeaderSize;
-            if (field.typeIndex == entryType.typeIndex || isPremitiveType(field.typeIndex))
+            if (field.typeIndex == entryType.typeIndex || __is_premitive)
             {
                 code = 3;
             }
@@ -1317,7 +1318,7 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
         }
         printf("\n");
         
-        if (antiCircular.find(fieldAddress) == antiCircular.end() && code == 0)
+        if ((fieldType->isValueType && !__is_premitive) || ((antiCircular.find(fieldAddress) == antiCircular.end() && code == 0)))
         {
             decltype(antiCircular) __antiCircular(antiCircular);
             __antiCircular.insert(fieldAddress);
