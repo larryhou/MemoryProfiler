@@ -1192,7 +1192,7 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
             if (__is_string)
             {
                 auto size = 0;
-                printf(" = '%s'\n", getUTFString(elementAddress, size, true).c_str());
+                printf(" 0x%08llx = '%s'\n", elementAddress, getUTFString(elementAddress, size, true).c_str());
                 continue;
             }
             
@@ -1272,10 +1272,10 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
                 case 1: // null
                     printf("%s%s:%s = NULL", __indent, field.name->c_str(), fieldType.name->c_str());
                     break;
-                case 2: // null
+                case 2: // string
                 {
                     auto size = 0;
-                    printf("%s%s:%s = '%s'", __indent, field.name->c_str(), fieldType.name->c_str(), getUTFString(fieldAddress, size, true).c_str());
+                    printf("%s%s:%s 0x%08llx = '%s'", __indent, field.name->c_str(), fieldType.name->c_str(), fieldAddress , getUTFString(fieldAddress, size, true).c_str());
                     break;
                 }
                 case 3: // premitive
