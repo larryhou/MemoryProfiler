@@ -1112,6 +1112,22 @@ void MemorySnapshotCrawler::inspectMObject(address_t address, int32_t depth)
     dumpMObjectHierarchy(address, nullptr, set<int64_t>(), depth, "");
 }
 
+void MemorySnapshotCrawler::dumpByteArray(const char *data, int32_t size)
+{
+    auto iter = data;
+    char str[size * 2 + 1];
+    char hex[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+    for (auto i = 0; i < size; i++)
+    {
+        auto b = *iter;
+        str[i * 2] = hex[b >> 4 & 0xF];
+        str[i * 2 + 1] = hex[b & 0xF];
+        iter++;
+    }
+    printf("%s", str);
+}
+
+
 void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescription *type,
                                                  set<int64_t> antiCircular, int32_t limit, const char *indent, int32_t __iter_depth)
 {
@@ -1209,92 +1225,105 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
         return;
     }
     
-    auto fieldCount = entryType.fields->size;
-    for (auto i = 0; i < fieldCount; i++)
+    auto *iterType = &entryType;
+    while (iterType != nullptr)
     {
-        auto code = 0;
-        auto closed = i + 1 == fieldCount;
-        auto &field = entryType.fields->items[i];
-        if (field.isStatic)
+        vector<FieldDescription *> typeMembers;
+        for (auto i = 0; i < iterType->fields->size; i++)
         {
-            code = 1;
+            auto &field = iterType->fields->items[i];
+            if (!field.isStatic) { typeMembers.push_back(&field); }
         }
         
-        address_t fieldAddress = 0;
-        auto &fieldType = snapshot.typeDescriptions->items[field.typeIndex];
-        if (!fieldType.isValueType)
+        auto fieldCount = typeMembers.size();
+        for (auto i = 0; i < fieldCount; i++)
         {
-            fieldAddress = memoryReader.readPointer(address + field.offset);
-            if (fieldAddress == 0)
-            {
-                code = 2;
-            }
-            if (field.typeIndex == snapshot.managedTypeIndex.system_String)
-            {
-                code = 3;
-            }
-        }
-        else
-        {
-            fieldAddress = address + field.offset - __vm->objectHeaderSize;
-            if (field.typeIndex == entryType.typeIndex || isPremitiveType(field.typeIndex))
-            {
-                code = 4;
-            }
-        }
-        
-        closed ? memcpy(tabular, "└", 3) : memcpy(tabular, "├", 3);
-        switch (code)
-        {
-            case 1: // static
-                printf("%s[static]%s:%s", __indent, field.name->c_str(), fieldType.name->c_str());
-                break;
-            case 2: // null
-                printf("%s%s:%s = NULL", __indent, field.name->c_str(), fieldType.name->c_str());
-                break;
-            case 3: // null
-            {
-                auto size = 0;
-                printf("%s%s:%s = '%s'", __indent, field.name->c_str(), fieldType.name->c_str(), getUTFString(fieldAddress, size, true).c_str());
-                break;
-            }
-            case 4: // premitive
-                printf("%s%s:%s = ", __indent, field.name->c_str(), fieldType.name->c_str());
-                dumpPremitiveValue(fieldAddress, fieldType.typeIndex);
-                break;
-            default:
-                printf("%s%s:%s", __indent, field.name->c_str(), fieldType.name->c_str());
-                if (!fieldType.isValueType)
-                {
-                    printf(" 0x%08llx", fieldAddress);
-                }
-                break;
-        }
-        printf("\n");
-        
-        if (antiCircular.find(fieldAddress) == antiCircular.end() && code == 0)
-        {
-            decltype(antiCircular) __antiCircular(antiCircular);
-            __antiCircular.insert(fieldAddress);
+            auto code = 0;
+            auto closed = i + 1 == fieldCount;
+            auto &field = *typeMembers[i];
             
-            if (closed)
+            address_t fieldAddress = 0;
+            auto &fieldType = snapshot.typeDescriptions->items[field.typeIndex];
+            if (!fieldType.isValueType)
             {
-                char __nest_indent[__size + 1 + 2 + 1]; // indent + space + 2×space + \0
-                memcpy(__nest_indent, __indent, __size);
-                memset(__nest_indent + __size, '\x20', 3);
-                memset(__nest_indent + __size + 3, 0, 1);
-                dumpMObjectHierarchy(fieldAddress, &fieldType, __antiCircular, limit, __nest_indent, __iter_depth + 1);
+                fieldAddress = memoryReader.readPointer(address + field.offset);
+                if (fieldAddress == 0)
+                {
+                    code = 1;
+                }
+                if (field.typeIndex == snapshot.managedTypeIndex.system_String)
+                {
+                    code = 2;
+                }
             }
             else
             {
-                char __nest_indent[__size + 3 + 2 + 1]; // indent + tabulator + 2×space + \0
-                char *iter = __nest_indent + __size;
-                memcpy(__nest_indent, __indent, __size);
-                memcpy(iter, "│", 3);
-                memset(iter + 3, '\x20', 2);
-                memset(iter + 5, 0, 1);
-                dumpMObjectHierarchy(fieldAddress, &fieldType, __antiCircular, limit, __nest_indent, __iter_depth + 1);
+                fieldAddress = address + field.offset - __vm->objectHeaderSize;
+                if (field.typeIndex == entryType.typeIndex || isPremitiveType(field.typeIndex))
+                {
+                    code = 3;
+                }
             }
+            
+            closed ? memcpy(tabular, "└", 3) : memcpy(tabular, "├", 3);
+            switch (code)
+            {
+                case 1: // null
+                    printf("%s%s:%s = NULL", __indent, field.name->c_str(), fieldType.name->c_str());
+                    break;
+                case 2: // null
+                {
+                    auto size = 0;
+                    printf("%s%s:%s = '%s'", __indent, field.name->c_str(), fieldType.name->c_str(), getUTFString(fieldAddress, size, true).c_str());
+                    break;
+                }
+                case 3: // premitive
+                    printf("%s%s:%s = ", __indent, field.name->c_str(), fieldType.name->c_str());
+                    dumpPremitiveValue(fieldAddress, fieldType.typeIndex);
+                    break;
+                default:
+                    printf("%s%s:%s", __indent, field.name->c_str(), fieldType.name->c_str());
+                    if (!fieldType.isValueType)
+                    {
+                        printf(" 0x%08llx", fieldAddress);
+                    }
+                    break;
+            }
+            printf("\n");
+            
+            if (antiCircular.find(fieldAddress) == antiCircular.end() && code == 0)
+            {
+                decltype(antiCircular) __antiCircular(antiCircular);
+                __antiCircular.insert(fieldAddress);
+                
+                if (closed)
+                {
+                    char __nest_indent[__size + 1 + 2 + 1]; // indent + space + 2×space + \0
+                    memcpy(__nest_indent, __indent, __size);
+                    memset(__nest_indent + __size, '\x20', 3);
+                    memset(__nest_indent + __size + 3, 0, 1);
+                    dumpMObjectHierarchy(fieldAddress, &fieldType, __antiCircular, limit, __nest_indent, __iter_depth + 1);
+                }
+                else
+                {
+                    char __nest_indent[__size + 3 + 2 + 1]; // indent + tabulator + 2×space + \0
+                    char *iter = __nest_indent + __size;
+                    memcpy(__nest_indent, __indent, __size);
+                    memcpy(iter, "│", 3);
+                    memset(iter + 3, '\x20', 2);
+                    memset(iter + 5, 0, 1);
+                    dumpMObjectHierarchy(fieldAddress, &fieldType, __antiCircular, limit, __nest_indent, __iter_depth + 1);
+                }
+            }
+        }
+        
+        if (iterType->baseOrElementTypeIndex >= 0)
+        {
+            iterType = &snapshot.typeDescriptions->items[iterType->baseOrElementTypeIndex];
+        }
+        else
+        {
+            iterType = nullptr;
         }
     }
 }

@@ -198,6 +198,7 @@ private:
                                   int32_t depth);
     bool isPremitiveType(int32_t typeIndex);
     void dumpPremitiveValue(address_t address, int32_t typeIndex);
+    void dumpByteArray(const char *data, int32_t size);
     
     
     void summarize();
