@@ -1141,10 +1141,10 @@ void MemorySnapshotCrawler::dumpNObjectHierarchy(PackedNativeUnityEngineObject *
 {
     auto __size = strlen(indent);
     char __indent[__size + 2*3 + 1]; // indent + 2×tabulator + \0
+    memset(__indent, 0, sizeof(__indent));
     memcpy(__indent, indent, __size);
     char *tabular = __indent + __size;
     memcpy(tabular + 3, "─", 3);
-    tabular[6] = 0;
     
     if (__depth == 0)
     {
@@ -1202,10 +1202,10 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
 {
     auto __size = strlen(indent);
     char __indent[__size + 2*3 + 1]; // indent + 2×tabulator + \0
+    memset(__indent, 0, sizeof(__indent));
     memcpy(__indent, indent, __size);
     char *tabular = __indent + __size;
     memcpy(tabular + 3, "─", 3);
-    tabular[6] = 0;
     
     if (type == nullptr || (!type->isValueType && !isActualType))
     {
