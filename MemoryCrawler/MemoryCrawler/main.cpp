@@ -364,7 +364,7 @@ void processSnapshot(const char * filepath)
                                {
                                    for (auto i = 1; i < options.size(); i++)
                                    {
-                                       mainCrawler.inspectMObject(castAddress(options[i]), 0);
+                                       mainCrawler.inspectMObject(castAddress(options[i]));
                                    }
                                });
         }

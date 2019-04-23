@@ -1108,9 +1108,9 @@ bool MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
     return successCount != 0;
 }
 
-void MemorySnapshotCrawler::inspectMObject(address_t address, int32_t depth)
+void MemorySnapshotCrawler::inspectMObject(address_t address)
 {
-    dumpMObjectHierarchy(address, nullptr, set<int64_t>(), depth, "");
+    dumpMObjectHierarchy(address, nullptr, set<int64_t>(), false, "");
 }
 
 void MemorySnapshotCrawler::dumpByteArray(const char *data, int32_t size)
@@ -1130,7 +1130,7 @@ void MemorySnapshotCrawler::dumpByteArray(const char *data, int32_t size)
 
 
 void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescription *type,
-                                                 set<int64_t> antiCircular, int32_t limit, const char *indent, int32_t __iter_depth)
+                                                 set<int64_t> antiCircular, bool isActualType, const char *indent, int32_t __iter_depth)
 {
     auto __size = strlen(indent);
     char __indent[__size + 2*3 + 1]; // indent + 2×tabulator + \0
@@ -1139,7 +1139,7 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
     memcpy(tabular + 3, "─", 3);
     tabular[6] = 0;
     
-    if (type == nullptr || !type->isValueType)
+    if (type == nullptr || (!type->isValueType && !isActualType))
     {
         auto typeIndex = findTypeOfAddress(address);
         if (typeIndex == -1){return;}
@@ -1157,9 +1157,9 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
     
     if (entryType.isArray)
     {
-        auto &elementType = snapshot.typeDescriptions->items[entryType.baseOrElementTypeIndex];
-        auto __is_premitive = isPremitiveType(elementType.typeIndex);
-        auto __is_string = elementType.typeIndex == snapshot.managedTypeIndex.system_String;
+        auto *elementType = &snapshot.typeDescriptions->items[entryType.baseOrElementTypeIndex];
+        auto __is_premitive = isPremitiveType(elementType->typeIndex);
+        auto __is_string = elementType->typeIndex == snapshot.managedTypeIndex.system_String;
         
         address_t elementAddress = 0;
         auto elementCount = memoryReader.readArrayLength(address, entryType);
@@ -1167,24 +1167,29 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
         {
             bool closed = i + 1 == elementCount;
             decltype(antiCircular) __antiCircular(antiCircular);
-            if (elementType.isValueType)
+            if (elementType->isValueType)
             {
-                elementAddress = address + __vm->arrayHeaderSize + i *elementType.size - __vm->objectHeaderSize;
+                elementAddress = address + __vm->arrayHeaderSize + i *elementType->size - __vm->objectHeaderSize;
             }
             else
             {
                 auto ptrAddress = address + __vm->arrayHeaderSize + i * __vm->pointerSize;
                 elementAddress = memoryReader.readPointer(ptrAddress);
+                auto typeIndex = findTypeOfAddress(elementAddress);
+                if (typeIndex >= 0)
+                {
+                    elementType = &snapshot.typeDescriptions->items[typeIndex];
+                }
                 
                 __antiCircular.insert(elementAddress);
             }
             
             closed ? memcpy(tabular, "└", 3) : memcpy(tabular, "├", 3);
-            printf("%s[%d]:%s", __indent, i, elementType.name->c_str());
+            printf("%s[%d]:%s", __indent, i, elementType->name->c_str());
             if (__is_premitive)
             {
                 printf(" = ");
-                dumpPremitiveValue(elementAddress, elementType.typeIndex);
+                dumpPremitiveValue(elementAddress, elementType->typeIndex);
                 printf("\n");
                 continue;
             }
@@ -1201,7 +1206,8 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
                 printf(" = NULL\n");
                 continue;
             }
-            if (!elementType.isValueType) {printf(" 0x%08llx", elementAddress);}
+            
+            if (!elementType->isValueType) {printf(" 0x%08llx", elementAddress);}
             printf("\n");
             if (closed)
             {
@@ -1209,7 +1215,7 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
                 memcpy(__nest_indent, indent, __size);
                 memset(__nest_indent + __size, '\x20', 3);
                 memset(__nest_indent + __size + 3, 0, 1);
-                dumpMObjectHierarchy(elementAddress, &elementType, __antiCircular, limit, __nest_indent, __iter_depth + 1);
+                dumpMObjectHierarchy(elementAddress, elementType, __antiCircular, true, __nest_indent, __iter_depth + 1);
             }
             else
             {
@@ -1219,7 +1225,7 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
                 memcpy(iter, "│", 3);
                 memset(iter + 3, '\x20', 2);
                 memset(iter + 5, 0, 1);
-                dumpMObjectHierarchy(elementAddress, &elementType, __antiCircular, limit, __nest_indent, __iter_depth + 1);
+                dumpMObjectHierarchy(elementAddress, elementType, __antiCircular, true, __nest_indent, __iter_depth + 1);
             }
         }
         
@@ -1244,17 +1250,24 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
             auto &field = *typeMembers[i];
             
             address_t fieldAddress = 0;
-            auto &fieldType = snapshot.typeDescriptions->items[field.typeIndex];
-            if (!fieldType.isValueType)
+            auto *fieldType = &snapshot.typeDescriptions->items[field.typeIndex];
+            if (!fieldType->isValueType)
             {
                 fieldAddress = memoryReader.readPointer(address + field.offset);
+                if (field.typeIndex == snapshot.managedTypeIndex.system_String)
+                {
+                    code = 2;
+                }
+                
                 if (fieldAddress == 0)
                 {
                     code = 1;
                 }
-                if (field.typeIndex == snapshot.managedTypeIndex.system_String)
+                
+                auto typeIndex = findTypeOfAddress(fieldAddress);
+                if (typeIndex >= 0)
                 {
-                    code = 2;
+                    fieldType = &snapshot.typeDescriptions->items[typeIndex];
                 }
             }
             else
@@ -1267,24 +1280,26 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
             }
             
             closed ? memcpy(tabular, "└", 3) : memcpy(tabular, "├", 3);
+            const char *fieldTypeName = fieldType->name->c_str();
+            const char *fieldName = field.name->c_str();
             switch (code)
             {
                 case 1: // null
-                    printf("%s%s:%s = NULL", __indent, field.name->c_str(), fieldType.name->c_str());
+                    printf("%s%s:%s = NULL", __indent, fieldName, fieldTypeName);
                     break;
                 case 2: // string
                 {
                     auto size = 0;
-                    printf("%s%s:%s 0x%08llx = '%s'", __indent, field.name->c_str(), fieldType.name->c_str(), fieldAddress , getUTFString(fieldAddress, size, true).c_str());
+                    printf("%s%s:%s 0x%08llx = '%s'", __indent, fieldName, fieldTypeName, fieldAddress , getUTFString(fieldAddress, size, true).c_str());
                     break;
                 }
                 case 3: // premitive
-                    printf("%s%s:%s = ", __indent, field.name->c_str(), fieldType.name->c_str());
-                    dumpPremitiveValue(fieldAddress, fieldType.typeIndex);
+                    printf("%s%s:%s = ", __indent, fieldName, fieldTypeName);
+                    dumpPremitiveValue(fieldAddress, fieldType->typeIndex);
                     break;
                 default:
-                    printf("%s%s:%s", __indent, field.name->c_str(), fieldType.name->c_str());
-                    if (!fieldType.isValueType)
+                    printf("%s%s:%s", __indent, fieldName, fieldTypeName);
+                    if (!fieldType->isValueType)
                     {
                         printf(" 0x%08llx", fieldAddress);
                     }
@@ -1303,7 +1318,7 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
                     memcpy(__nest_indent, __indent, __size);
                     memset(__nest_indent + __size, '\x20', 3);
                     memset(__nest_indent + __size + 3, 0, 1);
-                    dumpMObjectHierarchy(fieldAddress, &fieldType, __antiCircular, limit, __nest_indent, __iter_depth + 1);
+                    dumpMObjectHierarchy(fieldAddress, fieldType, __antiCircular, true, __nest_indent, __iter_depth + 1);
                 }
                 else
                 {
@@ -1313,7 +1328,7 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
                     memcpy(iter, "│", 3);
                     memset(iter + 3, '\x20', 2);
                     memset(iter + 5, 0, 1);
-                    dumpMObjectHierarchy(fieldAddress, &fieldType, __antiCircular, limit, __nest_indent, __iter_depth + 1);
+                    dumpMObjectHierarchy(fieldAddress, fieldType, __antiCircular, true, __nest_indent, __iter_depth + 1);
                 }
             }
         }
