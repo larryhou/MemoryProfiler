@@ -463,10 +463,17 @@ void MemorySnapshotReader::postSnapshot()
     __sampler.end();
     
     __sampler.begin("set_native_type_index");
+    string sFont("Font");
     Array<PackedNativeType> &nativeTypes = *__snapshot->nativeTypes;
     for (auto i = 0; i < nativeTypes.size; i++)
     {
-        nativeTypes[i].typeIndex = i;
+        auto &nt = nativeTypes[i];
+        nt.typeIndex = i;
+        if (endsWith(nt.name, &sFont))
+        {
+            __snapshot->nativeTypeIndex.Font = i;
+        }
+        
     }
     __sampler.end();
     

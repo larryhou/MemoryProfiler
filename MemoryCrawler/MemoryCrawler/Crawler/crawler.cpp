@@ -1113,6 +1113,14 @@ void MemorySnapshotCrawler::inspectMObject(address_t address)
     dumpMObjectHierarchy(address, nullptr, set<int64_t>(), false, "");
 }
 
+void MemorySnapshotCrawler::inspectNObject(address_t address)
+{
+    auto index = findNObjectAtAddress(address);
+    if (index <= 0) {return;}
+    
+    dumpNObjectHierarchy(&snapshot.nativeObjects->items[index], set<int64_t>(), "");
+}
+
 void MemorySnapshotCrawler::dumpByteArray(const char *data, int32_t size)
 {
     auto iter = data;
@@ -1128,6 +1136,65 @@ void MemorySnapshotCrawler::dumpByteArray(const char *data, int32_t size)
     printf("%s", str);
 }
 
+void MemorySnapshotCrawler::dumpNObjectHierarchy(PackedNativeUnityEngineObject *no, set<int64_t> antiCircular, const char *indent, int32_t __depth, int32_t __iter_capacity)
+{
+    auto __size = strlen(indent);
+    char __indent[__size + 2*3 + 1]; // indent + 2×tabulator + \0
+    memcpy(__indent, indent, __size);
+    char *tabular = __indent + __size;
+    memcpy(tabular + 3, "─", 3);
+    tabular[6] = 0;
+    
+    if (__depth == 0)
+    {
+        auto &type = snapshot.nativeTypes->items[no->nativeTypeArrayIndex];
+        printf("%s'%s':%s 0x%08llx\n", indent, no->name->c_str(), type.name->c_str(), no->nativeObjectAddress);
+    }
+    
+    static const int32_t ITER_HIERARCHY_CAPACITY = 256;
+    
+    auto toCount = (int32_t)no->toConnections.size();
+    if (toCount * __iter_capacity > ITER_HIERARCHY_CAPACITY)
+    {
+        toCount = ITER_HIERARCHY_CAPACITY / __iter_capacity;
+    }
+    
+    for (auto i = 0; i < toCount; i++)
+    {
+        auto closed = i + 1 == toCount;
+        auto &nc = snapshot.connections->items[no->toConnections[i]];
+        auto &no = snapshot.nativeObjects->items[nc.to];
+        auto &nt = snapshot.nativeTypes->items[no.nativeTypeArrayIndex];
+        
+        closed ? memcpy(tabular, "└", 3) : memcpy(tabular, "├", 3);
+        printf("%s'%s':%s 0x%08llx=%d\n", __indent, no.name->c_str(), nt.name->c_str(), no.nativeObjectAddress, no.size);
+        
+        if (antiCircular.find(no.nativeObjectAddress) == antiCircular.end())
+        {
+            decltype(antiCircular) __antiCircular(antiCircular);
+            __antiCircular.insert(no.nativeObjectAddress);
+            
+            if (closed)
+            {
+                char __nest_indent[__size + 1 + 2 + 1]; // indent + space + 2×space + \0
+                memcpy(__nest_indent, indent, __size);
+                memset(__nest_indent + __size, '\x20', 3);
+                memset(__nest_indent + __size + 3, 0, 1);
+                dumpNObjectHierarchy(&no, __antiCircular, __nest_indent, __depth + 1, __iter_capacity * toCount);
+            }
+            else
+            {
+                char __nest_indent[__size + 3 + 2 + 1]; // indent + tabulator + 2×space + \0
+                char *iter = __nest_indent + __size;
+                memcpy(__nest_indent, indent, __size);
+                memcpy(iter, "│", 3);
+                memset(iter + 3, '\x20', 2);
+                memset(iter + 5, 0, 1);
+                dumpNObjectHierarchy(&no, __antiCircular, __nest_indent, __depth + 1, __iter_capacity * toCount);
+            }
+        }
+    }
+}
 
 void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescription *type,
                                                  set<int64_t> antiCircular, bool isActualType, const char *indent, int32_t __iter_depth)

@@ -370,7 +370,13 @@ void processSnapshot(const char * filepath)
         }
         else if (strbeg(command, "ushow"))
         {
-            
+            readCommandOptions(command, [&](std::vector<const char *> options)
+                               {
+                                   for (auto i = 1; i < options.size(); i++)
+                                   {
+                                       mainCrawler.inspectNObject(castAddress(options[i]));
+                                   }
+                               });
         }
         else if (strbeg(command, "str"))
         {

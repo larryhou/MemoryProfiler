@@ -143,11 +143,11 @@ public:
     void trackNTypeObjects(int32_t typeIndex);
     
     void inspectMObject(address_t address);
-    void inspectNObject(address_t address, int32_t depth = 0);
+    void inspectNObject(address_t address);
     void dumpMObjectHierarchy(address_t address, TypeDescription *type,
-                              set<int64_t> antiCircular, bool isActualType, const char *indent,  int32_t __iter_depth = 0);
+                              set<int64_t> antiCircular, bool isActualType, const char *indent, int32_t __iter_depth = 0);
     void dumpNObjectHierarchy(PackedNativeUnityEngineObject *no,
-                                 set<int64_t> antiCircular, int32_t limit, int32_t __iter_depth = 0);
+                              set<int64_t> antiCircular, const char *indent, int32_t __depth = 0, int32_t __iter_capacity = 1);
     
     void dumpMRefChain(address_t address, bool includeCircular, int32_t limit = 2);
     void dumpNRefChain(address_t address, bool includeCircular, int32_t limit = 2);
