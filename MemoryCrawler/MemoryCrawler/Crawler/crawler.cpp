@@ -520,7 +520,7 @@ void MemorySnapshotCrawler::dumpMRefChain(address_t address, bool includeCircula
 }
 
 vector<vector<int32_t>> MemorySnapshotCrawler::iterateMRefChain(ManagedObject *mo,
-                                                                vector<int32_t> chain, set<int64_t> antiCircular, int32_t limit, int64_t __iter_capacity)
+                                                                vector<int32_t> chain, set<int64_t> antiCircular, int32_t limit, int64_t __iter_capacity, int32_t __depth)
 {
     vector<vector<int32_t>> result;
     if (mo->fromConnections.size() > 0)
@@ -560,13 +560,13 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateMRefChain(ManagedObject *m
                 }
                 
                 auto depthCapacity = fromObject->fromConnections.size();
-                if (__iter_capacity * depthCapacity >= REF_ITERATE_CAPACITY && limit <= 0)
+                if ((__iter_capacity * depthCapacity >= REF_ITERATE_CAPACITY && limit <= 0) || __depth >= REF_ITERATE_DEPTH)
                 {
                     __chain.push_back(-2); // interruptted signal
                     return {__chain};
                 }
                 
-                auto branches = iterateMRefChain(fromObject, __chain, __antiCircular, limit, __iter_capacity * depthCapacity);
+                auto branches = iterateMRefChain(fromObject, __chain, __antiCircular, limit, __iter_capacity * depthCapacity, __depth + 1);
                 if (branches.size() != 0)
                 {
                     result.insert(result.end(), branches.begin(), branches.end());
@@ -660,7 +660,7 @@ void MemorySnapshotCrawler::dumpNRefChain(address_t address, bool includeCircula
 }
 
 vector<vector<int32_t>> MemorySnapshotCrawler::iterateNRefChain(PackedNativeUnityEngineObject *no,
-                                                                vector<int32_t> chain, set<int64_t> antiCircular, int32_t limit, int64_t __iter_capacity)
+                                                                vector<int32_t> chain, set<int64_t> antiCircular, int32_t limit, int64_t __iter_capacity, int32_t __depth)
 {
     vector<vector<int32_t>> result;
     if (no->fromConnections.size() > 0)
@@ -700,14 +700,14 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateNRefChain(PackedNativeUnit
                 }
                 
                 auto depthCapacity = fromObject->fromConnections.size();
-                if (__iter_capacity * depthCapacity >= REF_ITERATE_CAPACITY && limit <= 0)
+                if ((__iter_capacity * depthCapacity >= REF_ITERATE_CAPACITY && limit <= 0) || __depth >= REF_ITERATE_DEPTH)
                 {
                     __chain.push_back(-2); // interruptted signal
                     result.push_back(__chain);
                     continue;
                 }
                 
-                auto branches = iterateNRefChain(fromObject, __chain, __antiCircular, limit, __iter_capacity * depthCapacity);
+                auto branches = iterateNRefChain(fromObject, __chain, __antiCircular, limit, __iter_capacity * depthCapacity, __depth + 1);
                 if (branches.size() != 0)
                 {
                     result.insert(result.end(), branches.begin(), branches.end());
