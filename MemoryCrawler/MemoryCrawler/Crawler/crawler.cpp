@@ -421,6 +421,7 @@ bool MemorySnapshotCrawler::isPremitiveType(int32_t typeIndex)
 
 void MemorySnapshotCrawler::dumpPremitiveValue(address_t address, int32_t typeIndex)
 {
+    address += __vm->objectHeaderSize;
     auto &mtypes = snapshot.managedTypeIndex;
     auto &memoryReader = *__memoryReader;
     
