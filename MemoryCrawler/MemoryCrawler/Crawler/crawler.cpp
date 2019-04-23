@@ -1192,7 +1192,7 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
             if (__is_string)
             {
                 auto size = 0;
-                printf(" = %s\n", getUTFString(elementAddress, size, true).c_str());
+                printf(" = '%s'\n", getUTFString(elementAddress, size, true).c_str());
                 continue;
             }
             
