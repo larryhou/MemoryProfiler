@@ -76,6 +76,7 @@ public:
     
     uint32_t readObjectSize(address_t address, TypeDescription &type);
     HeapSegment readObjectMemory(address_t address, TypeDescription &type);
+    const char *readMemory(address_t address);
     
     int32_t findHeapOfAddress(address_t address);
     virtual bool isStatic();

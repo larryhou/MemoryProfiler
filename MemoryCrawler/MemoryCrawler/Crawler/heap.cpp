@@ -51,6 +51,14 @@ int32_t HeapMemoryReader::readString(address_t address, char16_t *buffer)
     return length;
 }
 
+const char *HeapMemoryReader::readMemory(address_t address)
+{
+    auto offset = seekOffset(address);
+    if (offset == -1) {return nullptr;}
+    
+    return (const char *)(__memory + offset);
+}
+
 const char16_t *HeapMemoryReader::readString(address_t address, int32_t &size)
 {
     auto offset = seekOffset(address);

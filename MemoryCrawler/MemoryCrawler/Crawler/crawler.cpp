@@ -1125,6 +1125,7 @@ void MemorySnapshotCrawler::dumpByteArray(const char *data, int32_t size)
 {
     auto iter = data;
     char str[size * 2 + 1];
+    memset(str, 0, sizeof(str));
     char hex[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
     for (auto i = 0; i < size; i++)
     {
@@ -1230,6 +1231,15 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
         
         address_t elementAddress = 0;
         auto elementCount = memoryReader.readArrayLength(address, entryType);
+        if (elementType->typeIndex == snapshot.managedTypeIndex.system_Byte)
+        {
+            printf("%s└<%d>", __indent, elementCount);
+            auto ptr = memoryReader.readMemory(address + __vm->arrayHeaderSize);
+            dumpByteArray(ptr, elementCount);
+            printf("\n");
+            return;
+        }
+        
         for (auto i = 0; i < elementCount; i++)
         {
             bool closed = i + 1 == elementCount;
