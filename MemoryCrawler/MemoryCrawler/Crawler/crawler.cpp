@@ -1233,104 +1233,13 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
     }
     
     auto *iterType = &entryType;
+    vector<FieldDescription *> typeMembers;
     while (iterType != nullptr)
     {
-        vector<FieldDescription *> typeMembers;
         for (auto i = 0; i < iterType->fields->size; i++)
         {
             auto &field = iterType->fields->items[i];
             if (!field.isStatic) { typeMembers.push_back(&field); }
-        }
-        
-        auto fieldCount = typeMembers.size();
-        for (auto i = 0; i < fieldCount; i++)
-        {
-            auto code = 0;
-            auto closed = i + 1 == fieldCount;
-            auto &field = *typeMembers[i];
-            
-            address_t fieldAddress = 0;
-            auto *fieldType = &snapshot.typeDescriptions->items[field.typeIndex];
-            if (!fieldType->isValueType)
-            {
-                fieldAddress = memoryReader.readPointer(address + field.offset);
-                if (field.typeIndex == snapshot.managedTypeIndex.system_String)
-                {
-                    code = 2;
-                }
-                
-                if (fieldAddress == 0)
-                {
-                    code = 1;
-                }
-                
-                auto typeIndex = findTypeOfAddress(fieldAddress);
-                if (typeIndex >= 0)
-                {
-                    fieldType = &snapshot.typeDescriptions->items[typeIndex];
-                }
-            }
-            else
-            {
-                fieldAddress = address + field.offset - __vm->objectHeaderSize;
-                if (field.typeIndex == entryType.typeIndex || isPremitiveType(field.typeIndex))
-                {
-                    code = 3;
-                }
-            }
-            
-            closed ? memcpy(tabular, "└", 3) : memcpy(tabular, "├", 3);
-            const char *fieldTypeName = fieldType->name->c_str();
-            const char *fieldName = field.name->c_str();
-            switch (code)
-            {
-                case 1: // null
-                    printf("%s%s:%s = NULL", __indent, fieldName, fieldTypeName);
-                    break;
-                case 2: // string
-                {
-                    auto size = 0;
-                    printf("%s%s:%s 0x%08llx = '%s'", __indent, fieldName, fieldTypeName, fieldAddress , getUTFString(fieldAddress, size, true).c_str());
-                    break;
-                }
-                case 3: // premitive
-                    printf("%s%s:%s = ", __indent, fieldName, fieldTypeName);
-                    dumpPremitiveValue(fieldAddress, fieldType->typeIndex);
-                    break;
-                default:
-                    printf("%s%s:%s", __indent, fieldName, fieldTypeName);
-                    if (!fieldType->isValueType)
-                    {
-                        printf(" 0x%08llx", fieldAddress);
-                    }
-                    break;
-            }
-            printf("\n");
-            
-            if (antiCircular.find(fieldAddress) == antiCircular.end() && code == 0)
-            {
-                decltype(antiCircular) __antiCircular(antiCircular);
-                __antiCircular.insert(fieldAddress);
-                
-                if (closed)
-                {
-                    char __nest_indent[__size + 1 + 2 + 1]; // indent + space + 2×space + \0
-                    memcpy(__nest_indent, __indent, __size);
-                    memset(__nest_indent + __size, '\x20', 3);
-                    memset(__nest_indent + __size + 3, 0, 1);
-                    dumpMObjectHierarchy(fieldAddress, fieldType, __antiCircular, true, __nest_indent, __iter_depth + 1);
-                }
-                else
-                {
-                    char __nest_indent[__size + 3 + 2 + 1]; // indent + tabulator + 2×space + \0
-                    char *iter = __nest_indent + __size;
-                    memcpy(__nest_indent, __indent, __size);
-                    memcpy(iter, "│", 3);
-                    memset(iter + 3, '\x20', 2);
-                    memset(iter + 5, 0, 1);
-                    dumpMObjectHierarchy(fieldAddress, fieldType, __antiCircular, true, __nest_indent, __iter_depth + 1);
-                }
-            }
         }
         
         if (iterType->baseOrElementTypeIndex >= 0)
@@ -1340,6 +1249,97 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
         else
         {
             iterType = nullptr;
+        }
+    }
+    
+    auto fieldCount = typeMembers.size();
+    for (auto i = 0; i < fieldCount; i++)
+    {
+        auto code = 0;
+        auto closed = i + 1 == fieldCount;
+        auto &field = *typeMembers[i];
+        
+        address_t fieldAddress = 0;
+        auto *fieldType = &snapshot.typeDescriptions->items[field.typeIndex];
+        if (!fieldType->isValueType)
+        {
+            fieldAddress = memoryReader.readPointer(address + field.offset);
+            if (field.typeIndex == snapshot.managedTypeIndex.system_String)
+            {
+                code = 2;
+            }
+            
+            if (fieldAddress == 0)
+            {
+                code = 1;
+            }
+            
+            auto typeIndex = findTypeOfAddress(fieldAddress);
+            if (typeIndex >= 0)
+            {
+                fieldType = &snapshot.typeDescriptions->items[typeIndex];
+            }
+        }
+        else
+        {
+            fieldAddress = address + field.offset - __vm->objectHeaderSize;
+            if (field.typeIndex == entryType.typeIndex || isPremitiveType(field.typeIndex))
+            {
+                code = 3;
+            }
+        }
+        
+        closed ? memcpy(tabular, "└", 3) : memcpy(tabular, "├", 3);
+        const char *fieldTypeName = fieldType->name->c_str();
+        const char *fieldName = field.name->c_str();
+        switch (code)
+        {
+            case 1: // null
+                printf("%s%s:%s = NULL", __indent, fieldName, fieldTypeName);
+                break;
+            case 2: // string
+            {
+                auto size = 0;
+                printf("%s%s:%s 0x%08llx = '%s'", __indent, fieldName, fieldTypeName, fieldAddress , getUTFString(fieldAddress, size, true).c_str());
+                break;
+            }
+            case 3: // premitive
+                printf("%s%s:%s = ", __indent, fieldName, fieldTypeName);
+                dumpPremitiveValue(fieldAddress, fieldType->typeIndex);
+                break;
+            default:
+                printf("%s%s:%s", __indent, fieldName, fieldTypeName);
+                if (!fieldType->isValueType)
+                {
+                    printf(" 0x%08llx", fieldAddress);
+                }
+                break;
+        }
+        printf("\n");
+        
+        if (antiCircular.find(fieldAddress) == antiCircular.end() && code == 0)
+        {
+            decltype(antiCircular) __antiCircular(antiCircular);
+            __antiCircular.insert(fieldAddress);
+            
+            if (closed)
+            {
+                char __nest_indent[__size + 1 + 2 + 1]; // indent + space + 2×space + \0
+                memcpy(__nest_indent, __indent, __size);
+                memset(__nest_indent + __size, '\x20', 3);
+                memset(__nest_indent + __size + 3, 0, 1);
+                dumpMObjectHierarchy(fieldAddress, fieldType, __antiCircular, true, __nest_indent, __iter_depth + 1);
+            }
+            else
+            {
+                char __nest_indent[__size + 3 + 2 + 1]; // indent + tabulator + 2×space + \0
+                char *iter = __nest_indent + __size;
+                memcpy(__nest_indent, __indent, __size);
+                memcpy(iter, "│", 3);
+                memset(iter + 3, '\x20', 2);
+                memset(iter + 5, 0, 1);
+                dumpMObjectHierarchy(fieldAddress, fieldType, __antiCircular, true, __nest_indent, __iter_depth + 1);
+            }
         }
     }
 }
