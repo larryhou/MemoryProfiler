@@ -10,6 +10,8 @@
 #define crawler_h
 
 #include <set>
+#include <locale>
+#include <codecvt>
 #include <fstream>
 #include <vector>
 #include <map>
@@ -106,6 +108,8 @@ private:
     StaticMemoryReader *__staticMemoryReader;
     VirtualMachineInformation *__vm;
     
+    std::wstring_convert<std::codecvt_utf8<char16_t>, char16_t> __convertor;
+    
     TimeSampler<std::nano> __sampler;
     address_t *__mirror = nullptr;
     
@@ -127,6 +131,7 @@ public:
     MemorySnapshotCrawler &crawl();
     
     const char16_t *getString(address_t address, int32_t &size);
+    const string getUTFString(address_t address, int32_t &size, bool compactMode = false);
     
     void tryAcceptConnection(EntityConnection &connection);
     void tryAcceptConnection(Connection &connection);
@@ -191,6 +196,9 @@ private:
                                   EntityJoint &joint,
                                   bool isRealType,
                                   int32_t depth);
+    bool isPremitiveType(int32_t typeIndex);
+    void dumpPremitiveValue(address_t address, int32_t typeIndex);
+    
     
     void summarize();
 };

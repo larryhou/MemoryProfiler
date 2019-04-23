@@ -344,6 +344,27 @@ const char16_t *MemorySnapshotCrawler::getString(address_t address, int32_t &siz
     return __memoryReader->readString(address + __vm->objectHeaderSize, size);
 }
 
+const string MemorySnapshotCrawler::getUTFString(address_t address, int32_t &size, bool compactMode)
+{
+    auto *data = getString(address, size);
+    if (data != nullptr)
+    {
+        auto utf = __convertor.to_bytes(data);
+        if (compactMode)
+        {
+            for (auto iter = utf.begin(); iter != utf.end(); iter++)
+            {
+                if (*iter == '\n' || *iter == '\r')
+                {
+                    *iter = '\\'; // 禁止换行
+                }
+            }
+        }
+        return utf;
+    }
+    return string();
+}
+
 bool MemorySnapshotCrawler::isSubclassOfMType(TypeDescription &type, int32_t baseTypeIndex)
 {
     if (type.typeIndex == baseTypeIndex) { return true; }
@@ -372,6 +393,55 @@ bool MemorySnapshotCrawler::isSubclassOfNType(PackedNativeType &type, int32_t ba
     }
     
     return false;
+}
+
+bool MemorySnapshotCrawler::isPremitiveType(int32_t typeIndex)
+{
+    auto &mtypes = snapshot.managedTypeIndex;
+    
+    if (typeIndex == mtypes.system_IntPtr) {return true;}
+    
+    if (typeIndex == mtypes.system_Int64) {return true;}
+    if (typeIndex == mtypes.system_Int32) {return true;}
+    if (typeIndex == mtypes.system_Int16) {return true;}
+    if (typeIndex == mtypes.system_SByte) {return true;}
+    
+    if (typeIndex == mtypes.system_UInt64) {return true;}
+    if (typeIndex == mtypes.system_UInt32) {return true;}
+    if (typeIndex == mtypes.system_UInt16) {return true;}
+    if (typeIndex == mtypes.system_Byte) {return true;}
+    if (typeIndex == mtypes.system_Char) {return true;}
+    
+    if (typeIndex == mtypes.system_Single) {return true;}
+    if (typeIndex == mtypes.system_Double) {return true;}
+    
+    if (typeIndex == mtypes.system_Boolean) {return true;}
+    return false;
+}
+
+void MemorySnapshotCrawler::dumpPremitiveValue(address_t address, int32_t typeIndex)
+{
+    auto &mtypes = snapshot.managedTypeIndex;
+    auto &memoryReader = *__memoryReader;
+    
+    if (typeIndex == mtypes.system_IntPtr) {printf("0x%08llx", memoryReader.readPointer(address));}
+    
+    if (typeIndex == mtypes.system_Int64) {printf("%lld", memoryReader.readInt64(address));}
+    if (typeIndex == mtypes.system_Int32) {printf("%d", memoryReader.readInt32(address));}
+    if (typeIndex == mtypes.system_Int16) {printf("%d", memoryReader.readInt16(address));}
+    if (typeIndex == mtypes.system_SByte) {printf("%d", memoryReader.readInt8(address));}
+    
+    if (typeIndex == mtypes.system_UInt64) {printf("%lld", memoryReader.readUInt64(address));}
+    if (typeIndex == mtypes.system_UInt32) {printf("%d", memoryReader.readUInt32(address));}
+    if (typeIndex == mtypes.system_UInt16) {printf("%d", memoryReader.readUInt16(address));}
+    if (typeIndex == mtypes.system_Byte) {printf("%d", memoryReader.readUInt8(address));}
+
+    if (typeIndex == mtypes.system_Char) {printf("%d", memoryReader.readUInt16(address));}
+
+    if (typeIndex == mtypes.system_Single) {printf("%f", memoryReader.readFloat(address));}
+    if (typeIndex == mtypes.system_Double) {printf("%f", memoryReader.readDouble(address));}
+
+    if (typeIndex == mtypes.system_Boolean) {printf("%s", memoryReader.readBoolean(address) ? "true" : "false");}
 }
 
 void MemorySnapshotCrawler::dumpMRefChain(address_t address, bool includeCircular, int32_t limit)
@@ -435,11 +505,11 @@ void MemorySnapshotCrawler::dumpMRefChain(address_t address, bool includeCircula
                 auto &field = hookType.fields->items[joint.fieldSlotIndex];
                 if (joint.elementArrayIndex >= 0)
                 {
-                    printf("    .{%s:%s}[%d] 0x%08llx\n", field.name->c_str(), type.name->c_str(), joint.elementArrayIndex, joint.fieldAddress);
+                    printf("    .{%s:%s}[%d] 0x%08llx\n", field.name->c_str(), type.name->c_str(), joint.elementArrayIndex, node.address);
                 }
                 else
                 {
-                    printf("    .{%s:%s} 0x%08llx\n", field.name->c_str(), type.name->c_str(), joint.fieldAddress);
+                    printf("    .{%s:%s} 0x%08llx\n", field.name->c_str(), type.name->c_str(), node.address);
                 }
             }
             
@@ -1046,16 +1116,15 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
                                                  set<int64_t> antiCircular, int32_t limit, const char *indent, int32_t __iter_depth)
 {
     auto __size = strlen(indent);
-    char __indent[__size + 2 + 2*3 + 1]; // indent + 2×space + 2×tabulator + \0
+    char __indent[__size + 2*3 + 1]; // indent + 2×tabulator + \0
     memcpy(__indent, indent, __size);
-    memset(__indent + __size, '\x20', 2);
-    char *tabular = __indent + __size + 2;
+    char *tabular = __indent + __size;
     memcpy(tabular + 3, "─", 3);
     tabular[6] = 0;
     
     if (type == nullptr || !type->isValueType)
     {
-        auto typeIndex = __memoryReader->findHeapOfAddress(address);
+        auto typeIndex = findTypeOfAddress(address);
         if (typeIndex == -1){return;}
         
         type = &snapshot.typeDescriptions->items[typeIndex];
@@ -1064,9 +1133,16 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
     auto &memoryReader = *__memoryReader;
     
     auto &entryType = *type;
+    if (__iter_depth == 0)
+    {
+        printf("%s 0x%08llx\n", entryType.name->c_str(), address);
+    }
+    
     if (entryType.isArray)
     {
         auto &elementType = snapshot.typeDescriptions->items[entryType.baseOrElementTypeIndex];
+        auto __is_premitive = isPremitiveType(elementType.typeIndex);
+        auto __is_string = elementType.typeIndex == snapshot.managedTypeIndex.system_String;
         
         address_t elementAddress = 0;
         auto elementCount = memoryReader.readArrayLength(address, entryType);
@@ -1086,24 +1162,47 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
                 __antiCircular.insert(elementAddress);
             }
             
-            printf("%s[%d]\n", indent, i);
+            closed ? memcpy(tabular, "└", 3) : memcpy(tabular, "├", 3);
+            printf("%s[%d]:%s", __indent, i, elementType.name->c_str());
+            if (__is_premitive)
+            {
+                printf(" = ");
+                dumpPremitiveValue(elementAddress, elementType.typeIndex);
+                printf("\n");
+                continue;
+            }
+            
+            if (__is_string)
+            {
+                auto size = 0;
+                printf(" = %s\n", getUTFString(elementAddress, size, true).c_str());
+                continue;
+            }
+            
+            if (elementAddress == 0)
+            {
+                printf(" = NULL\n");
+                continue;
+            }
+            if (!elementType.isValueType) {printf(" 0x%08llx", elementAddress);}
+            printf("\n");
             if (closed)
             {
                 char __nest_indent[__size + 1 + 2 + 1]; // indent + space + 2×space + \0
-                memcpy(__nest_indent, __indent, __size);
+                memcpy(__nest_indent, indent, __size);
                 memset(__nest_indent + __size, '\x20', 3);
                 memset(__nest_indent + __size + 3, 0, 1);
-                dumpMObjectHierarchy(address, &elementType, __antiCircular, limit, __nest_indent);
+                dumpMObjectHierarchy(elementAddress, &elementType, __antiCircular, limit, __nest_indent, __iter_depth + 1);
             }
             else
             {
                 char __nest_indent[__size + 3 + 2 + 1]; // indent + tabulator + 2×space + \0
                 char *iter = __nest_indent + __size;
-                memcpy(__nest_indent, __indent, __size);
+                memcpy(__nest_indent, indent, __size);
                 memcpy(iter, "│", 3);
                 memset(iter + 3, '\x20', 2);
                 memset(iter + 5, 0, 1);
-                dumpMObjectHierarchy(address, &elementType, __antiCircular, limit, __nest_indent);
+                dumpMObjectHierarchy(elementAddress, &elementType, __antiCircular, limit, __nest_indent, __iter_depth + 1);
             }
         }
         
@@ -1113,27 +1212,67 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
     auto fieldCount = entryType.fields->size;
     for (auto i = 0; i < fieldCount; i++)
     {
+        auto code = 0;
         auto closed = i + 1 == fieldCount;
         auto &field = entryType.fields->items[i];
-        if (field.isStatic) {continue;}
+        if (field.isStatic)
+        {
+            code = 1;
+        }
         
         address_t fieldAddress = 0;
         auto &fieldType = snapshot.typeDescriptions->items[field.typeIndex];
         if (!fieldType.isValueType)
         {
             fieldAddress = memoryReader.readPointer(address + field.offset);
-            if (fieldAddress == 0){continue;}
+            if (fieldAddress == 0)
+            {
+                code = 2;
+            }
+            if (field.typeIndex == snapshot.managedTypeIndex.system_String)
+            {
+                code = 3;
+            }
         }
         else
         {
             fieldAddress = address + field.offset - __vm->objectHeaderSize;
-            if (field.typeIndex == entryType.typeIndex) {continue;}
+            if (field.typeIndex == entryType.typeIndex || isPremitiveType(field.typeIndex))
+            {
+                code = 4;
+            }
         }
         
         closed ? memcpy(tabular, "└", 3) : memcpy(tabular, "├", 3);
-        printf("%s%s:%s\n", __indent, field.name->c_str(), fieldType.name->c_str());
+        switch (code)
+        {
+            case 1: // static
+                printf("%s[static]%s:%s", __indent, field.name->c_str(), fieldType.name->c_str());
+                break;
+            case 2: // null
+                printf("%s%s:%s = NULL", __indent, field.name->c_str(), fieldType.name->c_str());
+                break;
+            case 3: // null
+            {
+                auto size = 0;
+                printf("%s%s:%s = '%s'", __indent, field.name->c_str(), fieldType.name->c_str(), getUTFString(fieldAddress, size, true).c_str());
+                break;
+            }
+            case 4: // premitive
+                printf("%s%s:%s = ", __indent, field.name->c_str(), fieldType.name->c_str());
+                dumpPremitiveValue(fieldAddress, fieldType.typeIndex);
+                break;
+            default:
+                printf("%s%s:%s", __indent, field.name->c_str(), fieldType.name->c_str());
+                if (!fieldType.isValueType)
+                {
+                    printf(" 0x%08llx", fieldAddress);
+                }
+                break;
+        }
+        printf("\n");
         
-        if (antiCircular.find(fieldAddress) == antiCircular.end())
+        if (antiCircular.find(fieldAddress) == antiCircular.end() && code == 0)
         {
             decltype(antiCircular) __antiCircular(antiCircular);
             __antiCircular.insert(fieldAddress);
@@ -1144,7 +1283,7 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
                 memcpy(__nest_indent, __indent, __size);
                 memset(__nest_indent + __size, '\x20', 3);
                 memset(__nest_indent + __size + 3, 0, 1);
-                dumpMObjectHierarchy(fieldAddress, &fieldType, __antiCircular, limit, __nest_indent);
+                dumpMObjectHierarchy(fieldAddress, &fieldType, __antiCircular, limit, __nest_indent, __iter_depth + 1);
             }
             else
             {
@@ -1154,7 +1293,7 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
                 memcpy(iter, "│", 3);
                 memset(iter + 3, '\x20', 2);
                 memset(iter + 5, 0, 1);
-                dumpMObjectHierarchy(fieldAddress, &fieldType, __antiCircular, limit, __nest_indent);
+                dumpMObjectHierarchy(fieldAddress, &fieldType, __antiCircular, limit, __nest_indent, __iter_depth + 1);
             }
         }
     }
