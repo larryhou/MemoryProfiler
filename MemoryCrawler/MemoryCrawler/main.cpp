@@ -294,7 +294,7 @@ void processSnapshot(const char * filepath)
                                        auto subcommand = options[1];
                                        if (0 == strcmp(subcommand, "alloc"))
                                        {
-                                           trackingMode = MS_alloc;
+                                           trackingMode = MS_allocated;
                                        }
                                        else if (0 == strcmp(subcommand, "leak"))
                                        {
@@ -311,7 +311,7 @@ void processSnapshot(const char * filepath)
                                        case MS_none:
                                            printf("\e[37m\e[7mLEAVE TRACKING MODE\e[0m\n");
                                            break;
-                                       case MS_alloc:
+                                       case MS_allocated:
                                            printf("\e[92m\e[7mENTER TRACKING ALLOC MODE\e[0m\n");
                                            break;
                                        case MS_persistent:

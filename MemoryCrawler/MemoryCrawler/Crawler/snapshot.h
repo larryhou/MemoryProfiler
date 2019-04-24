@@ -16,7 +16,7 @@
 using std::string;
 
 enum ConnectionKind:uint8_t { CK_none = 0, CK_gcHandle, CK_static, CK_managed, CK_native };
-enum MemoryState:uint8_t { MS_none = 0, MS_persistent, MS_alloc };
+enum MemoryState:uint8_t { MS_none = 0, MS_persistent, MS_allocated };
 
 struct Connection
 {
