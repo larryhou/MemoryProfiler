@@ -25,12 +25,19 @@ void TrackStatistics::summarize(bool reverse)
 {
     std::sort(__samples.begin(), __samples.end(), [&](sample_t &a, sample_t &b)->bool
               {
-                  auto mem_a = __memory.at(std::get<1>(a));
-                  auto mem_b = __memory.at(std::get<1>(b));
-                  if (mem_a != mem_b) {return mem_a < mem_b;}
-                  auto size_a = std::get<2>(a);
-                  auto size_b = std::get<2>(b);
-                  if (size_a != size_b) {return size_a > size_b;}
+                  auto ta = std::get<1>(a);
+                  auto tb = std::get<1>(b);
+                  if (ta != tb)
+                  {
+                      auto ma = __memory.at(ta);
+                      auto mb = __memory.at(tb);
+                      if (ma != mb) {return ma < mb;}
+                      return ta < tb;
+                  }
+                  
+                  auto sa = std::get<2>(a);
+                  auto sb = std::get<2>(b);
+                  if (sa != sb) {return sa > sb;}
                   return std::get<0>(a) < std::get<0>(b);
               });
     if (reverse) {this->reverse();}

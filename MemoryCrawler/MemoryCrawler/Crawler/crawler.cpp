@@ -192,7 +192,7 @@ void MemorySnapshotCrawler::trackMStatistics(MemoryState state, int32_t depth)
                         {
                             case -1:
                             {
-                                printf("[%s][=] memory=%d type_index=%d\n", type.name->c_str(), (int32_t)size, type.typeIndex);
+                                printf("[%s] memory=%d type_index=%d\n", type.name->c_str(), (int32_t)size, type.typeIndex);
                                 break;
                             }
                             case -2:
@@ -201,7 +201,7 @@ void MemorySnapshotCrawler::trackMStatistics(MemoryState state, int32_t depth)
                                 auto skipCount = __count >> 16;
                                 auto typeCount = __count & 0xFFFF;
                                 auto __size = (int32_t)(size & 0xFFFFFFFF);
-                                if (skipCount > 0){printf("[%s][~] %d/%d=%d\n", type.name->c_str(), skipCount, typeCount, __size);}
+                                if (skipCount > 0){printf("[~] %d/%d=%d\n", skipCount, typeCount, __size);}
                                 total += __size;
                                 count += skipCount;
                                 printf("\n");
@@ -249,7 +249,7 @@ void MemorySnapshotCrawler::trackNStatistics(MemoryState state, int32_t depth)
                         {
                             case -1:
                             {
-                                printf("[%s][=] memory=%d type_index=%d\n", type.name->c_str(), (int32_t)size, type.typeIndex);
+                                printf("[%s] memory=%d type_index=%d\n", type.name->c_str(), (int32_t)size, type.typeIndex);
                                 break;
                             }
                             case -2:
@@ -258,7 +258,7 @@ void MemorySnapshotCrawler::trackNStatistics(MemoryState state, int32_t depth)
                                 auto skipCount = __count >> 16;
                                 auto typeCount = __count & 0xFFFF;
                                 auto __size = (int32_t)(size & 0xFFFFFFFF);
-                                if (skipCount > 0){printf("[%s][~] %d/%d=%d\n", type.name->c_str(), skipCount, typeCount, __size);}
+                                if (skipCount > 0){printf("[~] %d/%d=%d\n", skipCount, typeCount, __size);}
                                 total += __size;
                                 count += skipCount;
                                 printf("\n");
