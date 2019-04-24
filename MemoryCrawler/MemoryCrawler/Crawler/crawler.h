@@ -103,6 +103,7 @@ public:
 private:
     static constexpr int64_t REF_ITERATE_CAPACITY = 1 << 20;
     static constexpr int32_t REF_ITERATE_DEPTH = 32;
+    static constexpr int32_t SEP_DASH_COUNT = 40;
     
     HeapMemoryReader *__memoryReader;
     StaticMemoryReader *__staticMemoryReader;

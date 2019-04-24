@@ -182,9 +182,20 @@ void MemorySnapshotCrawler::trackMStatistics(MemoryState state, int32_t depth)
         }
     }
     
+    char sep[3*SEP_DASH_COUNT + 1];
+    memset(sep, 0, sizeof(sep));
+    
+    char *iter = sep;
+    for (auto i = 0; i < SEP_DASH_COUNT; i++)
+    {
+        memcpy(iter, "─", 3);
+        iter += 3;
+    }
+    
     int32_t total = 0;
     int32_t count = 0;
     objects.summarize();
+    printf("┌%s\n", sep);
     objects.foreach([&](int32_t itemIndex, int32_t typeIndex, int64_t size)
                     {
                         auto &type = snapshot.typeDescriptions->items[typeIndex];
@@ -192,7 +203,7 @@ void MemorySnapshotCrawler::trackMStatistics(MemoryState state, int32_t depth)
                         {
                             case -1:
                             {
-                                printf("[%s] memory=%d type_index=%d\n", type.name->c_str(), (int32_t)size, type.typeIndex);
+                                printf("│ [%s] memory=%d type_index=%d\n", type.name->c_str(), (int32_t)size, type.typeIndex);
                                 break;
                             }
                             case -2:
@@ -201,10 +212,10 @@ void MemorySnapshotCrawler::trackMStatistics(MemoryState state, int32_t depth)
                                 auto skipCount = __count >> 16;
                                 auto typeCount = __count & 0xFFFF;
                                 auto __size = (int32_t)(size & 0xFFFFFFFF);
-                                if (skipCount > 0){printf("[~] %d/%d=%d\n", skipCount, typeCount, __size);}
+                                if (skipCount > 0){printf("│ [~] %d/%d=%d\n", skipCount, typeCount, __size);}
                                 total += __size;
                                 count += skipCount;
-                                printf("\n");
+                                printf("├%s\n", sep);
                                 break;
                             }
                             default:
@@ -212,12 +223,13 @@ void MemorySnapshotCrawler::trackMStatistics(MemoryState state, int32_t depth)
                                 total += size;
                                 count ++;
                                 auto &mo = managedObjects[itemIndex];
-                                printf("0x%08llx %6d %s\n", mo.address, mo.size, type.name->c_str());
+                                printf("│ 0x%08llx %6d %s\n", mo.address, mo.size, type.name->c_str());
                                 break;
                             }
                         }
                     }, depth);
-    printf("\e[37m[SUMMARY] count=%d memory=%d\n", count, total);
+    printf("\e[37m│ [SUMMARY] count=%d memory=%d\n", count, total);
+    printf("└%s\n", sep);
 }
 
 void MemorySnapshotCrawler::trackNStatistics(MemoryState state, int32_t depth)
@@ -234,14 +246,25 @@ void MemorySnapshotCrawler::trackNStatistics(MemoryState state, int32_t depth)
         }
     }
     
+    char sep[3*SEP_DASH_COUNT + 1];
+    memset(sep, 0, sizeof(sep));
+    
+    char *iter = sep;
+    for (auto i = 0; i < SEP_DASH_COUNT; i++)
+    {
+        memcpy(iter, "─", 3);
+        iter += 3;
+    }
+    
     auto digits = (int32_t)std::ceil(std::log10(size));
     
     char format[32];
-    sprintf(format, "0x%%08llx %%%dd '%%s'\n", digits);
+    sprintf(format, "│ 0x%%08llx %%%dd '%%s'\n", digits);
     objects.summarize();
     
     int32_t total = 0;
     int32_t count = 0;
+    printf("┌%s\n", sep);
     objects.foreach([&](int32_t itemIndex, int32_t typeIndex, int64_t size)
                     {
                         auto &type = snapshot.nativeTypes->items[typeIndex];
@@ -249,7 +272,7 @@ void MemorySnapshotCrawler::trackNStatistics(MemoryState state, int32_t depth)
                         {
                             case -1:
                             {
-                                printf("[%s] memory=%d type_index=%d\n", type.name->c_str(), (int32_t)size, type.typeIndex);
+                                printf("│ [%s] memory=%d type_index=%d\n", type.name->c_str(), (int32_t)size, type.typeIndex);
                                 break;
                             }
                             case -2:
@@ -258,10 +281,10 @@ void MemorySnapshotCrawler::trackNStatistics(MemoryState state, int32_t depth)
                                 auto skipCount = __count >> 16;
                                 auto typeCount = __count & 0xFFFF;
                                 auto __size = (int32_t)(size & 0xFFFFFFFF);
-                                if (skipCount > 0){printf("[~] %d/%d=%d\n", skipCount, typeCount, __size);}
+                                if (skipCount > 0){printf("│ [~] %d/%d=%d\n", skipCount, typeCount, __size);}
                                 total += __size;
                                 count += skipCount;
-                                printf("\n");
+                                printf("├%s\n", sep);
                                 break;
                             }
                             default:
@@ -274,7 +297,8 @@ void MemorySnapshotCrawler::trackNStatistics(MemoryState state, int32_t depth)
                             }
                         }
                     }, depth);
-    printf("\e[37m[SUMMARY] count=%d memory=%d\n", count, total);
+    printf("\e[37m│ [SUMMARY] count=%d memory=%d\n", count, total);
+    printf("└%s\n", sep);
 }
 
 void MemorySnapshotCrawler::trackMTypeObjects(MemoryState state, int32_t typeIndex)
