@@ -189,7 +189,6 @@ void readVirtualMachineInformation(VirtualMachineInformation &item, FileStream &
     item.heapFormatVersion = fs.readInt32();
 }
 
-static const string sPackedMemorySnapshot("PackedMemorySnapshot");
 void MemorySnapshotReader::readPackedMemorySnapshot(PackedMemorySnapshot &item, FileStream &fs)
 {
     __sampler.begin("readPackedMemorySnapshot");
@@ -274,7 +273,7 @@ void MemorySnapshotReader::readSnapshot(FileStream &fs)
     postSnapshot();
 }
 
-bool endsWith(const string *s, const string *with)
+bool strend(const string *s, const string *with)
 {
     auto its = s->rbegin();
     auto itw = with->rbegin();
@@ -291,7 +290,7 @@ bool endsWith(const string *s, const string *with)
 
 inline bool readTypeIndex(int32_t &index, const TypeDescription &type, const string *pattern)
 {
-    if (index == -1 && endsWith(type.name, pattern))
+    if (index == -1 && strend(type.name, pattern))
     {
         index = type.typeIndex;
         return true;
@@ -372,7 +371,7 @@ void MemorySnapshotReader::postSnapshot()
             for (auto n = 0; n < fieldDescriptions.size; n++)
             {
                 FieldDescription &field = fieldDescriptions[n];
-                if (isUnityEngineObject && endsWith(field.name, &sCachedPtr))
+                if (isUnityEngineObject && strend(field.name, &sCachedPtr))
                 {
                     __snapshot->cached_ptr = &field;
                 }
@@ -393,7 +392,7 @@ void MemorySnapshotReader::postSnapshot()
     {
         auto &nt = nativeTypes[i];
         nt.typeIndex = i;
-        if (endsWith(nt.name, &sFont))
+        if (strend(nt.name, &sFont))
         {
             __snapshot->nativeTypeIndex.Font = i;
         }
