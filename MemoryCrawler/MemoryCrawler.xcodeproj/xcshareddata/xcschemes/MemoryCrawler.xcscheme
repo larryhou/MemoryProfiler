@@ -63,15 +63,11 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "/Users/larryhou/Documents/MemoryProfiler/__capture/03_language/lobby_settings_en.pms"
+            argument = "/Users/larryhou/Documents/MemoryProfiler/__capture/sr4/20190424170917_lobby.pms"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "/Users/larryhou/Documents/MemoryProfiler/__capture/03_language/lobby_cn.pms"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "/Users/larryhou/Documents/MemoryProfiler/__capture/s2/20190424114846_game.pms"
+            argument = "/Users/larryhou/Documents/MemoryProfiler/__capture/sr4/20190424170939_match.pms"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

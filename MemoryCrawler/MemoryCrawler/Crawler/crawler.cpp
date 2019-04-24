@@ -132,7 +132,7 @@ void MemorySnapshotCrawler::prepare()
 
 void MemorySnapshotCrawler::compare(MemorySnapshotCrawler &crawler)
 {
-    map<address_t, int32_t> container;
+    map<address_t, int64_t> container;
     
     // Compare managed objects
     for (auto i = 0; i < crawler.managedObjects.size(); i++)
@@ -140,7 +140,8 @@ void MemorySnapshotCrawler::compare(MemorySnapshotCrawler &crawler)
         auto &mo = crawler.managedObjects[i];
         if (!mo.isValueType)
         {
-            container.insert(pair<address_t, int32_t>(mo.address, mo.typeIndex));
+            auto &type = snapshot.typeDescriptions->items[mo.typeIndex];
+            container.insert(pair<address_t, int64_t>(mo.address, type.typeInfoAddress));
         }
     }
     
@@ -149,8 +150,9 @@ void MemorySnapshotCrawler::compare(MemorySnapshotCrawler &crawler)
         auto &mo = managedObjects[i];
         if (!mo.isValueType)
         {
+            auto &type = snapshot.typeDescriptions->items[mo.typeIndex];
             auto iter = container.find(mo.address);
-            mo.state = (iter == container.end() || iter->second != mo.typeIndex) ? MS_allocated : MS_persistent;
+            mo.state = (iter == container.end() || iter->second != type.typeInfoAddress)? MS_allocated : MS_persistent;
         }
     }
     
@@ -166,7 +168,7 @@ void MemorySnapshotCrawler::compare(MemorySnapshotCrawler &crawler)
     {
         auto &no = snapshot.nativeObjects->items[i];
         auto iter = container.find(no.nativeObjectAddress);
-        no.state = (iter == container.end() || iter->second != no.nativeTypeArrayIndex) ? MS_allocated : MS_persistent;
+        no.state = iter == container.end()? MS_allocated : MS_persistent;
     }
 }
 
