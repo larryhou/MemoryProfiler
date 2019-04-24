@@ -394,13 +394,13 @@ void processSnapshot(const char * filepath)
                                {
                                    if (options.size() == 1)
                                    {
-                                       mainCrawler.barMMemory(20);
+                                       mainCrawler.barMMemory(trackingMode, 20);
                                    }
                                    else
                                    {
                                        for (auto i = 1; i < options.size(); i++)
                                        {
-                                           mainCrawler.barMMemory(atoi(options[i]));
+                                           mainCrawler.barMMemory(trackingMode, atoi(options[i]));
                                        }
                                    }
                                });
@@ -411,13 +411,13 @@ void processSnapshot(const char * filepath)
                                {
                                    if (options.size() == 1)
                                    {
-                                       mainCrawler.barNMemory(20);
+                                       mainCrawler.barNMemory(trackingMode, 20);
                                    }
                                    else
                                    {
                                        for (auto i = 1; i < options.size(); i++)
                                        {
-                                           mainCrawler.barNMemory(atoi(options[i]));
+                                           mainCrawler.barNMemory(trackingMode, atoi(options[i]));
                                        }
                                    }
                                });

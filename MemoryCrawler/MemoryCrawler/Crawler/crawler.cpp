@@ -365,24 +365,40 @@ void MemorySnapshotCrawler::trackNTypeObjects(MemoryState state, int32_t typeInd
     printf("\e[37m[SUMMARY] count=%d memory=%d\n", count, total);
 }
 
-void MemorySnapshotCrawler::barMMemory(int32_t rank)
+void MemorySnapshotCrawler::barMMemory(MemoryState state, int32_t rank)
 {
     double totalMemory = 0;
-    auto &managedTypes = *snapshot.typeDescriptions;
     vector<int32_t> indice;
-    for (auto i = 0; i < managedTypes.size; i++)
+    map<int32_t, int32_t> typeMemory;
+    map<int32_t, int32_t> typeCount;
+    
+    for (auto i = 0; i < managedObjects.size(); i++)
     {
-        auto &type = managedTypes[i];
-        totalMemory += type.instanceMemory;
-        indice.push_back(type.typeIndex);
+        auto &mo = managedObjects[i];
+        if (state == MS_none || mo.state == state)
+        {
+            totalMemory += mo.size;
+            auto typeIndex = mo.typeIndex;
+            auto iter = typeMemory.find(typeIndex);
+            if (iter == typeMemory.end())
+            {
+                iter = typeMemory.insert(pair<int32_t, int32_t>(typeIndex, 0)).first;
+                indice.push_back(typeIndex);
+                
+                typeCount.insert(pair<int32_t, int32_t>(typeIndex, 0));
+            }
+            
+            iter->second += mo.size;
+            typeCount.at(typeIndex)++;
+        }
     }
     
     std::sort(indice.begin(), indice.end(), [&](int32_t a, int32_t b)
               {
-                  auto &ta = managedTypes[a];
-                  auto &tb = managedTypes[b];
-                  if (a != b) {return ta.instanceMemory > tb.instanceMemory;}
-                  return ta.instanceCount < tb.instanceCount;
+                  auto ma = typeMemory[a];
+                  auto mb = typeMemory[b];
+                  if (ma != mb) {return ma > mb;}
+                  return typeCount.at(a) < typeCount.at(b);
               });
     
     vector<std::tuple<int32_t, double, double>> stats;
@@ -392,51 +408,68 @@ void MemorySnapshotCrawler::barMMemory(int32_t rank)
     for (auto i = 0; i < indice.size(); i++)
     {
         auto index = indice[i];
-        auto &type = managedTypes[index];
-        percent = 100 * (type.instanceMemory / totalMemory);
+        percent = 100 * (typeMemory.at(index) / totalMemory);
         accumulation += percent;
-        stats.push_back(std::make_tuple(type.typeIndex, percent, accumulation));
+        stats.push_back(std::make_tuple(index, percent, accumulation));
     }
     
-    char progress[300];
+    char progress[300+1];
     char fence[] = "█";
+    auto &managedTypes = *snapshot.typeDescriptions;
     for (auto i = 0; i < stats.size(); i++)
     {
-        if (i >= rank){break;}
+        if (rank > 0 && i >= rank){break;}
         auto &item = stats[i];
         auto typeIndex = std::get<0>(item);
         auto &type = managedTypes[typeIndex];
         memset(progress, 0, sizeof(progress));
         auto count = std::max(1, (int32_t)std::round(std::get<1>(item)));
-        printf("%5.2f %5.2f ", std::get<1>(item), std::get<2>(item));
+        printf("%6.2f %6.2f ", std::get<1>(item), std::get<2>(item));
         char *iter = progress;
         for (auto n = 0; n < count; n++)
         {
             memcpy(iter, fence, 3);
             iter += 3;
         }
-        printf("%s %s %'d #%d\n", progress, type.name->c_str(), type.instanceMemory, type.instanceCount);
+        printf("%s %s %'d #%d :%d\n", progress, type.name->c_str(), typeMemory.at(typeIndex), typeCount.at(typeIndex), typeIndex);
     }
 }
 
-void MemorySnapshotCrawler::barNMemory(int32_t rank)
+void MemorySnapshotCrawler::barNMemory(MemoryState state, int32_t rank)
 {
     double totalMemory = 0;
-    auto &nativeTypes = *snapshot.nativeTypes;
     vector<int32_t> indice;
-    for (auto i = 0; i < nativeTypes.size; i++)
+    map<int32_t, int32_t> typeMemory;
+    map<int32_t, int32_t> typeCount;
+    
+    auto &nativeObjects = *snapshot.nativeObjects;
+    for (auto i = 0; i < nativeObjects.size; i++)
     {
-        auto &type = nativeTypes[i];
-        totalMemory += type.instanceMemory;
-        indice.push_back(type.typeIndex);
+        auto &no = nativeObjects[i];
+        if (state == MS_none || no.state == state)
+        {
+            totalMemory += no.size;
+            auto typeIndex = no.nativeTypeArrayIndex;
+            auto iter = typeMemory.find(typeIndex);
+            if (iter == typeMemory.end())
+            {
+                iter = typeMemory.insert(pair<int32_t, int32_t>(typeIndex, 0)).first;
+                indice.push_back(typeIndex);
+                
+                typeCount.insert(pair<int32_t, int32_t>(typeIndex, 0));
+            }
+            
+            iter->second += no.size;
+            typeCount.at(typeIndex)++;
+        }
     }
     
     std::sort(indice.begin(), indice.end(), [&](int32_t a, int32_t b)
               {
-                  auto &ta = nativeTypes[a];
-                  auto &tb = nativeTypes[b];
-                  if (a != b) {return ta.instanceMemory > tb.instanceMemory;}
-                  return ta.instanceCount < tb.instanceCount;
+                  auto ma = typeMemory[a];
+                  auto mb = typeMemory[b];
+                  if (ma != mb) {return ma > mb;}
+                  return typeCount.at(a) < typeCount.at(b);
               });
     
     vector<std::tuple<int32_t, double, double>> stats;
@@ -446,30 +479,30 @@ void MemorySnapshotCrawler::barNMemory(int32_t rank)
     for (auto i = 0; i < indice.size(); i++)
     {
         auto index = indice[i];
-        auto &type = nativeTypes[index];
-        percent = 100 * (type.instanceMemory / totalMemory);
+        percent = 100 * (typeMemory.at(index) / totalMemory);
         accumulation += percent;
-        stats.push_back(std::make_tuple(type.typeIndex, percent, accumulation));
+        stats.push_back(std::make_tuple(index, percent, accumulation));
     }
     
-    char progress[300];
+    char progress[300+1];
     char fence[] = "█";
+    auto &nativeTypes = *snapshot.nativeTypes;
     for (auto i = 0; i < stats.size(); i++)
     {
-        if (i >= rank){break;}
+        if (rank > 0 && i >= rank){break;}
         auto &item = stats[i];
         auto typeIndex = std::get<0>(item);
         auto &type = nativeTypes[typeIndex];
         memset(progress, 0, sizeof(progress));
         auto count = std::max(1, (int32_t)std::round(std::get<1>(item)));
-        printf("%5.2f %5.2f ", std::get<1>(item), std::get<2>(item));
+        printf("%6.2f %6.2f ", std::get<1>(item), std::get<2>(item));
         char *iter = progress;
         for (auto n = 0; n < count; n++)
         {
             memcpy(iter, fence, 3);
             iter += 3;
         }
-        printf("%s %s %'d #%d\n", progress, type.name->c_str(), type.instanceMemory, type.instanceCount);
+        printf("%s %s %'d #%d :%d\n", progress, type.name->c_str(), typeMemory.at(typeIndex), typeCount.at(typeIndex), typeIndex);
     }
 }
 
