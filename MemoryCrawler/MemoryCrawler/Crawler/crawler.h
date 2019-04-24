@@ -60,7 +60,7 @@ struct ManagedObject
     int32_t size = 0;
     int32_t nativeSize = 0;
     bool isValueType = false;
-    CompareState state = CS_none;
+    MemoryState state = MS_none;
 };
 
 #include <memory>
@@ -99,7 +99,6 @@ public:
     InstanceManager<EntityJoint> joints;
     
     PackedMemorySnapshot snapshot;
-    bool trackingMode;
     
 private:
     static constexpr int64_t REF_ITERATE_CAPACITY = 1 << 20;
@@ -137,11 +136,11 @@ public:
     void tryAcceptConnection(EntityConnection &connection);
     void tryAcceptConnection(Connection &connection);
     
-    void trackMStatistics(CompareState state, int32_t depth = 5);
-    void trackNStatistics(CompareState state, int32_t depth = 5);
+    void trackMStatistics(MemoryState state, int32_t depth = 5);
+    void trackNStatistics(MemoryState state, int32_t depth = 5);
     
-    void trackMTypeObjects(int32_t typeIndex);
-    void trackNTypeObjects(int32_t typeIndex);
+    void trackMTypeObjects(MemoryState state, int32_t typeIndex);
+    void trackNTypeObjects(MemoryState state, int32_t typeIndex);
     
     void inspectMObject(address_t address);
     void inspectNObject(address_t address);

@@ -90,6 +90,7 @@ void processSnapshot(const char * filepath)
     
     char uuid[40];
     std::strcpy(uuid, mainCrawler.snapshot.uuid.c_str());
+    MemoryState trackingMode = MS_none;
     
     std::istream *stream = &std::cin;
     while (true)
@@ -282,15 +283,42 @@ void processSnapshot(const char * filepath)
         }
         else if (strbeg(command, "track"))
         {
-            mainCrawler.trackingMode = !mainCrawler.trackingMode;
-            if (mainCrawler.trackingMode)
-            {
-                printf("\e[92m\e[7mENTER TRACKING MODE\e[0m\n");
-            }
-            else
-            {
-                printf("\e[32m\e[7mLEAVE TRACKING MODE\e[0m\n");
-            }
+            readCommandOptions(command, [&](std::vector<const char *> &options)
+                               {
+                                   if (options.size() == 1)
+                                   {
+                                       trackingMode = MS_none;
+                                   }
+                                   else
+                                   {
+                                       auto subcommand = options[1];
+                                       if (0 == strcmp(subcommand, "alloc"))
+                                       {
+                                           trackingMode = MS_alloc;
+                                       }
+                                       else if (0 == strcmp(subcommand, "leak"))
+                                       {
+                                           trackingMode = MS_persistent;
+                                       }
+                                       else if (0 == strcmp(subcommand, "?")) {}
+                                       else
+                                       {
+                                           trackingMode = MS_none;
+                                       }
+                                   }
+                                   switch (trackingMode)
+                                   {
+                                       case MS_none:
+                                           printf("\e[37m\e[7mLEAVE TRACKING MODE\e[0m\n");
+                                           break;
+                                       case MS_alloc:
+                                           printf("\e[92m\e[7mENTER TRACKING ALLOC MODE\e[0m\n");
+                                           break;
+                                       case MS_persistent:
+                                           printf("\e[92m\e[7mENTER TRACKING LEAK MODE\e[0m\n");
+                                           break;
+                                   }
+                               });
         }
         else if (strbeg(command, "stat"))
         {
@@ -298,20 +326,11 @@ void processSnapshot(const char * filepath)
                                {
                                    if (options.size() == 1)
                                    {
-                                       mainCrawler.trackMStatistics(CS_new);
+                                       mainCrawler.trackMStatistics(trackingMode, 5);
                                    }
                                    else
                                    {
-                                       const char *subcommand = options[1];
-                                       int32_t depth = options.size() > 2 ? atoi(options[2]) : 5;
-                                       if (0 == strcmp(subcommand, "new"))
-                                       {
-                                           mainCrawler.trackMStatistics(CS_new, depth);
-                                       }
-                                       else if (0 == strcmp(subcommand, "leak"))
-                                       {
-                                           mainCrawler.trackMStatistics(CS_identical, depth);
-                                       }
+                                       mainCrawler.trackMStatistics(trackingMode, atoi(options[1]));
                                    }
                                });
         }
@@ -321,20 +340,11 @@ void processSnapshot(const char * filepath)
                                {
                                    if (options.size() == 1)
                                    {
-                                       mainCrawler.trackNStatistics(CS_new);
+                                       mainCrawler.trackNStatistics(trackingMode, 5);
                                    }
                                    else
                                    {
-                                       const char *subcommand = options[1];
-                                       int32_t depth = options.size() > 2 ? atoi(options[2]) : 5;
-                                       if (0 == strcmp(subcommand, "new"))
-                                       {
-                                           mainCrawler.trackNStatistics(CS_new, depth);
-                                       }
-                                       else if (0 == strcmp(subcommand, "leak"))
-                                       {
-                                           mainCrawler.trackNStatistics(CS_identical, depth);
-                                       }
+                                       mainCrawler.trackNStatistics(trackingMode, atoi(options[1]));
                                    }
                                });
         }
@@ -344,7 +354,7 @@ void processSnapshot(const char * filepath)
                                {
                                    for (auto i = 1; i < options.size(); i++)
                                    {
-                                       mainCrawler.trackMTypeObjects(atoi(options[i]));
+                                       mainCrawler.trackMTypeObjects(trackingMode, atoi(options[i]));
                                    }
                                });
         }
@@ -354,7 +364,7 @@ void processSnapshot(const char * filepath)
                                {
                                    for (auto i = 1; i < options.size(); i++)
                                    {
-                                       mainCrawler.trackNTypeObjects(atoi(options[i]));
+                                       mainCrawler.trackNTypeObjects(trackingMode, atoi(options[i]));
                                    }
                                });
         }

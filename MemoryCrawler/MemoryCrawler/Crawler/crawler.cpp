@@ -149,7 +149,7 @@ void MemorySnapshotCrawler::compare(MemorySnapshotCrawler &crawler)
         auto &mo = managedObjects[i];
         if (!mo.isValueType)
         {
-            mo.state = container.find(mo.address) == container.end() ? CS_new : CS_identical;
+            mo.state = container.find(mo.address) == container.end() ? MS_alloc : MS_persistent;
         }
     }
     
@@ -164,11 +164,11 @@ void MemorySnapshotCrawler::compare(MemorySnapshotCrawler &crawler)
     for (auto i = 0; i < snapshot.nativeObjects->size; i++)
     {
         auto &no = snapshot.nativeObjects->items[i];
-        no.state = container.find(no.nativeObjectAddress) == container.end() ? CS_new : CS_identical;
+        no.state = container.find(no.nativeObjectAddress) == container.end() ? MS_alloc : MS_persistent;
     }
 }
 
-void MemorySnapshotCrawler::trackMStatistics(CompareState state, int32_t depth)
+void MemorySnapshotCrawler::trackMStatistics(MemoryState state, int32_t depth)
 {
     TrackStatistics objects;
     for (auto i = 0; i < managedObjects.size(); i++)
@@ -218,7 +218,7 @@ void MemorySnapshotCrawler::trackMStatistics(CompareState state, int32_t depth)
     printf("\e[37m[SUMMARY] count=%d memory=%d\n", count, total);
 }
 
-void MemorySnapshotCrawler::trackNStatistics(CompareState state, int32_t depth)
+void MemorySnapshotCrawler::trackNStatistics(MemoryState state, int32_t depth)
 {
     int32_t size = 1;
     TrackStatistics objects;
@@ -275,13 +275,13 @@ void MemorySnapshotCrawler::trackNStatistics(CompareState state, int32_t depth)
     printf("\e[37m[SUMMARY] count=%d memory=%d\n", count, total);
 }
 
-void MemorySnapshotCrawler::trackMTypeObjects(int32_t typeIndex)
+void MemorySnapshotCrawler::trackMTypeObjects(MemoryState state, int32_t typeIndex)
 {
     TrackStatistics objects;
     for (auto i = 0; i < managedObjects.size(); i++)
     {
         auto &mo = managedObjects[i];
-        if (mo.state == CS_new && mo.typeIndex == typeIndex)
+        if (mo.typeIndex == typeIndex && (state == MS_none || state == mo.state))
         {
             objects.collect(i, mo.typeIndex, mo.size);
         }
@@ -307,13 +307,13 @@ void MemorySnapshotCrawler::trackMTypeObjects(int32_t typeIndex)
     printf("\e[37m[SUMMARY] count=%d memory=%d\n", count, total);
 }
 
-void MemorySnapshotCrawler::trackNTypeObjects(int32_t typeIndex)
+void MemorySnapshotCrawler::trackNTypeObjects(MemoryState state, int32_t typeIndex)
 {
     TrackStatistics objects;
     for (auto i = 0; i < snapshot.nativeObjects->size; i++)
     {
         auto &no = snapshot.nativeObjects->items[i];
-        if (no.state == CS_new && no.nativeTypeArrayIndex == typeIndex)
+        if (no.nativeTypeArrayIndex == typeIndex && (state == MS_none || state == no.state))
         {
             objects.collect(i, no.nativeTypeArrayIndex, no.size);
         }
@@ -660,13 +660,6 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateMRefChain(ManagedObject *m
                 __antiCircular.insert(uuid);
                 
                 auto *fromObject = &managedObjects[fromIndex];
-                if (trackingMode && fromObject->state == CS_identical)
-                {
-                    __chain.push_back(-3); // ignore signal
-                    result.push_back(__chain);
-                    continue;
-                }
-                
                 auto depthCapacity = fromObject->fromConnections.size();
                 if ((__iter_capacity * depthCapacity >= REF_ITERATE_CAPACITY && limit <= 0) || __depth >= REF_ITERATE_DEPTH)
                 {
@@ -800,13 +793,6 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateNRefChain(PackedNativeUnit
                 __antiCircular.insert(uuid);
                 
                 auto *fromObject = &snapshot.nativeObjects->items[fromIndex];
-                if (trackingMode && fromObject->state == CS_identical)
-                {
-                    __chain.push_back(-3); // ignore signal
-                    result.push_back(__chain);
-                    continue;
-                }
-                
                 auto depthCapacity = fromObject->fromConnections.size();
                 if ((__iter_capacity * depthCapacity >= REF_ITERATE_CAPACITY && limit <= 0) || __depth >= REF_ITERATE_DEPTH)
                 {

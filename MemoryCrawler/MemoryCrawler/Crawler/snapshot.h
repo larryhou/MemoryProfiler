@@ -16,7 +16,7 @@
 using std::string;
 
 enum ConnectionKind:uint8_t { CK_none = 0, CK_gcHandle, CK_static, CK_managed, CK_native };
-enum CompareState:uint8_t { CS_none = 0, CS_identical, CS_new, CS_modified, CS_destroied };
+enum MemoryState:uint8_t { MS_none = 0, MS_persistent, MS_alloc };
 
 struct Connection
 {
@@ -95,7 +95,7 @@ struct PackedNativeUnityEngineObject
     bool isDontDestroyOnLoad;
     bool isManager;
     bool isPersistent;
-    CompareState state = CS_none;
+    MemoryState state = MS_none;
     string *name = nullptr;
     address_t nativeObjectAddress;
     int32_t nativeTypeArrayIndex;
