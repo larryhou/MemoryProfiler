@@ -378,6 +378,40 @@ void processSnapshot(const char * filepath)
                                    }
                                });
         }
+        else if (strbeg(command, "bar"))
+        {
+            readCommandOptions(command, [&](std::vector<const char *> options)
+                               {
+                                   if (options.size() == 1)
+                                   {
+                                       mainCrawler.barMMemory(20);
+                                   }
+                                   else
+                                   {
+                                       for (auto i = 1; i < options.size(); i++)
+                                       {
+                                           mainCrawler.barMMemory(atoi(options[i]));
+                                       }
+                                   }
+                               });
+        }
+        else if (strbeg(command, "ubar"))
+        {
+            readCommandOptions(command, [&](std::vector<const char *> options)
+                               {
+                                   if (options.size() == 1)
+                                   {
+                                       mainCrawler.barNMemory(20);
+                                   }
+                                   else
+                                   {
+                                       for (auto i = 1; i < options.size(); i++)
+                                       {
+                                           mainCrawler.barNMemory(atoi(options[i]));
+                                       }
+                                   }
+                               });
+        }
         else if (strbeg(command, "str"))
         {
             readCommandOptions(command, [&](std::vector<const char *> options)

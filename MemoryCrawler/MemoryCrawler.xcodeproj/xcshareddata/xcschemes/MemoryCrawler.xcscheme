@@ -42,7 +42,7 @@
       </AdditionalOptions>
    </TestAction>
    <LaunchAction
-      buildConfiguration = "Debug"
+      buildConfiguration = "Release"
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       launchStyle = "0"
@@ -71,7 +71,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "/Users/larryhou/.jenkins/jobs/build_android_standalone/workspace/TheNextMOBA/MemoryCapture/snapshot_20190424110029.pms"
+            argument = "/Users/larryhou/Documents/MemoryProfiler/__capture/s2/20190424114846_game.pms"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

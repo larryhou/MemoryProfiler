@@ -339,6 +339,114 @@ void MemorySnapshotCrawler::trackNTypeObjects(int32_t typeIndex)
     printf("\e[37m[SUMMARY] count=%d memory=%d\n", count, total);
 }
 
+void MemorySnapshotCrawler::barMMemory(int32_t rank)
+{
+    double totalMemory = 0;
+    auto &managedTypes = *snapshot.typeDescriptions;
+    vector<int32_t> indice;
+    for (auto i = 0; i < managedTypes.size; i++)
+    {
+        auto &type = managedTypes[i];
+        totalMemory += type.instanceMemory;
+        indice.push_back(type.typeIndex);
+    }
+    
+    std::sort(indice.begin(), indice.end(), [&](int32_t a, int32_t b)
+              {
+                  auto &ta = managedTypes[a];
+                  auto &tb = managedTypes[b];
+                  if (a != b) {return ta.instanceMemory > tb.instanceMemory;}
+                  return ta.instanceCount < tb.instanceCount;
+              });
+    
+    vector<std::tuple<int32_t, double, double>> stats;
+    
+    double percent = 0;
+    double accumulation = 0;
+    for (auto i = 0; i < indice.size(); i++)
+    {
+        auto index = indice[i];
+        auto &type = managedTypes[index];
+        percent = 100 * (type.instanceMemory / totalMemory);
+        accumulation += percent;
+        stats.push_back(std::make_tuple(type.typeIndex, percent, accumulation));
+    }
+    
+    char progress[300];
+    char fence[] = "█";
+    for (auto i = 0; i < stats.size(); i++)
+    {
+        if (i >= rank){break;}
+        auto &item = stats[i];
+        auto typeIndex = std::get<0>(item);
+        auto &type = managedTypes[typeIndex];
+        memset(progress, 0, sizeof(progress));
+        auto count = (int32_t)std::ceil(std::get<1>(item));
+        printf("%6.2f %6.2f ", std::get<1>(item), std::get<2>(item));
+        char *iter = progress;
+        for (auto n = 0; n < count; n++)
+        {
+            memcpy(iter, fence, 3);
+            iter += 3;
+        }
+        printf("%s %s %'d #%d\n", progress, type.name->c_str(), type.instanceMemory, type.instanceCount);
+    }
+}
+
+void MemorySnapshotCrawler::barNMemory(int32_t rank)
+{
+    double totalMemory = 0;
+    auto &nativeTypes = *snapshot.nativeTypes;
+    vector<int32_t> indice;
+    for (auto i = 0; i < nativeTypes.size; i++)
+    {
+        auto &type = nativeTypes[i];
+        totalMemory += type.instanceMemory;
+        indice.push_back(type.typeIndex);
+    }
+    
+    std::sort(indice.begin(), indice.end(), [&](int32_t a, int32_t b)
+              {
+                  auto &ta = nativeTypes[a];
+                  auto &tb = nativeTypes[b];
+                  if (a != b) {return ta.instanceMemory > tb.instanceMemory;}
+                  return ta.instanceCount < tb.instanceCount;
+              });
+    
+    vector<std::tuple<int32_t, double, double>> stats;
+    
+    double percent = 0;
+    double accumulation = 0;
+    for (auto i = 0; i < indice.size(); i++)
+    {
+        auto index = indice[i];
+        auto &type = nativeTypes[index];
+        percent = 100 * (type.instanceMemory / totalMemory);
+        accumulation += percent;
+        stats.push_back(std::make_tuple(type.typeIndex, percent, accumulation));
+    }
+    
+    char progress[300];
+    char fence[] = "█";
+    for (auto i = 0; i < stats.size(); i++)
+    {
+        if (i >= rank){break;}
+        auto &item = stats[i];
+        auto typeIndex = std::get<0>(item);
+        auto &type = nativeTypes[typeIndex];
+        memset(progress, 0, sizeof(progress));
+        auto count = (int32_t)std::ceil(std::get<1>(item));
+        printf("%6.2f %6.2f ", std::get<1>(item), std::get<2>(item));
+        char *iter = progress;
+        for (auto n = 0; n < count; n++)
+        {
+            memcpy(iter, fence, 3);
+            iter += 3;
+        }
+        printf("%s %s %'d #%d\n", progress, type.name->c_str(), type.instanceMemory, type.instanceCount);
+    }
+}
+
 const char16_t *MemorySnapshotCrawler::getString(address_t address, int32_t &size)
 {
     return __memoryReader->readString(address + __vm->objectHeaderSize, size);
@@ -1137,7 +1245,7 @@ void MemorySnapshotCrawler::dumpByteArray(const char *data, int32_t size)
     printf("%s", str);
 }
 
-void MemorySnapshotCrawler::dumpNObjectHierarchy(PackedNativeUnityEngineObject *no, set<int64_t> antiCircular, const char *indent, int32_t __depth, int32_t __iter_capacity)
+void MemorySnapshotCrawler::dumpNObjectHierarchy(PackedNativeUnityEngineObject *no, set<int64_t> antiCircular, const char *indent, int32_t __iter_depth, int32_t __iter_capacity)
 {
     auto __size = strlen(indent);
     char __indent[__size + 2*3 + 1]; // indent + 2×tabulator + \0
@@ -1146,7 +1254,7 @@ void MemorySnapshotCrawler::dumpNObjectHierarchy(PackedNativeUnityEngineObject *
     char *tabular = __indent + __size;
     memcpy(tabular + 3, "─", 3);
     
-    if (__depth == 0)
+    if (__iter_depth == 0)
     {
         auto &type = snapshot.nativeTypes->items[no->nativeTypeArrayIndex];
         printf("%s'%s':%s 0x%08llx\n", indent, no->name->c_str(), type.name->c_str(), no->nativeObjectAddress);
@@ -1181,7 +1289,7 @@ void MemorySnapshotCrawler::dumpNObjectHierarchy(PackedNativeUnityEngineObject *
                 memcpy(__nest_indent, indent, __size);
                 memset(__nest_indent + __size, '\x20', 3);
                 memset(__nest_indent + __size + 3, 0, 1);
-                dumpNObjectHierarchy(&no, __antiCircular, __nest_indent, __depth + 1, __iter_capacity * toCount);
+                dumpNObjectHierarchy(&no, __antiCircular, __nest_indent, __iter_depth + 1, __iter_capacity * toCount);
             }
             else
             {
@@ -1191,7 +1299,7 @@ void MemorySnapshotCrawler::dumpNObjectHierarchy(PackedNativeUnityEngineObject *
                 memcpy(iter, "│", 3);
                 memset(iter + 3, '\x20', 2);
                 memset(iter + 5, 0, 1);
-                dumpNObjectHierarchy(&no, __antiCircular, __nest_indent, __depth + 1, __iter_capacity * toCount);
+                dumpNObjectHierarchy(&no, __antiCircular, __nest_indent, __iter_depth + 1, __iter_capacity * toCount);
             }
         }
     }

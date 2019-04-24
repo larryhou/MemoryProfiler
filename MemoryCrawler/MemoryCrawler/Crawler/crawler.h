@@ -148,7 +148,10 @@ public:
     void dumpMObjectHierarchy(address_t address, TypeDescription *type,
                               set<int64_t> antiCircular, bool isActualType, const char *indent, int32_t __iter_depth = 0);
     void dumpNObjectHierarchy(PackedNativeUnityEngineObject *no,
-                              set<int64_t> antiCircular, const char *indent, int32_t __depth = 0, int32_t __iter_capacity = 1);
+                              set<int64_t> antiCircular, const char *indent, int32_t __iter_depth = 0, int32_t __iter_capacity = 1);
+    
+    void barMMemory(int32_t rank = 20);
+    void barNMemory(int32_t rank = 20);
     
     void dumpMRefChain(address_t address, bool includeCircular, int32_t limit = 2);
     void dumpNRefChain(address_t address, bool includeCircular, int32_t limit = 2);
