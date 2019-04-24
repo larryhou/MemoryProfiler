@@ -176,7 +176,7 @@ void MemorySnapshotCrawler::trackMStatistics(MemoryState state, int32_t depth)
     for (auto i = 0; i < managedObjects.size(); i++)
     {
         auto &mo = managedObjects[i];
-        if (mo.state == state)
+        if (state == MS_none || mo.state == state)
         {
             objects.collect(i, mo.typeIndex, mo.size);
         }
@@ -239,7 +239,7 @@ void MemorySnapshotCrawler::trackNStatistics(MemoryState state, int32_t depth)
     for (auto i = 0; i < snapshot.nativeObjects->size; i++)
     {
         auto &no = snapshot.nativeObjects->items[i];
-        if (no.state == state)
+        if (state == MS_none || no.state == state)
         {
             objects.collect(i, no.nativeTypeArrayIndex, no.size);
             size = std::max(size, no.size);
