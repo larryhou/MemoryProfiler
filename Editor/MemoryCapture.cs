@@ -147,7 +147,7 @@ namespace Moobyte.MemoryProfiler
 				Directory.CreateDirectory(spacedir);
 			}
 
-			var filepath = string.Format("{0}/snapshot_{1:yyyyMMddHHmmss}.pms", spacedir, DateTime.Now);
+			var filepath = string.Format("{0}/{1:yyyyMMddHHmmss}_snapshot.pms", spacedir, DateTime.Now);
 			FileStream stream = new FileStream(filepath, FileMode.CreateNew);
 			
 			// Write snapshot header
