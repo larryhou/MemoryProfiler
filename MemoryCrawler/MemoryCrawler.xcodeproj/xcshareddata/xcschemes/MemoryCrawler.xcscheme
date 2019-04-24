@@ -64,11 +64,15 @@
       <CommandLineArguments>
          <CommandLineArgument
             argument = "/Users/larryhou/Documents/MemoryProfiler/__capture/03_language/lobby_settings_en.pms"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/Users/larryhou/Documents/MemoryProfiler/__capture/03_language/lobby_cn.pms"
             isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "/Users/larryhou/.jenkins/jobs/build_android_standalone/workspace/TheNextMOBA/MemoryCapture/snapshot_20190424110029.pms"
+            isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>
       <AdditionalOptions>

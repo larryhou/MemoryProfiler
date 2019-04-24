@@ -60,12 +60,12 @@ namespace Moobyte.MemoryProfiler
 
 		public static void Write(this Stream stream, uint v)
 		{
-			int count = 4;
-			int shift = count * 8;
-			while (count-- > 0)
+			int count = 0;
+			int shift = 0;
+			while (count++ < 4)
 			{
-				shift -= 8;
 				stream.WriteByte((byte) ((v >> shift) & 0xFF));
+				shift += 8;
 			}
 		}
 		
@@ -76,12 +76,12 @@ namespace Moobyte.MemoryProfiler
 		
 		public static void Write(this Stream stream, ulong v)
 		{
-			int count = 8;
-			int shift = count * 8;
-			while (count-- > 0)
+			int count = 0;
+			int shift = 0;
+			while (count++ < 8)
 			{
-				shift -= 8;
 				stream.WriteByte((byte) ((v >> shift) & 0xFF));
+				shift += 8;
 			}
 		}
 		
@@ -242,15 +242,11 @@ namespace Moobyte.MemoryProfiler
 		private static void EncodeObject(Stream output, object data)
 		{
 			var classType = data.GetType();
-			output.Write(classType.FullName);
 			var list = classType.GetProperties();
 			output.Write((byte)list.Length);
 			
 			foreach(var property in classType.GetProperties())
-			{
-				output.Write(property.Name);
-				output.Write(property.PropertyType.FullName);
-				
+			{	
 				var value = property.GetValue(data, null);
 				var type = property.PropertyType;
 				

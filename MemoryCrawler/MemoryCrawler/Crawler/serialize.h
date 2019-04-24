@@ -25,11 +25,11 @@ class MemorySnapshotReader
     TimeSampler<std::nano> __sampler;
     
 public:
-    string *mime = nullptr;
-    string *unityVersion = nullptr;
-    string *description = nullptr;
-    string *systemVersion = nullptr;
-    string *uuid = nullptr;
+    string mime;
+    string unityVersion;
+    string description;
+    string systemVersion;
+    string uuid;
     size_t size;
     int64_t createTime;
     
