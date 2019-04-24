@@ -382,7 +382,7 @@ void MemorySnapshotCrawler::barMMemory(int32_t rank)
         auto &type = managedTypes[typeIndex];
         memset(progress, 0, sizeof(progress));
         auto count = (int32_t)std::ceil(std::get<1>(item));
-        printf("%6.2f %6.2f ", std::get<1>(item), std::get<2>(item));
+        printf("%5.2f %5.2f ", std::get<1>(item), std::get<2>(item));
         char *iter = progress;
         for (auto n = 0; n < count; n++)
         {
@@ -436,7 +436,7 @@ void MemorySnapshotCrawler::barNMemory(int32_t rank)
         auto &type = nativeTypes[typeIndex];
         memset(progress, 0, sizeof(progress));
         auto count = (int32_t)std::ceil(std::get<1>(item));
-        printf("%6.2f %6.2f ", std::get<1>(item), std::get<2>(item));
+        printf("%5.2f %5.2f ", std::get<1>(item), std::get<2>(item));
         char *iter = progress;
         for (auto n = 0; n < count; n++)
         {
