@@ -508,17 +508,69 @@ void MemorySnapshotCrawler::barNMemory(MemoryState state, int32_t rank)
     }
 }
 
-void MemorySnapshotCrawler::statHeap()
+void MemorySnapshotCrawler::statHeap(int32_t rank)
 {
+    using std::get;
+    
     auto totalMemory = 0;
+    map<int32_t, int32_t> sizeMemory;
+    map<int32_t, int32_t> sizeCount;
+    
+    vector<int32_t> indice;
     auto &sortedHeapSections = *snapshot.sortedHeapSections;
     for (auto iter = sortedHeapSections.begin(); iter != sortedHeapSections.end(); iter++)
     {
         auto &heap = **iter;
+        auto match = sizeMemory.find(heap.size);
+        if (match == sizeMemory.end())
+        {
+            match = sizeMemory.insert(pair<int32_t, int32_t>(heap.size, 0)).first;
+            indice.push_back(heap.size);
+            sizeCount.insert(pair<int32_t, int32_t>(heap.size, 0));
+        }
+        match->second += heap.size;
+        sizeCount.at(heap.size)++;
         totalMemory += heap.size;
     }
     
-    printf("count=%d memory=%d\n", sortedHeapSections.size(), totalMemory);
+    std::sort(indice.begin(), indice.end(), [&](int32_t a, int32_t b)
+              {
+                  auto ma = sizeMemory.at(a);
+                  auto mb = sizeMemory.at(b);
+                  if (ma != mb) {return ma > mb;}
+                  return a > b;
+              });
+    
+    double accumulation = 0;
+    vector<std::tuple<int32_t, double, double, int32_t>> stats;
+    for (auto i = indice.begin(); i != indice.end(); i++)
+    {
+        auto size = *i;
+        auto m = sizeMemory.at(size);
+        double percent = 100 * (double)m / totalMemory;
+        accumulation += percent;
+        stats.push_back(std::make_tuple(size, percent, accumulation, m));
+    }
+    
+    char percentage[300+1];
+    char fence[] = "█";
+    printf("count=%d memory=%d\n", (int32_t)sortedHeapSections.size(), totalMemory);
+    for (auto i = 0; i < stats.size(); i++)
+    {
+        if (rank > 0 && i >= rank){break;}
+        auto &item = stats[i];
+        auto rank = get<0>(item);
+        memset(percentage, 0, sizeof(percentage));
+        auto count = std::max(1, (int32_t)std::round(get<1>(item)));
+        char *iter = percentage;
+        for (auto n = 0; n < count; n++)
+        {
+            memcpy(iter, fence, 3);
+            iter += 3;
+        }
+        
+        printf("%6d %5.1fK %6.2f %6.2f %s %d #%d\n", rank, rank/1024.0, get<1>(item), get<2>(item), percentage, get<3>(item), sizeCount.at(rank));
+    }
 }
 
 const char16_t *MemorySnapshotCrawler::getString(address_t address, int32_t &size)
