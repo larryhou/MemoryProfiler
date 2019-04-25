@@ -561,7 +561,7 @@ void MemorySnapshotCrawler::statHeap(int32_t rank)
         auto &item = stats[i];
         auto rank = get<0>(item);
         memset(percentage, 0, sizeof(percentage));
-        auto count = std::max(1, (int32_t)std::round(get<1>(item)));
+        auto count = std::max(1, (int32_t)std::round(get<1>(item)) * 2);
         char *iter = percentage;
         for (auto n = 0; n < count; n++)
         {
