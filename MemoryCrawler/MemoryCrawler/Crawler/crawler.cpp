@@ -546,10 +546,10 @@ void MemorySnapshotCrawler::statHeap(int32_t rank)
     for (auto i = indice.begin(); i != indice.end(); i++)
     {
         auto size = *i;
-        auto m = sizeMemory.at(size);
-        double percent = 100 * (double)m / totalMemory;
+        auto rm = sizeMemory.at(size);
+        double percent = 100 * (double)rm / totalMemory;
         accumulation += percent;
-        stats.push_back(std::make_tuple(size, percent, accumulation, m));
+        stats.push_back(std::make_tuple(size, percent, accumulation, rm));
     }
     
     char percentage[300+1];
