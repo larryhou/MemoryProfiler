@@ -570,7 +570,7 @@ void MemorySnapshotCrawler::statHeap(int32_t rank)
         }
         
         auto rm = get<3>(item);
-        printf("%6.2f %6.2f %7d %4.0fK %s %d %.0fK #%d\n", get<1>(item), get<2>(item), rank, rank/1024.0, percentage, rm, rm/1024.0, sizeCount.at(rank));
+        printf("%6.2f %6.2f %8d %5.0fK %s %d %.0fK #%d\n", get<1>(item), get<2>(item), rank, rank/1024.0, percentage, rm, rm/1024.0, sizeCount.at(rank));
     }
 }
 
