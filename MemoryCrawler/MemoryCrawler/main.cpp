@@ -422,6 +422,10 @@ void processSnapshot(const char * filepath)
                                    }
                                });
         }
+        else if (strbeg(command, "heap"))
+        {
+            mainCrawler.statHeap();
+        }
         else if (strbeg(command, "str"))
         {
             readCommandOptions(command, [&](std::vector<const char *> options)

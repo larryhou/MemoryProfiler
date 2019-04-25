@@ -153,6 +153,8 @@ public:
     void barMMemory(MemoryState state, int32_t rank = 20);
     void barNMemory(MemoryState state, int32_t rank = 20);
     
+    void statHeap();
+    
     void dumpMRefChain(address_t address, bool includeCircular, int32_t limit = 2);
     void dumpNRefChain(address_t address, bool includeCircular, int32_t limit = 2);
     vector<vector<int32_t>> iterateNRefChain(PackedNativeUnityEngineObject *no,

@@ -508,6 +508,19 @@ void MemorySnapshotCrawler::barNMemory(MemoryState state, int32_t rank)
     }
 }
 
+void MemorySnapshotCrawler::statHeap()
+{
+    auto totalMemory = 0;
+    auto &sortedHeapSections = *snapshot.sortedHeapSections;
+    for (auto iter = sortedHeapSections.begin(); iter != sortedHeapSections.end(); iter++)
+    {
+        auto &heap = **iter;
+        totalMemory += heap.size;
+    }
+    
+    printf("count=%d memory=%d\n", sortedHeapSections.size(), totalMemory);
+}
+
 const char16_t *MemorySnapshotCrawler::getString(address_t address, int32_t &size)
 {
     return __memoryReader->readString(address + __vm->objectHeaderSize, size);
