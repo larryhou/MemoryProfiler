@@ -569,7 +569,8 @@ void MemorySnapshotCrawler::statHeap(int32_t rank)
             iter += 3;
         }
         
-        printf("%6d %5.1fK %6.2f %6.2f %s %d #%d\n", rank, rank/1024.0, get<1>(item), get<2>(item), percentage, get<3>(item), sizeCount.at(rank));
+        auto rm = get<3>(item);
+        printf("%6.2f %6.2f %6d %3.0fK %s %d %.0fK #%d\n", get<1>(item), get<2>(item), rank, rank/1024.0, percentage, rm, rm/1024.0, sizeCount.at(rank));
     }
 }
 
