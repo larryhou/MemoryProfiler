@@ -554,7 +554,7 @@ void MemorySnapshotCrawler::statHeap(int32_t rank)
     
     char percentage[300+1];
     char fence[] = "█";
-    printf("count=%d memory=%d\n", (int32_t)sortedHeapSections.size(), totalMemory);
+    printf("[SUMMARY] blocks=%d memory=%d\n", (int32_t)sortedHeapSections.size(), totalMemory);
     for (auto i = 0; i < stats.size(); i++)
     {
         if (rank > 0 && i >= rank){break;}
