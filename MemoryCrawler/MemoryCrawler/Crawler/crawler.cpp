@@ -140,7 +140,7 @@ void MemorySnapshotCrawler::compare(MemorySnapshotCrawler &crawler)
         auto &mo = crawler.managedObjects[i];
         if (!mo.isValueType)
         {
-            auto &type = snapshot.typeDescriptions->items[mo.typeIndex];
+            auto &type = crawler.snapshot.typeDescriptions->items[mo.typeIndex];
             container.insert(pair<address_t, int64_t>(mo.address, type.typeInfoAddress));
         }
     }
