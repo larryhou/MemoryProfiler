@@ -198,7 +198,7 @@ void MemorySnapshotCrawler::trackMStatistics(MemoryState state, int32_t depth)
     int32_t count = 0;
     objects.summarize();
     printf("┌%s\n", sep);
-    objects.foreach([&](int32_t itemIndex, int32_t typeIndex, int64_t size)
+    objects.foreach([&](int32_t itemIndex, int32_t typeIndex, int32_t size, uint64_t detail)
                     {
                         auto &type = snapshot.typeDescriptions->items[typeIndex];
                         switch (itemIndex)
@@ -210,12 +210,10 @@ void MemorySnapshotCrawler::trackMStatistics(MemoryState state, int32_t depth)
                             }
                             case -2:
                             {
-                                auto __count = (int32_t)(size >> 32);
-                                auto skipCount = __count >> 16;
-                                auto typeCount = __count & 0xFFFF;
-                                auto __size = (int32_t)(size & 0xFFFFFFFF);
-                                if (skipCount > 0){printf("│ [~] %d/%d=%d\n", skipCount, typeCount, __size);}
-                                total += __size;
+                                auto skipCount = detail >> 32;
+                                auto typeCount = detail & 0xFFFFFFFF;
+                                if (skipCount > 0){printf("│ [~] %d/%d=%d\n", (uint32_t)skipCount, (uint32_t)typeCount, size);}
+                                total += size;
                                 count += skipCount;
                                 printf("├%s\n", sep);
                                 break;
@@ -267,7 +265,7 @@ void MemorySnapshotCrawler::trackNStatistics(MemoryState state, int32_t depth)
     int32_t total = 0;
     int32_t count = 0;
     printf("┌%s\n", sep);
-    objects.foreach([&](int32_t itemIndex, int32_t typeIndex, int64_t size)
+    objects.foreach([&](int32_t itemIndex, int32_t typeIndex, int32_t size, uint64_t detail)
                     {
                         auto &type = snapshot.nativeTypes->items[typeIndex];
                         switch (itemIndex)
@@ -279,12 +277,10 @@ void MemorySnapshotCrawler::trackNStatistics(MemoryState state, int32_t depth)
                             }
                             case -2:
                             {
-                                auto __count = (int32_t)(size >> 32);
-                                auto skipCount = __count >> 16;
-                                auto typeCount = __count & 0xFFFF;
-                                auto __size = (int32_t)(size & 0xFFFFFFFF);
-                                if (skipCount > 0){printf("│ [~] %d/%d=%d\n", skipCount, typeCount, __size);}
-                                total += __size;
+                                auto skipCount = detail >> 32;
+                                auto typeCount = detail & 0xFFFFFFFF;
+                                if (skipCount > 0){printf("│ [~] %d/%d=%d\n", (uint32_t)skipCount, (uint32_t)typeCount, size);}
+                                total += size;
                                 count += skipCount;
                                 printf("├%s\n", sep);
                                 break;
@@ -319,7 +315,7 @@ void MemorySnapshotCrawler::trackMTypeObjects(MemoryState state, int32_t typeInd
     
     int32_t total = 0;
     int32_t count = 0;
-    objects.foreach([&](int32_t itemIndex, int32_t typeIndex, int64_t size)
+    objects.foreach([&](int32_t itemIndex, int32_t typeIndex, int32_t size, uint64_t detail)
                     {
                         auto &type = snapshot.typeDescriptions->items[typeIndex];
                         if (itemIndex < 0)
@@ -351,7 +347,7 @@ void MemorySnapshotCrawler::trackNTypeObjects(MemoryState state, int32_t typeInd
     
     int32_t total = 0;
     int32_t count = 0;
-    objects.foreach([&](int32_t itemIndex, int32_t typeIndex, int64_t size)
+    objects.foreach([&](int32_t itemIndex, int32_t typeIndex, int32_t size, uint64_t detail)
                     {
                         auto &type = snapshot.nativeTypes->items[typeIndex];
                         if (itemIndex < 0)

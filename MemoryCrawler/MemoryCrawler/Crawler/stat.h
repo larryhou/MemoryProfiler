@@ -103,7 +103,7 @@ private:
 public:
     void summarize(bool reverse = false);
     void collect(int32_t itemIndex, int32_t typeIndex, int32_t size);
-    void foreach(std::function<void(int32_t, int32_t, int64_t)> callback, int32_t depth = 10);
+    void foreach(std::function<void(int32_t/*itemIndex*/, int32_t/*typeIndex*/, int32_t/*typeMemory*/, uint64_t/*detail*/)> callback, int32_t depth = 10);
     void reverse();
 };
 

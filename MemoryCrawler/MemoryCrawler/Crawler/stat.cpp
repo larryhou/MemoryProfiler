@@ -48,7 +48,7 @@ void TrackStatistics::reverse()
     std::reverse(__samples.begin(), __samples.end());
 }
 
-void TrackStatistics::foreach(std::function<void (int32_t, int32_t, int64_t)> callback, int32_t depth)
+void TrackStatistics::foreach(std::function<void (int32_t/*itemIndex*/, int32_t/*typeIndex*/, int32_t/*typeMemory*/, uint64_t/*detail*/)> callback, int32_t depth)
 {
     int32_t __remain = 0;
     int32_t __depth = 0;
@@ -65,8 +65,8 @@ void TrackStatistics::foreach(std::function<void (int32_t, int32_t, int64_t)> ca
         auto size = std::get<2>(sample);
         if (__index != typeIndex)
         {
-            if (__index >= 0) { callback(-2, __index, (__skipCount << 16 | __typeCount) << 32 | __remain); } // summary
-            callback(-1, typeIndex, __memory.at(typeIndex)); // header
+            if (__index >= 0) { callback(-2, __index, __remain, (uint64_t)__skipCount << 32 | __typeCount); } // summary
+            callback(-1, typeIndex, __memory.at(typeIndex), 0); // header
             
             __remain = 0;
             __index = typeIndex;
@@ -80,7 +80,7 @@ void TrackStatistics::foreach(std::function<void (int32_t, int32_t, int64_t)> ca
         if (__depth < depth || depth <= 0)
         {
             __depth++;
-            callback(itemIndex, typeIndex, size);
+            callback(itemIndex, typeIndex, size, 0);
         }
         else
         {
@@ -89,5 +89,5 @@ void TrackStatistics::foreach(std::function<void (int32_t, int32_t, int64_t)> ca
         }
     }
     
-    callback(-2, __index, (__skipCount << 16 | __typeCount) << 32 | __remain);
+    callback(-2, __index, __remain, (uint64_t)__skipCount << 32 | __typeCount);
 }
