@@ -10,7 +10,6 @@ def system(command):
 
 def merge_revision(src_rep, dst_rep, revision):
     project = p.basename(src_rep)
-    if p.exists(project): shutil.rmtree(project)
 
     command = 'svn co --username next_ci --password \'#N1e8X6t$\' --no-auth-cache --depth empty {}'.format(dst_rep)
     system(command)
@@ -19,7 +18,7 @@ def merge_revision(src_rep, dst_rep, revision):
     os.chdir(project)
 
     revision_number = int(revision)
-    command = 'svn log --username next_ci --password \'#N1e8X6t$\' --no-auth-cache -r {}:{} {} --verbose --xml'.format(revision_number-1, revision_number, src_rep)
+    command = 'svn log --username next_ci --password \'#N1e8X6t$\' --no-auth-cache -r {} {} --verbose --xml'.format(revision_number, src_rep)
     process = subprocess.Popen(command, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
     stdout, stderr = process.communicate()
     assert process.returncode == 0, stderr
@@ -49,6 +48,7 @@ def main():
     rep_base_url = 'http://tc-svn.tencent.com/ied/ied_narutoNext_rep/naruto_next_proj/release'
     dst_rep = '{}/{}/{}'.format(rep_base_url, options.rep_to, options.project)
     src_rep = '{}/{}/{}'.format(rep_base_url, options.rep_from, options.project)
+    if p.exists(options.project): shutil.rmtree(options.project)
     for revision in options.revision:
         merge_revision(src_rep=src_rep, dst_rep=dst_rep, revision=revision)
 
