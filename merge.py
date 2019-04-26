@@ -10,8 +10,10 @@ def system(command):
 
 def merge_revision(src_rep, dst_rep, revision):
     project = p.basename(src_rep)
-
-    command = 'svn co --username next_ci --password \'#N1e8X6t$\' --no-auth-cache --depth empty {}'.format(dst_rep)
+    if not p.exists(project):
+        command = 'svn co --username next_ci --password \'#N1e8X6t$\' --no-auth-cache --depth empty {}'.format(dst_rep)
+    else:
+        command = 'svn update --username next_ci --password \'#N1e8X6t$\' --no-auth-cache --parents --depth empty {}'.format(project)
     system(command)
 
     curcwd = os.getcwd()
