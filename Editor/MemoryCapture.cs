@@ -108,14 +108,14 @@ namespace Moobyte.MemoryProfiler
 
 	public static class MemoryCapture
 	{
-		[MenuItem("内存/捕获快照")]
+		[MenuItem("性能/捕获快照", false, 20)]
 		public static void Capture()
 		{
 			MemorySnapshot.OnSnapshotReceived += OnSnapshotComplete;
 			MemorySnapshot.RequestNewSnapshot();
 		}
 		
-		[MenuItem("内存/捕获快照和原生内存")]
+//		[MenuItem("性能分析/捕获快照和原生内存")]
 		public static void CaptureWithNativeMemeory()
 		{
 			MemorySnapshot.OnSnapshotReceived += OnSnapshotCompleteForCrawling;

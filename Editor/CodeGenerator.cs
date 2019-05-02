@@ -18,7 +18,7 @@ public static class CodeGenerator
 {
 	private static bool samplerEnabled = false;
 
-	[MenuItem("内存/代码/生成C++反序列化代码")]
+	[MenuItem("性能/生成C++反序列化代码", false, 0)]
 	static void GenerateCPlusPlusCode ()
 	{
 		var stream = new MemoryStream();
