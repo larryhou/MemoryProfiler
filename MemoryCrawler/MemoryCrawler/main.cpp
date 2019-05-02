@@ -501,6 +501,7 @@ void processSnapshot(const char * filepath)
         
         if (!replaying && recordable)
         {
+            clog.clear();
             clog << input.c_str() << endl;
         }
     }
