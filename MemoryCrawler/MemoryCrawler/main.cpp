@@ -496,6 +496,7 @@ void processSnapshot(const char * filepath)
         else
         {
             printf("not supported command [%s]\n", command);
+            recordable = false;
         }
         
         if (!replaying && recordable)
