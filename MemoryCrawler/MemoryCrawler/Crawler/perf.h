@@ -153,18 +153,17 @@ void TimeSampler<T>::dump(map<int, vector<int>> &connections, int index, const c
 {
     printf("%s[%d] %s=%lld\n", indent, index, __events[index], duration(__records.at(index), __timestamps.at(index)));
     
+    char __indent[strlen(indent) + 4 + 1];
+    memset(__indent, 0, sizeof(__indent));
+    sprintf(__indent, "%s    ", indent);
+    
     auto iter = connections.find(index);
     if (iter != connections.end())
     {
         auto children = iter->second;
-        
-        char nestIndent[strlen(indent) + 4];
-        strcpy(nestIndent, indent);
-        strcat(nestIndent, "    ");
-        
         for (auto i = 0; i < children.size(); i++)
         {
-            dump(connections, children[i], nestIndent);
+            dump(connections, children[i], __indent);
         }
     }
 }
