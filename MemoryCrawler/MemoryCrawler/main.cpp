@@ -11,6 +11,8 @@
 #include <locale>
 #include <codecvt>
 #include <stdlib.h>
+#include <sys/stat.h>
+#include <fstream>
 #include "Crawler/crawler.h"
 #include "Crawler/cache.h"
 #include "Crawler/leak.h"
@@ -83,10 +85,19 @@ address_t castAddress(const char *v)
 
 #include <unistd.h>
 #include <memory>
+using std::ofstream;
 void processSnapshot(const char * filepath)
 {
     MemorySnapshotCrawler mainCrawler(filepath);
     mainCrawler.crawl();
+    
+    char cmdpath[128];
+    mkdir("__commands", 0777);
+    memset(cmdpath, 0, sizeof(cmdpath));
+    sprintf(cmdpath, "__commands/%s.clog", mainCrawler.snapshot.uuid.c_str());
+    
+    ofstream clog;
+    clog.open(cmdpath, ofstream::app);
     
     char uuid[40];
     std::strcpy(uuid, mainCrawler.snapshot.uuid.c_str());
@@ -96,6 +107,7 @@ void processSnapshot(const char * filepath)
     while (true)
     {
         auto original = typeid(*stream) == typeid(std::cin);
+        auto recordable = true;
         
         std::cout << "\e[93m/> ";
         std::string input;
@@ -111,10 +123,19 @@ void processSnapshot(const char * filepath)
             original ? usleep(100000) : usleep(200000);
         }
         
-        if (!original) {printf("%s\n", input.c_str());}
-        std::cout << "\e[0m";
+        if (!original)
+        {
+            auto iter = input.begin();
+            while (iter != input.end())
+            {
+                std::cout << *iter++ << std::flush;
+                usleep(50000);
+            }
+            printf("\n");
+        }
         
-        std::cout << "\e[36m";
+        std::cout << "\e[0m" << "\e[36m";
+        
         const char *command = input.c_str();
         if (strbeg(command, "read"))
         {
@@ -263,12 +284,19 @@ void processSnapshot(const char * filepath)
         }
         else if (strbeg(command, "run"))
         {
+            recordable = false;
             std::vector<string> commands;
             readCommandOptions(command, [&](std::vector<const char *> &options)
                                {
-                                   if (options.size() == 1){return;}
                                    auto ifs = new ifstream;
-                                   ifs->open(options[1]);
+                                   if (options.size() == 1)
+                                   {
+                                       ifs->open(cmdpath);
+                                   }
+                                   else
+                                   {
+                                       ifs->open(options[1]);
+                                   }
                                    stream = ifs;
                                });
         }
@@ -453,7 +481,9 @@ void processSnapshot(const char * filepath)
         }
         else if (strbeg(command, "exit"))
         {
+            recordable = false;
             printf("\e[0m");
+            clog.close();
             return;
         }
         else if (strbeg(command, "color"))
@@ -466,6 +496,11 @@ void processSnapshot(const char * filepath)
         else
         {
             printf("not supported command [%s]\n", command);
+        }
+        
+        if (original && recordable)
+        {
+            clog << input.c_str() << endl;
         }
     }
 }
