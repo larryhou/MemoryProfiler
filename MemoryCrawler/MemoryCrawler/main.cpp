@@ -108,7 +108,7 @@ void processSnapshot(const char * filepath)
                 original = true;
             }
             stream->clear();
-            usleep(100000);
+            original ? usleep(100000) : usleep(200000);
         }
         
         if (!original) {printf("%s\n", input.c_str());}

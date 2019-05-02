@@ -154,6 +154,10 @@ void MemorySnapshotCrawler::compare(MemorySnapshotCrawler &crawler)
             auto iter = container.find(mo.address);
             mo.state = (iter == container.end() || iter->second != type.typeInfoAddress)? MS_allocated : MS_persistent;
         }
+        else
+        {
+            mo.state = MS_none;
+        }
     }
     
     // Compare native objects
@@ -168,7 +172,17 @@ void MemorySnapshotCrawler::compare(MemorySnapshotCrawler &crawler)
     {
         auto &no = snapshot.nativeObjects->items[i];
         auto iter = container.find(no.nativeObjectAddress);
-        no.state = iter == container.end()? MS_allocated : MS_persistent;
+        
+        if (iter == container.end())
+        {
+            no.state = MS_allocated;
+        }
+        else
+        {
+            auto &typeA = crawler.snapshot.nativeTypes->items[iter->second];
+            auto &typeB = snapshot.nativeTypes->items[no.nativeTypeArrayIndex];
+            no.state = *typeA.name == *typeB.name ? MS_persistent : MS_allocated;
+        }
     }
 }
 
