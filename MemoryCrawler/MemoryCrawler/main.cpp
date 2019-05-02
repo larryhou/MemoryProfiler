@@ -120,7 +120,7 @@ void processSnapshot(const char * filepath)
                 original = true;
             }
             stream->clear();
-            original ? usleep(100000) : usleep(200000);
+            original ? usleep(100000) : usleep(500000);
         }
         
         if (!original)
@@ -128,13 +128,13 @@ void processSnapshot(const char * filepath)
             auto iter = input.begin();
             while (iter != input.end())
             {
-                std::cout << *iter++ << std::flush;
+                cout << *iter++ << std::flush;
                 usleep(50000);
             }
-            printf("\n");
+            cout << endl;
         }
         
-        std::cout << "\e[0m" << "\e[36m";
+        cout << "\e[0m" << "\e[36m";
         
         const char *command = input.c_str();
         if (strbeg(command, "read"))
