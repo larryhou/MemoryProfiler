@@ -282,7 +282,7 @@ void processSnapshot(const char * filepath)
                                    }
                                });
         }
-        else if (strbeg(command, "run"))
+        else if (strbeg(command, "replay"))
         {
             recordable = false;
             std::vector<string> commands;
