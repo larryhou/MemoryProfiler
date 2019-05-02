@@ -479,7 +479,7 @@ void processSnapshot(const char * filepath)
                                    }
                                });
         }
-        else if (strbeg(command, "exit"))
+        else if (strbeg(command, "quit"))
         {
             recordable = false;
             printf("\e[0m");
