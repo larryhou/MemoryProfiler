@@ -106,24 +106,24 @@ void processSnapshot(const char * filepath)
     std::istream *stream = &std::cin;
     while (true)
     {
-        auto original = typeid(*stream) == typeid(std::cin);
+        auto replaying = typeid(*stream) != typeid(std::cin);
         auto recordable = true;
         
         std::cout << "\e[93m/> ";
         std::string input;
         while (!getline(*stream, input))
         {
-            if (!original)
+            if (replaying)
             {
                 ((ifstream *)stream)->close();
                 stream = &std::cin;
-                original = true;
+                replaying = false;
             }
             stream->clear();
-            original ? usleep(100000) : usleep(500000);
+            replaying ? usleep(500000) : usleep(100000);
         }
         
-        if (!original)
+        if (replaying)
         {
             auto iter = input.begin();
             while (iter != input.end())
@@ -498,7 +498,7 @@ void processSnapshot(const char * filepath)
             printf("not supported command [%s]\n", command);
         }
         
-        if (original && recordable)
+        if (!replaying && recordable)
         {
             clog << input.c_str() << endl;
         }
