@@ -74,7 +74,6 @@ namespace Moobyte.MemoryProfiler
         public static void StopRecording()
         {
             Profiler.enabled = false;
-            Profiler.enableBinaryLog = false;
             Profiler.logFile = null;
             EditorApplication.update -= Update;
             
