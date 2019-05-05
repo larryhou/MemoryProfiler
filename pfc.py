@@ -51,8 +51,10 @@ def main():
         fp.seek(11 + 4, os.SEEK_SET)
         print('size={:,} pos={}'.format(length, fp.tell()))
 
+        prev_frame_index = -1
         while fp.tell() < offset:
             frame_index, = unpack('=i', fp.read(4))
+            assert prev_frame_index == -1 or frame_index - prev_frame_index == 1
             frame_time, = unpack('=f', fp.read(4))
             frame_fps, = unpack('=f', fp.read(4))
             print('frame_index={} frame_time={:.3f} frame_fps={:.1f}'.format(frame_index, frame_time, frame_fps))
@@ -61,7 +63,7 @@ def main():
             connections = {}
 
             sample_count, = unpack('=i', fp.read(4))
-            print('sample_count={}'.format(sample_count))
+            # print('sample_count={}'.format(sample_count))
             for _ in range(sample_count):
                 sample_id, = unpack('=i', fp.read(4))
                 name_index, = unpack('=i', fp.read(4))
@@ -83,10 +85,11 @@ def main():
             # print(relations)
             # print(connections)
 
-            for entity, _ in connections.items():
-                reveal_call_stacks(entity, samples, connections)
+            # for entity, _ in connections.items():
+            #     reveal_call_stacks(entity, samples, connections)
             magic, = unpack('=I', fp.read(4))
             assert magic == 0x12345678
+            prev_frame_index = frame_index
             # break
 
 if __name__ == '__main__':

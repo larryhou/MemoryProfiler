@@ -36,17 +36,18 @@ namespace Moobyte.MemoryProfiler
             }
 
             {
+                frameCursor = 0;
                 strmap = new Dictionary<string, int>();
                 strseq = 0;
             }
-            
-            stream = new FileStream(string.Format("{0}/{1:yyyyMMddHHmmss}_PERF.pfc", spacedir, DateTime.Now), FileMode.Create);
+
+            stream = new FileStream(string.Format("{0}/{1:yyyyMMddHHmmss}_PERF.pfc", spacedir, DateTime.Now),
+                FileMode.Create, FileAccess.ReadWrite, FileShare.Inheritable, 1 << 21);
             stream.Write('P'); // + 1
             stream.Write('F'); // + 1
             stream.Write('C'); // + 1
             stream.Write(DateTime.Now); // + 8
             stream.Write((uint)0); // + 4
-            frameCount = 0;
             
             Profiler.enabled = true;
             EditorApplication.update -= Update;
@@ -96,7 +97,7 @@ namespace Moobyte.MemoryProfiler
             return index;
         }
 
-        private static int frameCount = 0;
+        private static int frameCursor = 0;
         private static FileStream stream;
         
         private static Dictionary<string, int> strmap;
@@ -104,16 +105,11 @@ namespace Moobyte.MemoryProfiler
         
         static void Update()
         {
-            var lastFrameIndex = ProfilerDriver.lastFrameIndex;
-            if (lastFrameIndex >= 0)
+            var stopFrameIndex = ProfilerDriver.lastFrameIndex;
+            
+            var frameIndex = Math.Max(frameCursor + 1, ProfilerDriver.firstFrameIndex);
+            while (frameIndex <= stopFrameIndex)
             {
-                if (frameCount++ >= 2)
-                {
-                    return;
-                }
-
-                var frameIndex = lastFrameIndex;
-
                 var samples = new Dictionary<int, StackSample>();
                 var relations = new Dictionary<int, int>();
 
@@ -154,11 +150,11 @@ namespace Moobyte.MemoryProfiler
                     ++sequence;
                 }
                 
-                // frame_index
+                // encode frame index
                 stream.Write(frameIndex);
                 stream.Write(float.Parse(root.frameTime));
                 stream.Write(float.Parse(root.frameFPS));
-                // samples
+                // encode samples
                 stream.Write(samples.Count);
                 foreach (var pair in samples)
                 {
@@ -170,7 +166,7 @@ namespace Moobyte.MemoryProfiler
                     stream.Write(v.totalTime);
                     stream.Write(v.selfTime);
                 }
-                // relations
+                // encode relations
                 stream.Write(relations.Count);
                 foreach (var pair in relations)
                 {
@@ -178,7 +174,12 @@ namespace Moobyte.MemoryProfiler
                     stream.Write(pair.Value);
                 }
                 stream.Write((uint)0x12345678); // magic number
+                
+                // next frame
+                ++frameIndex;
             }
+
+            frameCursor = stopFrameIndex;
         }
     }
 }
