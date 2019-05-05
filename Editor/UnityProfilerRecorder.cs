@@ -12,22 +12,10 @@ namespace Moobyte.MemoryProfiler
     {
         public int id;
         public string name;
-        public string path;
         public int callsCount;
         public int gcAllocBytes;
-        public double totalTime;
-        public double selfTime;
-
-        public void encode(Stream stream)
-        {
-            stream.Write(id);
-            stream.Write(name);
-            stream.Write(path);
-            stream.Write(callsCount);
-            stream.Write(gcAllocBytes);
-            stream.Write(totalTime);
-            stream.Write(selfTime);
-        }
+        public float totalTime;
+        public float selfTime;
     }
     
     public static class UnityProfilerRecorder
@@ -46,8 +34,18 @@ namespace Moobyte.MemoryProfiler
                 stream.Close();
                 stream = null;
             }
+
+            {
+                strmap = new Dictionary<string, int>();
+                strseq = 0;
+            }
             
             stream = new FileStream(string.Format("{0}/{1:yyyyMMddHHmmss}_PERF.pfc", spacedir, DateTime.Now), FileMode.Create);
+            stream.Write('P'); // + 1
+            stream.Write('F'); // + 1
+            stream.Write('C'); // + 1
+            stream.Write(DateTime.Now); // + 8
+            stream.Write((uint)0); // + 4
             frameCount = 0;
             
             Profiler.enabled = true;
@@ -63,13 +61,46 @@ namespace Moobyte.MemoryProfiler
             
             if (stream != null)
             {
+                // encode strings
+                var offset = (int)stream.Position;
+                stream.Write(strmap.Count);
+                
+                var collection = new string[strmap.Count];
+                foreach (var pair in strmap)
+                {
+                    collection[pair.Value] = pair.Key;
+                }
+
+                for (var i = 0; i < collection.Length; i++)
+                {
+                    stream.Write(collection[i]);
+                }
+                
+                // encode string offset
+                stream.Seek(11, SeekOrigin.Begin);
+                stream.Write(offset);
+
                 stream.Close();
                 stream = null;
             }
         }
 
+        internal static int getStringRef(string v)
+        {
+            int index = -1;
+            if (!strmap.TryGetValue(v, out index))
+            {
+                strmap.Add(v, index = strseq++);
+            }
+
+            return index;
+        }
+
         private static int frameCount = 0;
         private static FileStream stream;
+        
+        private static Dictionary<string, int> strmap;
+        private static int strseq;
         
         static void Update()
         {
@@ -84,14 +115,13 @@ namespace Moobyte.MemoryProfiler
                 var frameIndex = lastFrameIndex;
 
                 var samples = new Dictionary<int, StackSample>();
-                var connections = new Dictionary<int, List<int>>();
                 var relations = new Dictionary<int, int>();
 
                 var cursor = new Stack<int>();
                 var sequence = 0;
                 
                 var root = new ProfilerProperty();
-                root.SetRoot(frameIndex, ProfilerColumn.DontSort, ProfilerViewType.Hierarchy);
+                root.SetRoot(frameIndex, ProfilerColumn.TotalTime, ProfilerViewType.Hierarchy);
                 root.onlyShowGPUSamples = false;
                 while (root.Next(true))
                 {
@@ -105,24 +135,15 @@ namespace Moobyte.MemoryProfiler
                     {
                         id = sequence,
                         name = root.propertyName,
-                        path = root.propertyPath,
                         callsCount = (int)root.GetColumnAsSingle(ProfilerColumn.Calls),
                         gcAllocBytes = (int)root.GetColumnAsSingle(ProfilerColumn.GCMemory),
                         totalTime = root.GetColumnAsSingle(ProfilerColumn.TotalTime),
-                        selfTime = root.GetColumnAsSingle(ProfilerColumn.SelfTime)
+                        selfTime = root.GetColumnAsSingle(ProfilerColumn.SelfTime),
                     });
 
                     if (cursor.Count != 0)
                     {
-                        var top = cursor.Peek();
-                        relations[sequence] = top;
-                        
-                        List<int> children;
-                        if (!connections.TryGetValue(top, out children))
-                        {
-                            connections.Add(top, children = new List<int>());
-                        }
-                        children.Add(sequence);
+                        relations[sequence] = cursor.Peek();
                     }
 
                     if (root.HasChildren)
@@ -135,11 +156,19 @@ namespace Moobyte.MemoryProfiler
                 
                 // frame_index
                 stream.Write(frameIndex);
+                stream.Write(float.Parse(root.frameTime));
+                stream.Write(float.Parse(root.frameFPS));
                 // samples
                 stream.Write(samples.Count);
                 foreach (var pair in samples)
                 {
-                    pair.Value.encode(stream);
+                    var v = pair.Value;
+                    stream.Write(v.id);
+                    stream.Write(getStringRef(v.name));
+                    stream.Write(v.callsCount);
+                    stream.Write(v.gcAllocBytes);
+                    stream.Write(v.totalTime);
+                    stream.Write(v.selfTime);
                 }
                 // relations
                 stream.Write(relations.Count);
@@ -148,8 +177,7 @@ namespace Moobyte.MemoryProfiler
                     stream.Write(pair.Key);
                     stream.Write(pair.Value);
                 }
-                
-                Debug.Log(sequence);
+                stream.Write((uint)0x12345678); // magic number
             }
         }
     }
