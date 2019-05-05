@@ -20,8 +20,19 @@ namespace Moobyte.MemoryProfiler
     
     public static class UnityProfilerRecorder
     {
+        [MenuItem("性能/开始采样+原生录像", false, 52)]
+        private static void StartRecordingWithUnityFormat()
+        {
+            StartRecording(true);
+        }
+    
         [MenuItem("性能/开始采样", false, 51)]
-        public static void StartRecording()
+        private static void StartRecordingQuickly()
+        {
+            StartRecording(false);
+        }
+        
+        public static void StartRecording(bool includeUnityFormat = false)
         {
             var spacedir = string.Format("{0}/../ProfilerCapture", Application.dataPath);
             if (!Directory.Exists(spacedir))
@@ -40,9 +51,8 @@ namespace Moobyte.MemoryProfiler
                 strmap = new Dictionary<string, int>();
                 strseq = 0;
             }
-
-            stream = new FileStream(string.Format("{0}/{1:yyyyMMddHHmmss}_PERF.pfc", spacedir, DateTime.Now),
-                FileMode.Create, FileAccess.ReadWrite, FileShare.Inheritable, 1 << 21);
+            var filepath = string.Format("{0}/{1:yyyyMMddHHmmss}_PERF.pfc", spacedir, DateTime.Now);
+            stream = new FileStream(filepath, FileMode.Create, FileAccess.ReadWrite, FileShare.Inheritable, 1 << 21);
             stream.Write('P'); // + 1
             stream.Write('F'); // + 1
             stream.Write('C'); // + 1
@@ -50,14 +60,22 @@ namespace Moobyte.MemoryProfiler
             stream.Write((uint)0); // + 4
             
             Profiler.enabled = true;
+            if (includeUnityFormat)
+            {
+                Profiler.logFile = filepath.Substring(0, filepath.Length - 3);
+                Profiler.enableBinaryLog = true;
+            }
+            
             EditorApplication.update -= Update;
             EditorApplication.update += Update;
         }
 
-        [MenuItem("性能/停止采样", false, 52)]
+        [MenuItem("性能/停止采样", false, 55)]
         public static void StopRecording()
         {
             Profiler.enabled = false;
+            Profiler.enableBinaryLog = false;
+            Profiler.logFile = null;
             EditorApplication.update -= Update;
             
             if (stream != null)
