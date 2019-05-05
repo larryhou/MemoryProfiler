@@ -47,6 +47,18 @@ namespace Moobyte.MemoryProfiler
 			var refer = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 			stream.Write((long) ((timestamp - refer).TotalSeconds * 1e6));
 		}
+		
+		public static void Write(this Stream stream, float v)
+		{
+			var data = BitConverter.GetBytes(v);
+			stream.Write(data, 0, 4);
+		}
+		
+		public static void Write(this Stream stream, double v)
+		{
+			var data = BitConverter.GetBytes(v);
+			stream.Write(data, 0, 8);
+		}
 
 		public static void Write(this Stream stream, char v)
 		{
