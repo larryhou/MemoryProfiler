@@ -77,6 +77,12 @@ namespace Moobyte.MemoryProfiler
                     stream.Write(collection[i]);
                 }
                 
+                stream.Write(DateTime.Now);
+                stream.Write("GENERATED THROUGH PROFILERRECORDER DEVELOPED BY LARRYHOU");
+                stream.Write(Application.unityVersion);
+                stream.Write(SystemInfo.operatingSystem);
+                stream.Write(Guid.NewGuid().ToByteArray());
+                
                 // encode string offset
                 stream.Seek(11, SeekOrigin.Begin);
                 stream.Write(offset);

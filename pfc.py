@@ -48,8 +48,10 @@ def main():
             strmap.append(value)
         print(strmap)
 
+        complete_timestamp, = unpack('=Q', fp.read(8))
+
         fp.seek(11 + 4, os.SEEK_SET)
-        print('size={:,} pos={}'.format(length, fp.tell()))
+        print('size={:,} pos={} elapse={:.3f}'.format(length, fp.tell(), (complete_timestamp - timestamp)/1e6))
 
         prev_frame_index = -1
         while fp.tell() < offset:
@@ -57,7 +59,7 @@ def main():
             assert prev_frame_index == -1 or frame_index - prev_frame_index == 1
             frame_time, = unpack('=f', fp.read(4))
             frame_fps, = unpack('=f', fp.read(4))
-            print('frame_index={} frame_time={:.3f} frame_fps={:.1f}'.format(frame_index, frame_time, frame_fps))
+            print('frame_index={} frame_time={:.3f} frame_fps={:.1f}s'.format(frame_index, frame_time, frame_fps))
             samples = {}
             relations = {}
             connections = {}
