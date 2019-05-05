@@ -16,60 +16,13 @@
 #include "Crawler/crawler.h"
 #include "Crawler/cache.h"
 #include "Crawler/leak.h"
+#include "utils.h"
 
 using std::cout;
 using std::endl;
 using std::vector;
 
 void readCachedSnapshot(const char *uuid);
-
-bool strbeg(const char *str, const char *cmp)
-{
-    auto size = strlen(cmp);
-    for (auto i = 0; i < size; i++)
-    {
-        if (str[i] != cmp[i]){return false;}
-    }
-    if (strlen(str) > size)
-    {
-        return str[size] == ' ';
-    }
-    return true;
-}
-
-void readCommandOptions(const char *command, std::function<void(std::vector<const char *> &)> callback)
-{
-    std::vector<const char *> options;
-    auto charCount = strlen(command);
-    char *item = new char[256];
-    auto iter = 0;
-    for (auto i = 0; i < charCount; i++)
-    {
-        if (command[i] == ' ')
-        {
-            if (iter > 0)
-            {
-                item[iter] = 0; // end c string
-                auto size = strlen(item);
-                auto option = new char[size];
-                strcpy(option, item);
-                options.push_back(option);
-                iter = 0;
-            }
-        }
-        else
-        {
-            item[iter++] = command[i];
-        }
-    }
-    
-    item[iter] = 0; // end c string
-    if (strlen(item) > 0) { options.push_back(item); }
-    
-    callback(options);
-    
-    for (auto i = 0; i < options.size(); i++) { delete [] options[i]; }
-}
 
 address_t castAddress(const char *v)
 {
@@ -86,7 +39,7 @@ address_t castAddress(const char *v)
 #include <unistd.h>
 #include <memory>
 using std::ofstream;
-void processSnapshot(const char * filepath)
+void processRecord(const char * filepath)
 {
     MemorySnapshotCrawler mainCrawler(filepath);
     mainCrawler.crawl();
@@ -517,7 +470,7 @@ int main(int argc, const char * argv[])
     
     if (argc > 1)
     {
-        processSnapshot(argv[1]);
+        processRecord(argv[1]);
     }
     
     return 0;
