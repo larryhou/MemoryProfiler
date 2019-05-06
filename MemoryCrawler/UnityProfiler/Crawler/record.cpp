@@ -90,18 +90,37 @@ void RecordCrawler::findFrameWithFPS(float fps, std::function<bool (float, float
     }
 }
 
-void RecordCrawler::findFrameWithAlloc()
+void RecordCrawler::findFrameWithAlloc(int32_t frameOffset, int32_t frameCount)
 {
-    __fs.seek(__frames[0].offset, seekdir_t::beg);
+    if (frameOffset >= __lowerFrameIndex && frameOffset < __upperFrameIndex)
+    {
+        __fs.seek(__frames[frameOffset - __lowerFrameIndex].offset, seekdir_t::beg);
+        frameCount = std::min(__upperFrameIndex - frameOffset, frameCount);
+    }
+    else
+    {
+        __fs.seek(__frames[0].offset, seekdir_t::beg);
+        frameCount = __upperFrameIndex - __lowerFrameIndex;
+    }
     
+    int32_t iterCount = 0;
+    
+    using std::get;
+    std::vector<std::tuple<int32_t, float, float, int32_t, int32_t>> frames;
+    
+    printf("%3.0f%%", 0.0);
+    
+    double step = 2;
+    double progress = 0.0;
     while (__fs.tell() < __strOffset)
     {
         auto offset = __fs.tell();
         auto index = __fs.readUInt32();
         auto time = __fs.readFloat();
         auto fps = __fs.readFloat();
+        
         auto alloc = 0;
-        readFrame([&](auto &samples, auto &relations)
+        readSamples([&](auto &samples, auto &relations)
                   {
                       for (auto i = 0; i < samples.size(); i++)
                       {
@@ -111,8 +130,26 @@ void RecordCrawler::findFrameWithAlloc()
                   });
         if (alloc > 0)
         {
-            printf("[FRAME] index=%d time=%.3fms fps=%.1f alloc=%d offset=%lu\n", index, time, fps, alloc, offset);
+            frames.emplace_back(std::make_tuple(index, time, fps, alloc, offset));
         }
+        
+        ++iterCount;
+        auto percent = (double)iterCount * 100.0 / (double)frameCount;
+        if (percent - progress >= step - 1E-4 || percent + 1E-4 >= 100)
+        {
+            printf("\b\b\b\b█%3.0f%%", percent);
+            std::cout << std::flush;
+            progress += step;
+        }
+        
+        if (iterCount >= frameCount) {break;}
+    }
+    printf("\n");
+    
+    for (auto iter = frames.begin(); iter != frames.end(); iter++)
+    {
+        auto &f = *iter;
+        printf("[FRAME] index=%d time=%.3fms fps=%.1f alloc=%d offset=%d\n", get<0>(f), get<1>(f), get<2>(f), get<3>(f), get<4>(f));
     }
 }
 
@@ -136,7 +173,7 @@ void RecordCrawler::loadStrings()
     __sampler.end();
 }
 
-void RecordCrawler::readFrame(std::function<void (std::vector<StackSample> &, std::map<int32_t, std::vector<int32_t> > &)> completion)
+void RecordCrawler::readSamples(std::function<void (std::vector<StackSample> &, std::map<int32_t, std::vector<int32_t> > &)> completion)
 {
     auto elementCount = __fs.readUInt32();
     
@@ -193,7 +230,7 @@ void RecordCrawler::inspectFrame(int32_t frameIndex)
     printf("[FRAME] index=%d time=%.3fms fps=%.1f offset=%d\n", frame.index, frame.time, frame.fps, frame.offset);
     
     __fs.seek(frame.offset + 12, seekdir_t::beg);
-    readFrame([&](auto &samples, auto &relations)
+    readSamples([&](auto &samples, auto &relations)
               {
                   dumpFrameStacks(-1, samples, relations, frame.time);
               });
