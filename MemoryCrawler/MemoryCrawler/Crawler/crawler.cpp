@@ -443,7 +443,7 @@ void MemorySnapshotCrawler::barMMemory(MemoryState state, int32_t rank)
             memcpy(iter, fence, 3);
             iter += 3;
         }
-        printf("%s %s %'d #%d :%d\n", progress, type.name->c_str(), typeMemory.at(typeIndex), typeCount.at(typeIndex), typeIndex);
+        printf("%s %s %'d #%d *%d\n", progress, type.name->c_str(), typeMemory.at(typeIndex), typeCount.at(typeIndex), typeIndex);
     }
 }
 
@@ -514,7 +514,7 @@ void MemorySnapshotCrawler::barNMemory(MemoryState state, int32_t rank)
             memcpy(iter, fence, 3);
             iter += 3;
         }
-        printf("%s %s %'d #%d :%d\n", progress, type.name->c_str(), typeMemory.at(typeIndex), typeCount.at(typeIndex), typeIndex);
+        printf("%s %s %'d #%d *%d\n", progress, type.name->c_str(), typeMemory.at(typeIndex), typeCount.at(typeIndex), typeIndex);
     }
 }
 
