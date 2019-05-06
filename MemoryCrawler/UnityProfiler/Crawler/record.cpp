@@ -399,14 +399,14 @@ void RecordCrawler::inspectFrame()
     inspectFrame(__cursor);
 }
 
-void RecordCrawler::next()
+void RecordCrawler::next(int32_t step)
 {
-    inspectFrame(__cursor + 1);
+    inspectFrame(__cursor + step);
 }
 
-void RecordCrawler::prev()
+void RecordCrawler::prev(int32_t step)
 {
-    inspectFrame(__cursor - 1);
+    inspectFrame(__cursor - step);
 }
 
 RecordCrawler::~RecordCrawler()

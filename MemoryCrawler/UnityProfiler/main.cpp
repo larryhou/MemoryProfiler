@@ -64,11 +64,31 @@ void processRecord(const char *filepath)
         }
         else if (strbeg(command, "next"))
         {
-            crawler.next();
+            readCommandOptions(command, [&](std::vector<const char *> &options)
+                               {
+                                   if (options.size() == 1)
+                                   {
+                                       crawler.next();
+                                   }
+                                   else
+                                   {
+                                       crawler.next(atoi(options[1]));
+                                   }
+                               });
         }
         else if (strbeg(command, "prev"))
         {
-            crawler.prev();
+            readCommandOptions(command, [&](std::vector<const char *> &options)
+                               {
+                                   if (options.size() == 1)
+                                   {
+                                       crawler.prev();
+                                   }
+                                   else
+                                   {
+                                       crawler.prev(atoi(options[1]));
+                                   }
+                               });
         }
         else if (strbeg(command, "info"))
         {

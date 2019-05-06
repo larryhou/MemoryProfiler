@@ -67,8 +67,8 @@ public:
     void iterateSamples(std::function<void(int32_t, StackSample &)> callback, bool clearProgress = true);
     void generateStatistics(int32_t rank = 0);
     
-    void next();
-    void prev();
+    void next(int32_t step = 1);
+    void prev(int32_t step = 1);
     
     void findFramesWithFPS(float fps, std::function<bool(float a, float b)> predicate);
     void findFramesWithAlloc(int32_t frameOffset = -1, int32_t frameCount = -1);
