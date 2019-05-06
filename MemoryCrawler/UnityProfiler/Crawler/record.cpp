@@ -64,9 +64,56 @@ void RecordCrawler::crawl()
 
 void RecordCrawler::summary()
 {
+    Statistics<float> fps;
+    for (auto i = 0; i < __frames.size(); i++)
+    {
+        auto &frame = __frames[i];
+        fps.collect(frame.fps);
+    }
+    
+    fps.summarize();
+    
     auto f = (double)__startTime * 1E-6;
     auto t = (double)__stopTime * 1E-6;
-    printf("frames=[%d, %d)=%d elapse=(%.3f, %.3f)=%.3fs\n", __lowerFrameIndex, __upperFrameIndex, __upperFrameIndex - __lowerFrameIndex, f, t, t - f);
+    printf("frames=[%d, %d)=%d elapse=(%.3f, %.3f)=%.3fs fps=%.1f±%.3f=[%.1f, %.1f]\n", __lowerFrameIndex, __upperFrameIndex, __upperFrameIndex - __lowerFrameIndex, f, t, t - f, fps.mean, fps.sd, fps.min, fps.max);
+}
+
+void RecordCrawler::findFrameWithFPS(float fps, std::function<bool (float, float)> predicate)
+{
+    for (auto i = 0; i < __frames.size(); i++)
+    {
+        auto &frame = __frames[i];
+        if (predicate(frame.fps, fps))
+        {
+            printf("[FRAME] index=%d time=%.3fms fps=%.1f offset=%d\n", frame.index, frame.time, frame.fps, frame.offset);
+        }
+    }
+}
+
+void RecordCrawler::findFrameWithAlloc()
+{
+    __fs.seek(__frames[0].offset, seekdir_t::beg);
+    
+    while (__fs.tell() < __strOffset)
+    {
+        auto offset = __fs.tell();
+        auto index = __fs.readUInt32();
+        auto time = __fs.readFloat();
+        auto fps = __fs.readFloat();
+        auto alloc = 0;
+        readFrame([&](auto &samples, auto &relations)
+                  {
+                      for (auto i = 0; i < samples.size(); i++)
+                      {
+                          StackSample &s = samples[i];
+                          alloc += s.gcAllocBytes;
+                      }
+                  });
+        if (alloc > 0)
+        {
+            printf("[FRAME] index=%d time=%.3fms fps=%.1f alloc=%d offset=%lu\n", index, time, fps, alloc, offset);
+        }
+    }
 }
 
 void RecordCrawler::loadStrings()
@@ -174,7 +221,7 @@ void RecordCrawler::dumpFrameStacks(int32_t entity, std::vector<StackSample> &sa
             auto &s = samples[*i];
             auto &name = __strings[s.nameRef];
             printf("\e[36m%s%s \e[33mtime=%.3f%%/%.3fms \e[32mself=%.3f%%/%.3fms \e[37mcalls=%d\e[0m", __indent, name.c_str(), s.totalTime * 100 / depthTime, s.totalTime, s.selfTime * 100/s.totalTime, s.selfTime, s.callsCount);
-            if (s.gcAllocBytes > 0) {printf(" \e[31m%d", s.gcAllocBytes);}
+            if (s.gcAllocBytes > 0) {printf(" \e[31malloc=%d", s.gcAllocBytes);}
             printf("\n");
             
             __time += s.totalTime;

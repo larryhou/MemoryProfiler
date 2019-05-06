@@ -18,6 +18,7 @@
 #include "stream.h"
 #include "crawler.h"
 #include "perf.h"
+#include "stat.h"
 
 struct StackSample
 {
@@ -66,6 +67,9 @@ public:
     void next();
     void prev();
     
+    void findFrameWithFPS(float fps, std::function<bool(float a, float b)> predicate);
+    void findFrameWithAlloc();
+    
     void summary();
     
     ~RecordCrawler();
@@ -73,7 +77,7 @@ public:
 private:
     void loadStrings();
     void crawl();
-    void readFrame(std::function<void(std::vector<StackSample> &, std::map<int32_t, std::vector<int32_t>> &)> callback);
+    void readFrame(std::function<void(std::vector<StackSample> &, std::map<int32_t, std::vector<int32_t>> &)> completion);
     void dumpFrameStacks(int32_t entity, std::vector<StackSample> &samples, std::map<int32_t, std::vector<int32_t>> &relations, const float depthTime, const char *indent = "");
 };
 

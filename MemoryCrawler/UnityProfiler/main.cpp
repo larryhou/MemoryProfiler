@@ -74,6 +74,40 @@ void processRecord(const char *filepath)
         {
             crawler.summary();
         }
+        else if (strbeg(command, "alloc"))
+        {
+            crawler.findFrameWithAlloc();
+        }
+        else if (strbeg(command, "fps"))
+        {
+            readCommandOptions(command, [&](std::vector<const char *> &options)
+                               {
+                                   if (options.size() >= 2)
+                                   {
+                                       float fps = atof(options[1]);
+                                       if (options.size() >= 3)
+                                       {
+                                           auto sign = options[2];
+                                           if (strbeg(sign, "="))
+                                           {
+                                               crawler.findFrameWithFPS(fps, [](auto a, auto b) { return a == b; });
+                                           }
+                                           else if (strbeg(sign, "<"))
+                                           {
+                                               crawler.findFrameWithFPS(fps, [](auto a, auto b) { return a > b; });
+                                           }
+                                           else
+                                           {
+                                               crawler.findFrameWithFPS(fps, [](auto a, auto b) { return a < b; });
+                                           }
+                                       }
+                                       else
+                                       {
+                                           crawler.findFrameWithFPS(fps, [](auto a, auto b) { return a < b; });
+                                       }
+                                   }
+                               });
+        }
         else if (strbeg(command, "quit"))
         {
             cout << "\e[0m";
