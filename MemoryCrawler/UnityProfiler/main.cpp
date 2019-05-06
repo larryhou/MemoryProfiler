@@ -145,7 +145,11 @@ void processRecord(const char *filepath)
         {
             readCommandOptions(command, [&](std::vector<const char *> &options)
                                {
-                                   if (options.size() >= 2)
+                                   if (options.size() == 1)
+                                   {
+                                       crawler.summary();
+                                   }
+                                   else
                                    {
                                        float fps = atof(options[1]);
                                        if (options.size() >= 3)
