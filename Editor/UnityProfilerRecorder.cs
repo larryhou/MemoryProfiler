@@ -62,7 +62,7 @@ namespace Moobyte.MemoryProfiler
             Profiler.enabled = true;
             if (includeUnityFormat)
             {
-                Profiler.logFile = filepath.Substring(0, filepath.Length - 3);
+                Profiler.logFile = filepath.Substring(0, filepath.Length - 4);
                 Profiler.enableBinaryLog = true;
             }
             

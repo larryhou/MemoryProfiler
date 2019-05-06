@@ -30,16 +30,6 @@
 		6BE889A3225CA16B0029BB09 /* cache.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6BE889A2225CA16B0029BB09 /* cache.cpp */; };
 /* End PBXBuildFile section */
 
-/* Begin PBXContainerItemProxy section */
-		6BD1B062227F1AC000E3CBD7 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 6B0AC7372252FC5D00B58C69 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 6B0AC73E2252FC5D00B58C69;
-			remoteInfo = MemoryCrawler;
-		};
-/* End PBXContainerItemProxy section */
-
 /* Begin PBXCopyFilesBuildPhase section */
 		6B0AC73D2252FC5D00B58C69 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
@@ -82,7 +72,7 @@
 		6BD1B05A227F15FB00E3CBD7 /* UnityProfiler */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = UnityProfiler; sourceTree = BUILT_PRODUCTS_DIR; };
 		6BD1B05C227F15FB00E3CBD7 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		6BD1B066227F1C8700E3CBD7 /* record.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = record.cpp; sourceTree = "<group>"; };
-		6BD1B067227F1C8700E3CBD7 /* record.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = record.hpp; sourceTree = "<group>"; };
+		6BD1B067227F1C8700E3CBD7 /* record.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = record.h; sourceTree = "<group>"; };
 		6BD1B069227F1DD300E3CBD7 /* utils.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = utils.cpp; sourceTree = "<group>"; };
 		6BD1B06A227F1DD300E3CBD7 /* utils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = utils.h; sourceTree = "<group>"; };
 		6BE8899F225C9FF90029BB09 /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
@@ -177,7 +167,7 @@
 			isa = PBXGroup;
 			children = (
 				6BD1B066227F1C8700E3CBD7 /* record.cpp */,
-				6BD1B067227F1C8700E3CBD7 /* record.hpp */,
+				6BD1B067227F1C8700E3CBD7 /* record.h */,
 			);
 			path = Crawler;
 			sourceTree = "<group>";
@@ -221,7 +211,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				6BD1B063227F1AC000E3CBD7 /* PBXTargetDependency */,
 			);
 			name = UnityProfiler;
 			productName = UnityProfiler;
@@ -298,14 +287,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXTargetDependency section */
-		6BD1B063227F1AC000E3CBD7 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 6B0AC73E2252FC5D00B58C69 /* MemoryCrawler */;
-			targetProxy = 6BD1B062227F1AC000E3CBD7 /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		6B0AC7442252FC5D00B58C69 /* Debug */ = {

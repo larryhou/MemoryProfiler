@@ -11,7 +11,7 @@
 #include <iostream>
 
 #include "utils.h"
-#include "Crawler/record.hpp"
+#include "Crawler/record.h"
 
 using std::cout;
 using std::endl;

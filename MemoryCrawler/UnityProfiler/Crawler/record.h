@@ -6,8 +6,8 @@
 //  Copyright © 2019 larryhou. All rights reserved.
 //
 
-#ifndef profiler_hpp
-#define profiler_hpp
+#ifndef record_h
+#define record_h
 
 #include <fstream>
 #include <string>
@@ -69,4 +69,4 @@ private:
     void process();
 };
 
-#endif /* profiler_hpp */
+#endif /* record_h */
