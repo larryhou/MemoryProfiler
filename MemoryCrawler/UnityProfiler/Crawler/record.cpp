@@ -126,7 +126,7 @@ void RecordCrawler::iterateSamples(std::function<void (int32_t, StackSample &)> 
         if (iterCount >= frameCount) {break;}
     }
     
-    clearProgress? printf("\r%60s\r", " ") : printf("\n");
+    std::cout << (clearProgress ? '\r' : '\n');
 }
 
 void RecordCrawler::generateStatistics(int32_t rank)
@@ -159,25 +159,25 @@ void RecordCrawler::generateStatistics(int32_t rank)
     char progress[300+1];
     char fence[] = "█";
     
-    auto width = 0;
+    Statistics<int32_t> width;
     for (auto i = 0; i < functions.size(); i++)
     {
         if (rank > 0 && i >= rank){break;}
         auto index = functions[i];
         auto &name = __strings[index];
-        width = std::max((int32_t)name.size(), width);
+        width.collect((int32_t)name.size());
     }
+    width.summarize();
     
-    char header[7];
+    char header[8];
     memset(header, 0, sizeof(header));
-    sprintf(header, "%%%ds", width);
+    sprintf(header, " %%-%ds", width.opt_max);
     
     for (auto i = 0; i < functions.size(); i++)
     {
         if (rank > 0 && i >= rank){break;}
         auto index = functions[i];
         auto &name = __strings[index];
-        printf(header, name.c_str());
         
         memset(progress, 0, sizeof(progress));
         auto time = timeStat.at(index);
@@ -189,7 +189,10 @@ void RecordCrawler::generateStatistics(int32_t rank)
             memcpy(iter, fence, 3);
             iter += 3;
         }
-        printf(" %s %.3f%% %.3fms #%d\n", progress, percent, time, callsStat.at(index));
+        printf("%5.2f%% %9.2fms #%-6d ", percent, time, callsStat.at(index));
+        std::cout << progress;
+        printf(header, name.c_str());
+        printf("\n");
     }
 }
 

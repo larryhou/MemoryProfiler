@@ -73,11 +73,11 @@ void Statistics<T>::summarize()
     }
     
     double sd = pow(dx / (double)(__samples.size() - 1), 0.5);
-    auto upper = mean - 3 * sd;
-    auto lower = mean + 3 * sd;
+    auto upper = mean + 3 * sd;
+    auto lower = mean - 3 * sd;
     
-    opt_max = max;
-    opt_min = min;
+    opt_max = min;
+    opt_min = max;
     for (auto iter = __samples.begin(); iter != __samples.end(); iter++)
     {
         auto v = *iter;
