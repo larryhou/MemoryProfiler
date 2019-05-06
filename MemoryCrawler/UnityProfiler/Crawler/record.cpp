@@ -189,7 +189,7 @@ void RecordCrawler::generateStatistics(int32_t rank)
             memcpy(iter, fence, 3);
             iter += 3;
         }
-        printf("%5.2f%% %9.2fms #%-6d", percent, time, callsStat.at(index));
+        printf("%5.2f%% %9.2fms #%-8d", percent, time, callsStat.at(index));
         std::cout << progress;
         printf(" %s *%d\n", name.c_str(), index);
     }
