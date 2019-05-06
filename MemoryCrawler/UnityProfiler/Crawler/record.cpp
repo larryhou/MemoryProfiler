@@ -108,7 +108,7 @@ void RecordCrawler::findFrameWithAlloc(int32_t frameOffset, int32_t frameCount)
     using std::get;
     std::vector<std::tuple<int32_t, float, float, int32_t, int32_t>> frames;
     
-    printf("%3.0f%%", 0.0);
+    std::cout << "0%" << std::flush;
     
     double step = 2;
     double progress = 0.0;
@@ -135,7 +135,7 @@ void RecordCrawler::findFrameWithAlloc(int32_t frameOffset, int32_t frameCount)
         
         ++iterCount;
         auto percent = (double)iterCount * 100.0 / (double)frameCount;
-        if (percent - progress >= step - 1E-4 || percent + 1E-4 >= 100)
+        if (percent - progress >= step || percent + 1E-4 >= 100)
         {
             printf("\b\b\b\b█%3.0f%%", percent);
             std::cout << std::flush;
