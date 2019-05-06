@@ -66,7 +66,7 @@ void RecordCrawler::summary()
 {
     auto f = (double)__startTime * 1E-6;
     auto t = (double)__stopTime * 1E-6;
-    printf("frames=[%d, %d)=%d elapse=(%.3f, %.3f)=%.3f\n", __lowerFrameIndex, __upperFrameIndex, __upperFrameIndex - __lowerFrameIndex, f, t, t - f);
+    printf("frames=[%d, %d)=%d elapse=(%.3f, %.3f)=%.3fs\n", __lowerFrameIndex, __upperFrameIndex, __upperFrameIndex - __lowerFrameIndex, f, t, t - f);
 }
 
 void RecordCrawler::loadStrings()
