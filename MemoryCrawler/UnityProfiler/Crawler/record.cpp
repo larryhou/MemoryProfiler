@@ -108,7 +108,7 @@ void RecordCrawler::findFrameWithAlloc(int32_t frameOffset, int32_t frameCount)
     using std::get;
     std::vector<std::tuple<int32_t, float, float, int32_t, int32_t>> frames;
     
-    std::cout << "0%" << std::flush;
+    std::cout << " 0%" << std::flush;
     
     double step = 2;
     double progress = 0.0;
