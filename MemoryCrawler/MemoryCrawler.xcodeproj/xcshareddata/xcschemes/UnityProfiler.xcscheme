@@ -63,7 +63,7 @@
       </BuildableProductRunnable>
       <CommandLineArguments>
          <CommandLineArgument
-            argument = "/Users/larryhou/Documents/Unity/MemoryProfiler/ProfilerCapture/20190505204243_PERF.pfc"
+            argument = "/Users/larryhou/Documents/MemoryProfiler/__pfc/20190505191651_PERF.pfc"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

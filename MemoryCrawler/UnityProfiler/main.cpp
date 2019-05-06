@@ -70,6 +70,15 @@ void processRecord(const char *filepath)
         {
             crawler.prev();
         }
+        else if (strbeg(command, "info"))
+        {
+            crawler.summary();
+        }
+        else if (strbeg(command, "quit"))
+        {
+            cout << "\e[0m";
+            exit(0);
+        }
     }
 }
 

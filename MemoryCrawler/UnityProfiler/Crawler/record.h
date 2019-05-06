@@ -12,9 +12,12 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <stack>
+#include <map>
 
 #include "stream.h"
 #include "crawler.h"
+#include "perf.h"
 
 struct StackSample
 {
@@ -42,14 +45,15 @@ private:
     int64_t __stopTime;
     
     FileStream __fs;
+    TimeSampler<std::nano> __sampler;
     
     std::vector<std::string> __strings;
     int64_t __strOffset;
     
-    int32_t __frameCursor;
+    int32_t __cursor;
     InstanceManager<RenderFrame> __frames;
-    int32_t __startFrameIndex;
-    int32_t __stopFrameIndex;
+    int32_t __lowerFrameIndex;
+    int32_t __upperFrameIndex;
     
 public:
     RecordCrawler();
@@ -62,11 +66,14 @@ public:
     void next();
     void prev();
     
+    void summary();
+    
     ~RecordCrawler();
     
 private:
     void loadStrings();
-    void process();
+    void crawl();
+    void dumpFrameStacks(int32_t entity, std::vector<StackSample> &samples, std::map<int32_t, std::vector<int32_t>> &relations, const float depthTime, const char *indent = "");
 };
 
 #endif /* record_h */
