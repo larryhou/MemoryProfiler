@@ -78,7 +78,7 @@ void RecordCrawler::summary()
     printf("frames=[%d, %d)=%d elapse=(%.3f, %.3f)=%.3fs fps=%.1f±%.3f=[%.1f, %.1f]\n", __lowerFrameIndex, __upperFrameIndex, __upperFrameIndex - __lowerFrameIndex, f, t, t - f, fps.mean, fps.sd, fps.min, fps.max);
 }
 
-void RecordCrawler::findFrameWithFPS(float fps, std::function<bool (float, float)> predicate)
+void RecordCrawler::findFramesWithFPS(float fps, std::function<bool (float, float)> predicate)
 {
     for (auto i = 0; i < __frames.size(); i++)
     {
@@ -90,18 +90,122 @@ void RecordCrawler::findFrameWithFPS(float fps, std::function<bool (float, float
     }
 }
 
-void RecordCrawler::findFrameWithAlloc(int32_t frameOffset, int32_t frameCount)
+void RecordCrawler::iterateSamples(std::function<void (int32_t, StackSample &)> callback, bool clearProgress)
+{
+    __fs.seek(__frames[0].offset, seekdir_t::beg);
+    auto frameCount = __upperFrameIndex - __lowerFrameIndex;
+    
+    int32_t iterCount = 0;
+    std::cout << " 0%" << std::flush;
+    
+    double step = 2;
+    double progress = 0.0;
+    while (__fs.tell() < __strOffset)
+    {
+        auto index = __fs.readUInt32();
+        __fs.readFloat(); // time
+        __fs.readFloat(); // fps
+        
+        readSamples([&](auto &samples, auto &relations)
+                    {
+                        for (auto i = 0; i < samples.size(); i++)
+                        {
+                            callback(index, samples[i]);
+                        }
+                    });
+        
+        ++iterCount;
+        auto percent = (double)iterCount * 100.0 / (double)frameCount;
+        if (percent - progress >= step || percent + 1E-4 >= 100)
+        {
+            printf("\b\b\b\b█%3.0f%%", percent);
+            std::cout << std::flush;
+            progress += step;
+        }
+        
+        if (iterCount >= frameCount) {break;}
+    }
+    
+    clearProgress? printf("\r%60s\r", " ") : printf("\n");
+}
+
+void RecordCrawler::generateStatistics(int32_t rank)
+{
+    std::map<int32_t, int32_t> callsStat;
+    std::map<int32_t, float> timeStat;
+    std::vector<int32_t> functions;
+    
+    double totalTime = 0;
+    iterateSamples([&](int32_t index, StackSample &sample)
+                   {
+                       auto iter = callsStat.find(sample.nameRef);
+                       if (iter == callsStat.end())
+                       {
+                           iter = callsStat.insert(std::pair<int32_t, int32_t>(sample.nameRef, 0)).first;
+                           timeStat.insert(std::pair<int32_t, float>(sample.nameRef, 0));
+                           functions.push_back(sample.nameRef);
+                       }
+                       
+                       iter->second += sample.callsCount;
+                       timeStat.at(sample.nameRef) += sample.selfTime;
+                       totalTime += sample.selfTime;
+                   });
+    
+    std::sort(functions.begin(), functions.end(), [&](auto a, auto b)
+              {
+                  return timeStat.at(a) > timeStat.at(b);
+              });
+    
+    char progress[300+1];
+    char fence[] = "█";
+    
+    auto width = 0;
+    for (auto i = 0; i < functions.size(); i++)
+    {
+        if (rank > 0 && i >= rank){break;}
+        auto index = functions[i];
+        auto &name = __strings[index];
+        width = std::max((int32_t)name.size(), width);
+    }
+    
+    char header[7];
+    memset(header, 0, sizeof(header));
+    sprintf(header, "%%%ds", width);
+    
+    for (auto i = 0; i < functions.size(); i++)
+    {
+        if (rank > 0 && i >= rank){break;}
+        auto index = functions[i];
+        auto &name = __strings[index];
+        printf(header, name.c_str());
+        
+        memset(progress, 0, sizeof(progress));
+        auto time = timeStat.at(index);
+        auto percent = time * 100 / totalTime;
+        auto count = std::max(1, (int32_t)std::round(percent));
+        char *iter = progress;
+        for (auto n = 0; n < count; n++)
+        {
+            memcpy(iter, fence, 3);
+            iter += 3;
+        }
+        printf(" %s %.3f%% %.3fms #%d\n", progress, percent, time, callsStat.at(index));
+    }
+}
+
+void RecordCrawler::findFramesWithAlloc(int32_t frameOffset, int32_t frameCount)
 {
     if (frameOffset >= __lowerFrameIndex && frameOffset < __upperFrameIndex)
     {
         __fs.seek(__frames[frameOffset - __lowerFrameIndex].offset, seekdir_t::beg);
-        frameCount = std::min(__upperFrameIndex - frameOffset, frameCount);
+        frameCount = frameCount > 0 ? std::min(__upperFrameIndex - frameOffset, frameCount) : (__upperFrameIndex - frameOffset);
     }
     else
     {
         __fs.seek(__frames[0].offset, seekdir_t::beg);
         frameCount = __upperFrameIndex - __lowerFrameIndex;
     }
+    if (frameCount == 0) {return;}
     
     int32_t iterCount = 0;
     

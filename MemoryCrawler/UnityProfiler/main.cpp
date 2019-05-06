@@ -76,7 +76,40 @@ void processRecord(const char *filepath)
         }
         else if (strbeg(command, "alloc"))
         {
-            crawler.findFrameWithAlloc();
+            readCommandOptions(command, [&](std::vector<const char *> &options)
+                               {
+                                   if (options.size() == 1)
+                                   {
+                                       crawler.findFramesWithAlloc();
+                                   }
+                                   else
+                                   {
+                                       if (options.size() >= 2)
+                                       {
+                                           auto count = -1;
+                                           auto offset = atoi(options[1]);
+                                           if (options.size() >= 3)
+                                           {
+                                               count = atoi(options[2]);
+                                           }
+                                           crawler.findFramesWithAlloc(offset, count);
+                                       }
+                                   }
+                               });
+        }
+        else if (strbeg(command, "stat"))
+        {
+            readCommandOptions(command, [&](std::vector<const char *> &options)
+                               {
+                                   if (options.size() == 1)
+                                   {
+                                       crawler.generateStatistics();
+                                   }
+                                   else
+                                   {
+                                       crawler.generateStatistics(atoi(options[1]));
+                                   }
+                               });
         }
         else if (strbeg(command, "fps"))
         {
@@ -90,20 +123,20 @@ void processRecord(const char *filepath)
                                            auto sign = options[2];
                                            if (strbeg(sign, "="))
                                            {
-                                               crawler.findFrameWithFPS(fps, [](auto a, auto b) { return a == b; });
+                                               crawler.findFramesWithFPS(fps, [](auto a, auto b) { return a == b; });
                                            }
                                            else if (strbeg(sign, "<"))
                                            {
-                                               crawler.findFrameWithFPS(fps, [](auto a, auto b) { return a > b; });
+                                               crawler.findFramesWithFPS(fps, [](auto a, auto b) { return a > b; });
                                            }
                                            else
                                            {
-                                               crawler.findFrameWithFPS(fps, [](auto a, auto b) { return a < b; });
+                                               crawler.findFramesWithFPS(fps, [](auto a, auto b) { return a < b; });
                                            }
                                        }
                                        else
                                        {
-                                           crawler.findFrameWithFPS(fps, [](auto a, auto b) { return a < b; });
+                                           crawler.findFramesWithFPS(fps, [](auto a, auto b) { return a < b; });
                                        }
                                    }
                                });
