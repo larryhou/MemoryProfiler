@@ -1,5 +1,5 @@
 //
-//  profiler.cpp
+//  record.cpp
 //  UnityProfiler
 //
 //  Created by larryhou on 2019/5/5.
@@ -35,7 +35,7 @@ void RecordCrawler::process()
 {
     while (__fs.tell() < __strOffset)
     {
-        UnityTickFrame &frame = __frames.add();
+        RenderFrame &frame = __frames.add();
         frame.offset = (int32_t)__fs.tell();
         frame.index = __fs.readUInt32();
         frame.time = __fs.readFloat();

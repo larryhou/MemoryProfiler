@@ -1,5 +1,5 @@
 //
-//  profiler.hpp
+//  record.h
 //  UnityProfiler
 //
 //  Created by larryhou on 2019/5/5.
@@ -26,7 +26,7 @@ struct StackSample
     float selfTime;
 };
 
-struct UnityTickFrame
+struct RenderFrame
 {
     int32_t index;
     float time;
@@ -47,7 +47,7 @@ private:
     int64_t __strOffset;
     
     int32_t __frameCursor;
-    InstanceManager<UnityTickFrame> __frames;
+    InstanceManager<RenderFrame> __frames;
     int32_t __startFrameIndex;
     int32_t __stopFrameIndex;
     
