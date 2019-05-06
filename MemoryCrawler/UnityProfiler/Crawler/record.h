@@ -73,6 +73,7 @@ public:
 private:
     void loadStrings();
     void crawl();
+    void readFrame(std::function<void(std::vector<StackSample> &, std::map<int32_t, std::vector<int32_t>> &)> callback);
     void dumpFrameStacks(int32_t entity, std::vector<StackSample> &samples, std::map<int32_t, std::vector<int32_t>> &relations, const float depthTime, const char *indent = "");
 };
 

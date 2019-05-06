@@ -57,6 +57,8 @@ void RecordCrawler::crawl()
     
     __lowerFrameIndex = __frames[0].index;
     __upperFrameIndex = __lowerFrameIndex + __frames.size();
+    __cursor = __lowerFrameIndex;
+    
     __sampler.end();
 }
 
@@ -87,15 +89,8 @@ void RecordCrawler::loadStrings()
     __sampler.end();
 }
 
-void RecordCrawler::inspectFrame(int32_t frameIndex)
+void RecordCrawler::readFrame(std::function<void (std::vector<StackSample> &, std::map<int32_t, std::vector<int32_t> > &)> completion)
 {
-    if (frameIndex <  __lowerFrameIndex) {return;}
-    if (frameIndex >= __upperFrameIndex) {return;}
-    __cursor = frameIndex;
-    
-    auto &frame = __frames[__cursor - __lowerFrameIndex];
-    
-    __fs.seek(frame.offset + 12, seekdir_t::beg);
     auto elementCount = __fs.readUInt32();
     
     std::vector<StackSample> samples(elementCount);
@@ -127,7 +122,6 @@ void RecordCrawler::inspectFrame(int32_t frameIndex)
     }
     
     assert(__fs.readUInt32() == 0x12345678);
-    printf("[FRAME] index=%d time=%.3fms fps=%.1f offset=%d\n", frame.index, frame.time, frame.fps, frame.offset);
     
     relations.insert(std::pair<int32_t, std::vector<int32_t>>(-1, std::vector<int32_t>()));
     auto &root = relations.at(-1);
@@ -139,7 +133,23 @@ void RecordCrawler::inspectFrame(int32_t frameIndex)
         }
     }
     
-    dumpFrameStacks(-1, samples, relations, frame.time);
+    completion(samples, relations);
+}
+
+void RecordCrawler::inspectFrame(int32_t frameIndex)
+{
+    if (frameIndex <  __lowerFrameIndex) {return;}
+    if (frameIndex >= __upperFrameIndex) {return;}
+    __cursor = frameIndex;
+    
+    auto &frame = __frames[__cursor - __lowerFrameIndex];
+    printf("[FRAME] index=%d time=%.3fms fps=%.1f offset=%d\n", frame.index, frame.time, frame.fps, frame.offset);
+    
+    __fs.seek(frame.offset + 12, seekdir_t::beg);
+    readFrame([&](auto &samples, auto &relations)
+              {
+                  dumpFrameStacks(-1, samples, relations, frame.time);
+              });
 }
 
 void RecordCrawler::dumpFrameStacks(int32_t entity, std::vector<StackSample> &samples, std::map<int32_t, std::vector<int32_t> > &relations, const float depthTime, const char *indent)
@@ -203,18 +213,12 @@ void RecordCrawler::inspectFrame()
 
 void RecordCrawler::next()
 {
-    if (__cursor + 1 < __upperFrameIndex)
-    {
-        inspectFrame(__cursor + 1);
-    }
+    inspectFrame(__cursor + 1);
 }
 
 void RecordCrawler::prev()
 {
-    if (__cursor - 1 >= __lowerFrameIndex)
-    {
-        inspectFrame(__cursor - 1);
-    }
+    inspectFrame(__cursor - 1);
 }
 
 RecordCrawler::~RecordCrawler()
