@@ -189,10 +189,26 @@ void RecordCrawler::generateStatistics(int32_t rank)
             memcpy(iter, fence, 3);
             iter += 3;
         }
-        printf("%5.2f%% %9.2fms #%-6d ", percent, time, callsStat.at(index));
+        printf("%5.2f%% %9.2fms #%-6d", percent, time, callsStat.at(index));
         std::cout << progress;
-        printf(header, name.c_str());
-        printf("\n");
+        printf(" %s *%d\n", name.c_str(), index);
+    }
+}
+
+void RecordCrawler::findFramesContains(int32_t functionNameRef)
+{
+    std::vector<int32_t> results;
+    iterateSamples([&](int32_t index, StackSample &sample)
+                   {
+                       if (sample.nameRef == functionNameRef)
+                       {
+                           results.push_back(index);
+                       }
+                   }, false);
+    for (auto i = results.begin(); i != results.end(); i++)
+    {
+        auto &frame = __frames[*i - __lowerFrameIndex];
+        printf("[FRAME] index=%d time=%.3fms fps=%.1f offset=%d\n", frame.index, frame.time, frame.fps, frame.offset);
     }
 }
 

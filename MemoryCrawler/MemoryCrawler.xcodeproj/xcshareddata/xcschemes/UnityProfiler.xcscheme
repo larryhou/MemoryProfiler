@@ -64,6 +64,10 @@
       <CommandLineArguments>
          <CommandLineArgument
             argument = "/Users/larryhou/Documents/MemoryProfiler/__pfc/20190505191651_PERF.pfc"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "/Users/larryhou/Documents/MemoryProfiler/__pfc/20190506163951_PERF.pfc"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>

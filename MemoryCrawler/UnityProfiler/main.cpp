@@ -131,6 +131,16 @@ void processRecord(const char *filepath)
                                    }
                                });
         }
+        else if (strbeg(command, "find"))
+        {
+            readCommandOptions(command, [&](std::vector<const char *> &options)
+                               {
+                                   if (options.size() > 1)
+                                   {
+                                       crawler.findFramesContains(atoi(options[1]));
+                                   }
+                               });
+        }
         else if (strbeg(command, "fps"))
         {
             readCommandOptions(command, [&](std::vector<const char *> &options)

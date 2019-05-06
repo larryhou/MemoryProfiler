@@ -72,6 +72,7 @@ public:
     
     void findFramesWithFPS(float fps, std::function<bool(float a, float b)> predicate);
     void findFramesWithAlloc(int32_t frameOffset = -1, int32_t frameCount = -1);
+    void findFramesContains(int32_t functionNameRef);
     
     void summary();
     
