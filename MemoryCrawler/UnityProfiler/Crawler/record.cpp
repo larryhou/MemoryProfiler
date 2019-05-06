@@ -232,7 +232,10 @@ void RecordCrawler::findFramesWithAlloc(int32_t frameOffset, int32_t frameCount)
                       for (auto i = 0; i < samples.size(); i++)
                       {
                           StackSample &s = samples[i];
-                          alloc += s.gcAllocBytes;
+                          if (s.selfTime == s.totalTime)
+                          {
+                              alloc += s.gcAllocBytes;
+                          }
                       }
                   });
         if (alloc > 0)
