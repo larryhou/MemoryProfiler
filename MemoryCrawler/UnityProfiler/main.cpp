@@ -141,6 +141,40 @@ void processRecord(const char *filepath)
                                    }
                                });
         }
+        else if (strbeg(command, "list"))
+        {
+            readCommandOptions(command, [&](std::vector<const char *> &options)
+                               {
+                                   if (options.size() == 1)
+                                   {
+                                       crawler.list();
+                                   }
+                                   else
+                                   {
+                                       int32_t count = 0;
+                                       int32_t offset = atoi(options[1]);
+                                       int32_t sorting = 0;
+                                       
+                                       if (options.size() >= 3)
+                                       {
+                                           count = atoi(options[2]);
+                                           if (options.size() >= 4)
+                                           {
+                                               auto sign = options[3];
+                                               if (strcmp(sign, "+"))
+                                               {
+                                                   sorting = 1;
+                                               }
+                                               else if( strcmp(sign, "-"))
+                                               {
+                                                   sorting = -1;
+                                               }
+                                           }
+                                       }
+                                       crawler.list(offset, count, sorting);
+                                   }
+                               });
+        }
         else if (strbeg(command, "fps"))
         {
             readCommandOptions(command, [&](std::vector<const char *> &options)

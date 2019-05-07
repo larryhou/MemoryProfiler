@@ -64,6 +64,8 @@ public:
     void inspectFrame(int32_t frameIndex);
     void inspectFrame();
     
+    void list(int32_t frameOffset = -1, int32_t frameCount = 10, int32_t sorting = 0);
+    
     void iterateSamples(std::function<void(int32_t, StackSample &)> callback, bool clearProgress = true);
     void generateStatistics(int32_t rank = 0);
     
