@@ -459,10 +459,12 @@ void processRecord(const char * filepath)
             help("show", "[ADDRESS]*", "查看IL2CPP对象内存排布以及变量值", __indent);
             help("ushow", "[ADDRESS]*", "查看引擎内部的引用关系", __indent);
             help("str", "[ADDRESS]*", "解析地址对应的字符串内容", __indent);
-            help("stat", "[RANK]", "按类型输出IL2CPP对象内存占用前RANK名的简报", __indent);
-            help("ustat", "[RANK]", "按类型输出引擎内存占用前RANK名的简报", __indent);
-            help("bar", "[RANK]", "按类型输出IL2CPP对象内存分布图形简报", __indent);
-            help("ubar", "[RANK]", "按类型输出引擎对象内存分布图形简报", __indent);
+            help("stat", "[RANK]", "按类型输出IL2CPP对象内存占用前RANK名的简报[支持内存追踪过滤]", __indent);
+            help("ustat", "[RANK]", "按类型输出引擎内存占用前RANK名的简报[支持内存追踪过滤]", __indent);
+            help("bar", "[RANK]", "按类型输出IL2CPP对象内存分布图形简报[支持内存追踪过滤]", __indent);
+            help("ubar", "[RANK]", "按类型输出引擎对象内存分布图形简报[支持内存追踪过滤]", __indent);
+            help("list", NULL, "列举IL2CPP类型所有活跃对象内存占用简报[支持内存追踪过滤]", __indent);
+            help("ulist", NULL, "列举引擎类型所有活跃对象内存占用简报[支持内存追踪过滤]", __indent);
             help("replay", "[CMD_FILE_PATH]", "重放操作指令 默认播放当前内存快照的操作指令", __indent);
             help("save", NULL, "把当前内存快照分析结果以sqlite3格式保存到本机", __indent);
             help("uuid", NULL, "查看内存快照UUID", __indent);
