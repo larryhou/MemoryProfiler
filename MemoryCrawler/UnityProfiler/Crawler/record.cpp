@@ -353,11 +353,20 @@ void RecordCrawler::inspectFrame(int32_t frameIndex)
     __cursor = frameIndex;
     
     auto &frame = __frames[__cursor - __lowerFrameIndex];
-    printf("[FRAME] index=%d time=%.3fms fps=%.1f offset=%d\n", frame.index, frame.time, frame.fps, frame.offset);
     
     __fs.seek(frame.offset + 12, seekdir_t::beg);
     readFrameSamples([&](auto &samples, auto &relations)
               {
+                  int32_t alloc = 0;
+                  for (auto i = samples.begin(); i != samples.end(); i++)
+                  {
+                      StackSample &s = *i;
+                      if (s.gcAllocBytes > 0 && s.totalTime == s.selfTime)
+                      {
+                          alloc += s.gcAllocBytes;
+                      }
+                  }
+                  printf("[FRAME] index=%d time=%.3fms fps=%.1f alloc=%d offset=%d\n", frame.index, frame.time, frame.fps, alloc, frame.offset);
                   dumpFrameStacks(-1, samples, relations, frame.time);
               });
 }
