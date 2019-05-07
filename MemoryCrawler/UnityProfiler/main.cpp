@@ -216,18 +216,18 @@ void processRecord(const char *filepath)
         }
         else if (strbeg(command, "help"))
         {
-            const int COMMAND_INDENT = 5;
-            help("alloc", "[FRAME_OFFSET] [FRAME_COUNT]", "搜索申请动态内存的帧", COMMAND_INDENT);
-            help("frame","[FRAME_INDEX]", "查看帧时间消耗详情", COMMAND_INDENT);
-            help("stat", NULL, "按照方法名统计时间消耗", COMMAND_INDENT);
-            help("find", "[FUNCTION_NAME_REF]*", "按照方法名索引查找调用帧", COMMAND_INDENT);
-            help("list", "[FRAME_OFFSET] [±FRAME_COUNT] [+|-]", "列举帧简报 支持排序(+按fps升序 -按fps降序)输出 默认不排序", COMMAND_INDENT);
-            help("next", "[STEP]", "查看后STEP[=1]帧时间消耗详情", COMMAND_INDENT);
-            help("prev", "[STEP]", "查看前STEP[=1]帧时间消耗详情", COMMAND_INDENT);
-            help("info", NULL, "性能摘要", COMMAND_INDENT);
-            help("fps", "[FPS] [>|=|<]", "搜索满足条件(>大于FPS =等于FPS <小于FPS[默认])的帧", COMMAND_INDENT);
-            help("help", NULL, "帮助", COMMAND_INDENT);
-            help("quit", NULL, "退出", COMMAND_INDENT);
+            const int __indent = 5;
+            help("alloc", "[FRAME_OFFSET] [FRAME_COUNT]", "搜索申请动态内存的帧", __indent);
+            help("frame","[FRAME_INDEX]", "查看帧时间消耗详情", __indent);
+            help("stat", NULL, "按照方法名统计时间消耗", __indent);
+            help("find", "[FUNCTION_NAME_REF]*", "按照方法名索引查找调用帧", __indent);
+            help("list", "[FRAME_OFFSET] [±FRAME_COUNT] [+|-]", "列举帧简报 支持排序(+按fps升序 -按fps降序)输出 默认不排序", __indent);
+            help("next", "[STEP]", "查看后STEP[=1]帧时间消耗详情", __indent);
+            help("prev", "[STEP]", "查看前STEP[=1]帧时间消耗详情", __indent);
+            help("info", NULL, "性能摘要", __indent);
+            help("fps", "[FPS] [>|=|<]", "搜索满足条件(>大于FPS =等于FPS <小于FPS[默认])的帧", __indent);
+            help("help", NULL, "帮助", __indent);
+            help("quit", NULL, "退出", __indent);
             cout << std::flush;
         }
     }
