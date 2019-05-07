@@ -216,16 +216,19 @@ void processRecord(const char *filepath)
         }
         else if (strbeg(command, "help"))
         {
-            cout << "\e[36m" << "alloc [FRAME_OFFSET] [FRAME_COUNT]" << "\n    \e[33m搜索执行GC.Alloc方法的帧" << endl;
-            cout << "\e[36m" << "frame [FRAME_INDEX]" << "\n    \e[33m查看帧时间消耗详情" << endl;
-            cout << "\e[36m" << "stat" << "\n    \e[33m按照方法名统计时间消耗" << endl;
-            cout << "\e[36m" << "find FUNCTION_NAME_REF" << "\n    \e[33m按照方法名索引查找调用帧" << endl;
-            cout << "\e[36m" << "list [FRAME_OFFSET] [FRAME_COUNT] [+|-]" << "\n    \e[33m列举帧简报 +: 按照fps升序输出 -: 按照fps降序输出" << endl;
-            cout << "\e[36m" << "next [STEP]" << "\n    \e[33m查看后STEP帧时间消耗详情 默认STEP=1" << endl;
-            cout << "\e[36m" << "prev [STEP]" << "\n    \e[33m查看前STEP帧时间消耗详情 默认STEP=1" << endl;
-            cout << "\e[36m" << "info" << "\n    \e[33m性能摘要" << endl;
-            cout << "\e[36m" << "fps [FPS_THRESHOLD] [>|=|<]" << "\n    \e[33m搜索满足FPS条件的帧 >: 列举大于THRESHOLD的帧 =: 列举等于THRESHOLD的帧 <: 列举小于THRESHOLD的帧" << endl;
-            cout << "\e[36m" << "quit" << "\n    \e[33m退出" << endl;
+            const int COMMAND_INDENT = 5;
+            help("alloc", "[FRAME_OFFSET] [FRAME_COUNT]", "搜索申请动态内存的帧", COMMAND_INDENT);
+            help("frame","[FRAME_INDEX]", "查看帧时间消耗详情", COMMAND_INDENT);
+            help("stat", NULL, "按照方法名统计时间消耗", COMMAND_INDENT);
+            help("find", "[FUNCTION_NAME_REF]*", "按照方法名索引查找调用帧", COMMAND_INDENT);
+            help("list", "[FRAME_OFFSET] [±FRAME_COUNT] [+|-]", "列举帧简报 支持排序(+按fps升序 -按fps降序)输出 默认不排序", COMMAND_INDENT);
+            help("next", "[STEP]", "查看后STEP[=1]帧时间消耗详情", COMMAND_INDENT);
+            help("prev", "[STEP]", "查看前STEP[=1]帧时间消耗详情", COMMAND_INDENT);
+            help("info", NULL, "性能摘要", COMMAND_INDENT);
+            help("fps", "[FPS] [>|=|<]", "搜索满足条件(>大于FPS =等于FPS <小于FPS[默认])的帧", COMMAND_INDENT);
+            help("help", NULL, "帮助", COMMAND_INDENT);
+            help("quit", NULL, "退出", COMMAND_INDENT);
+            cout << std::flush;
         }
     }
 }

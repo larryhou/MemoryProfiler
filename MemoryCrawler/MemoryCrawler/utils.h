@@ -14,5 +14,6 @@
 
 bool strbeg(const char *str, const char *cmp);
 void readCommandOptions(const char *command, std::function<void(std::vector<const char *> &)> callback);
+void help(const char *command, const char *options, const char *description, const int width = 6);
 
 #endif /* utils_h */

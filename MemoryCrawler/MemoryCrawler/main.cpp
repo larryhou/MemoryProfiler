@@ -121,7 +121,7 @@ void processRecord(const char * filepath)
                                    mainCrawler.compare(crawler);
                                });
         }
-        else if (strbeg(command, "info"))
+        else if (strbeg(command, "uuid"))
         {
             printf("%s\n", mainCrawler.snapshot.uuid.c_str());
         }
@@ -438,6 +438,38 @@ void processRecord(const char * filepath)
             printf("\e[0m");
             clog.close();
             return;
+        }
+        else if (strbeg(command, "help"))
+        {
+            recordable = false;
+            const int COMMAND_INDENT = 6;
+            help("read", "[UUID]*", "读取以sqlite3保存的内存快照缓存", COMMAND_INDENT);
+            help("load", "[PMS_FILE_PATH]*", "加载内存快照文件", COMMAND_INDENT);
+            help("track", "[alloc|leak]", "追踪内存增长以及泄露问题", COMMAND_INDENT);
+            help("ref", "[ADDRESS]*", "列举保持IL2CPP对象内存活跃的引用关系", COMMAND_INDENT);
+            help("uref", "[ADDRESS]*", "列举保持引擎内存活跃的引用关系", COMMAND_INDENT);
+            help("REF", "[ADDRESS]*", "列举保持IL2CPP对象内存活跃的全量引用关系", COMMAND_INDENT);
+            help("UREF", "[ADDRESS]*", "列举保持引擎内存活跃的全量引用关系", COMMAND_INDENT);
+            help("kref", "[ADDRESS]*", "列举保持IL2CPP对象内存活跃的引用关系并剔除干扰项", COMMAND_INDENT);
+            help("ukref", "[ADDRESS]*", "列举保持引擎内存活跃的引用关系并剔除干扰项", COMMAND_INDENT);
+            help("KREF", "[ADDRESS]*", "列举保持IL2CPP对象内存活跃的全量引用关系并剔除干扰项", COMMAND_INDENT);
+            help("UKREF", "[ADDRESS]*", "列举保持引擎内存活跃的全量引用关系并剔除干扰项", COMMAND_INDENT);
+            help("link", "[ADDRESS]*", "查看IL2CPP对象链接的引擎", COMMAND_INDENT);
+            help("ulink", "[ADDRESS]*", "查看引擎链接的IL2CPP对象", COMMAND_INDENT);
+            help("show", "[ADDRESS]*", "查看IL2CPP对象内存排布以及变量值", COMMAND_INDENT);
+            help("ushow", "[ADDRESS]*", "查看引擎内部的引用关系", COMMAND_INDENT);
+            help("str", "[ADDRESS]*", "解析地址对应的字符串内容", COMMAND_INDENT);
+            help("stat", "[RANK]", "按类型输出IL2CPP对象内存占用前RANK名的简报", COMMAND_INDENT);
+            help("ustat", "[RANK]", "按类型输出引擎内存占用前RANK名的简报", COMMAND_INDENT);
+            help("bar", "[RANK]", "按类型输出IL2CPP对象内存分布图形简报", COMMAND_INDENT);
+            help("ubar", "[RANK]", "按类型输出引擎对象内存分布图形简报", COMMAND_INDENT);
+            help("replay", "[CMD_FILE_PATH]", "重放操作指令 默认播放当前内存快照的操作指令", COMMAND_INDENT);
+            help("save", NULL, "把当前内存快照分析结果以sqlite3格式保存到本机", COMMAND_INDENT);
+            help("uuid", NULL, "查看内存快照UUID", COMMAND_INDENT);
+            help("heap", NULL, "输出动态内存简报", COMMAND_INDENT);
+            help("help", NULL, "帮助", COMMAND_INDENT);
+            help("quit", NULL, "退出", COMMAND_INDENT);
+            cout << std::flush;
         }
         else if (strbeg(command, "color"))
         {
