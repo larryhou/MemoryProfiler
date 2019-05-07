@@ -230,6 +230,10 @@ void processRecord(const char *filepath)
             help("quit", NULL, "退出", __indent);
             cout << std::flush;
         }
+        else
+        {
+            printf("not supported command [%s]\n", command);
+        }
     }
 }
 
