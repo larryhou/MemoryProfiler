@@ -106,7 +106,7 @@ void RecordCrawler::iterateSamples(std::function<void (int32_t, StackSample &)> 
         __fs.readFloat(); // time
         __fs.readFloat(); // fps
         
-        readSamples([&](auto &samples, auto &relations)
+        readFrameSamples([&](auto &samples, auto &relations)
                     {
                         for (auto i = 0; i < samples.size(); i++)
                         {
@@ -243,7 +243,7 @@ void RecordCrawler::findFramesWithAlloc(int32_t frameOffset, int32_t frameCount)
         auto fps = __fs.readFloat();
         
         auto alloc = 0;
-        readSamples([&](auto &samples, auto &relations)
+        readFrameSamples([&](auto &samples, auto &relations)
                   {
                       for (auto i = 0; i < samples.size(); i++)
                       {
@@ -299,7 +299,7 @@ void RecordCrawler::loadStrings()
     __sampler.end();
 }
 
-void RecordCrawler::readSamples(std::function<void (std::vector<StackSample> &, std::map<int32_t, std::vector<int32_t> > &)> completion)
+void RecordCrawler::readFrameSamples(std::function<void (std::vector<StackSample> &, std::map<int32_t, std::vector<int32_t> > &)> completion)
 {
     auto elementCount = __fs.readUInt32();
     
@@ -356,7 +356,7 @@ void RecordCrawler::inspectFrame(int32_t frameIndex)
     printf("[FRAME] index=%d time=%.3fms fps=%.1f offset=%d\n", frame.index, frame.time, frame.fps, frame.offset);
     
     __fs.seek(frame.offset + 12, seekdir_t::beg);
-    readSamples([&](auto &samples, auto &relations)
+    readFrameSamples([&](auto &samples, auto &relations)
               {
                   dumpFrameStacks(-1, samples, relations, frame.time);
               });
