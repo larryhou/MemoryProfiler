@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEditorInternal;
+#if UNITY_2018_1_OR_NEWER
+using UnityEditorInternal.Profiling;
+#endif
 using UnityEngine;
 using UnityEngine.Profiling;
 
@@ -174,9 +177,10 @@ namespace Moobyte.MemoryProfiler
                 }
                 
                 // encode frame index
+                var frameFPS = float.Parse(root.frameFPS);
                 stream.Write(frameIndex);
-                stream.Write(float.Parse(root.frameTime));
-                stream.Write(float.Parse(root.frameFPS));
+                stream.Write(string.IsNullOrEmpty(root.frameTime) ? (1000f / frameFPS) : float.Parse(root.frameTime));
+                stream.Write(frameFPS);
                 // encode samples
                 stream.Write(samples.Count);
                 foreach (var pair in samples)
