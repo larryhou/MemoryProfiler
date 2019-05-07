@@ -152,7 +152,8 @@ namespace Moobyte.MemoryProfiler
                     {
                         cursor.Pop();
                     }
-                    
+
+                    var drawCalls = root.GetColumnAsSingle(ProfilerColumn.DrawCalls);
                     samples.Add(sequence, new StackSample
                     {
                         id = sequence,
