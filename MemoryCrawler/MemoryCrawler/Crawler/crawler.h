@@ -143,6 +143,12 @@ public:
     void trackMTypeObjects(MemoryState state, int32_t typeIndex);
     void trackNTypeObjects(MemoryState state, int32_t typeIndex);
     
+    void findMObject(address_t address);
+    void findNObject(address_t address);
+    
+    void inspectMType(int32_t typeIndex);
+    void inspectNType(int32_t typeIndex);
+    
     void inspectMObject(address_t address);
     void inspectNObject(address_t address);
     void dumpMObjectHierarchy(address_t address, TypeDescription *type,

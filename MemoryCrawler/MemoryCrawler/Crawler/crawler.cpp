@@ -1352,6 +1352,102 @@ void MemorySnapshotCrawler::inspectNObject(address_t address)
     dumpNObjectHierarchy(&snapshot.nativeObjects->items[index], set<int64_t>(), "");
 }
 
+void MemorySnapshotCrawler::inspectMType(int32_t typeIndex)
+{
+    if (typeIndex < 0 || typeIndex >= snapshot.typeDescriptions->size) {return;}
+    
+    auto &type = snapshot.typeDescriptions->items[typeIndex];
+    printf("0x%08llx name='%s'%d size=%d", type.typeInfoAddress, type.name->c_str(), type.typeIndex, type.size);
+    if (type.baseOrElementTypeIndex >= 0)
+    {
+        auto &baseType = snapshot.typeDescriptions->items[type.baseOrElementTypeIndex];
+        printf(" baseOrElementType='%s'%d", baseType.name->c_str(), baseType.typeIndex);
+    }
+    if (type.isValueType) {printf(" isValueType=%s", type.isValueType ? "true" : "false");}
+    if (type.isArray) {printf(" isArray=%s arrayRank=%d", type.isArray ? "true" : "false", type.arrayRank);}
+    if (type.staticFieldBytes != nullptr) {printf(" staticFieldBytes=%d", type.staticFieldBytes->size);}
+    printf(" assembly='%s' instanceMemory=%d instanceCount=%d", type.assembly->c_str(), type.instanceMemory, type.instanceCount);
+    if (type.nativeTypeArrayIndex >= 0)
+    {
+        auto &nt = snapshot.nativeTypes->items[type.nativeTypeArrayIndex];
+        printf(" NATIVE[instanceMemory=%d instanceCount=%d]", nt.instanceMemory, nt.instanceCount);
+    }
+    printf("\n");
+    
+    for (auto i = 0; i < type.fields->size; i++)
+    {
+        auto &field = type.fields->items[i];
+        printf("    isStatic=%s name='%s' offset=%d typeIndex=%d\n", field.isStatic ? "true" : "false", field.name->c_str(), field.offset, field.typeIndex);
+    }
+}
+
+void MemorySnapshotCrawler::inspectNType(int32_t typeIndex)
+{
+    if (typeIndex < 0 || typeIndex >= snapshot.nativeTypes->size) {return;}
+    
+    auto &type = snapshot.nativeTypes->items[typeIndex];
+    printf("name='%s'%d", type.name->c_str(), type.typeIndex);
+    if (type.nativeBaseTypeArrayIndex >= 0)
+    {
+        auto &baseType = snapshot.nativeTypes->items[type.nativeBaseTypeArrayIndex];
+        printf(" nativeBaseType='%s'%d", baseType.name->c_str(), baseType.typeIndex);
+    }
+    printf(" instanceMemory=%d instanceCount=%d", type.instanceMemory, type.instanceCount);
+    if (type.managedTypeArrayIndex >= 0)
+    {
+        auto &mt = snapshot.typeDescriptions->items[type.managedTypeArrayIndex];
+        printf(" MANAGED[0x%08llx typeIndex=%d instanceMemory=%d instanceCount=%d]", mt.typeInfoAddress, mt.typeIndex, mt.instanceMemory, mt.instanceCount);
+    }
+    printf("\n");
+}
+
+void MemorySnapshotCrawler::findMObject(address_t address)
+{
+    auto index = findMObjectAtAddress(address);
+    if (index >= 0)
+    {
+        auto &mo = managedObjects[index];
+        auto &type = snapshot.typeDescriptions->items[mo.typeIndex];
+        printf("0x%08llx type='%s'%d size=%d assembly='%s'", address, type.name->c_str(), type.typeIndex, mo.size, type.assembly->c_str());
+        if (type.nativeTypeArrayIndex >= 0)
+        {
+            auto __address = findNObjectOfMObject(address);
+            auto __index = findNObjectAtAddress(__address);
+            assert(__index >= 0);
+            
+            auto &no = snapshot.nativeObjects->items[__index];
+            printf(" NATIVE[0x%08llx size=%d]", no.nativeObjectAddress, no.size);
+        }
+        std::cout << std::endl;
+    }
+    else
+    {
+        printf("not found managed object at address[%08lldx]\n", address);
+    }
+}
+
+void MemorySnapshotCrawler::findNObject(address_t address)
+{
+    auto index = findNObjectAtAddress(address);
+    if (index >= 0)
+    {
+        auto &no = snapshot.nativeObjects->items[index];
+        auto &nt = snapshot.nativeTypes->items[no.nativeTypeArrayIndex];
+        printf("%08llx name='%s' type='%s'%d size=%d", no.nativeObjectAddress, no.name->c_str(), nt.name->c_str(), nt.typeIndex, no.size);
+        if (no.managedObjectArrayIndex >= 0)
+        {
+            auto &mo = managedObjects[no.managedObjectArrayIndex];
+            auto &mt = snapshot.typeDescriptions->items[mo.typeIndex];
+            printf(" MANAGED[0x%08llx type='%s'%d size=%d]", mo.address, mt.name->c_str(), mt.typeIndex, mo.size);
+        }
+        printf("\n");
+    }
+    else
+    {
+        printf("not found native object at address[%08lldx]\n", address);
+    }
+}
+
 void MemorySnapshotCrawler::dumpByteArray(const char *data, int32_t size)
 {
     auto iter = data;
