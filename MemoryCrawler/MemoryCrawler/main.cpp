@@ -489,6 +489,7 @@ void processRecord(const char * filepath)
             help("read", "[UUID]*", "读取以sqlite3保存的内存快照缓存", __indent);
             help("load", "[PMS_FILE_PATH]*", "加载内存快照文件", __indent);
             help("track", "[alloc|leak]", "追踪内存增长以及泄露问题", __indent);
+            help("str", "[ADDRESS]*", "解析地址对应的字符串内容", __indent);
             help("ref", "[ADDRESS]*", "列举保持IL2CPP对象内存活跃的引用关系", __indent);
             help("uref", "[ADDRESS]*", "列举保持引擎对象内存活跃的引用关系", __indent);
             help("REF", "[ADDRESS]*", "列举保持IL2CPP对象内存活跃的全量引用关系", __indent);
@@ -503,7 +504,6 @@ void processRecord(const char * filepath)
             help("ushow", "[ADDRESS]*", "查看引擎对象内部的引用关系", __indent);
             help("find", "[ADDRESS]*", "查找IL2CPP对象", __indent);
             help("ufind", "[ADDRESS]*", "查找引擎对象", __indent);
-            help("str", "[ADDRESS]*", "解析地址对应的字符串内容", __indent);
             help("type", "[TYPE_INDEX]*", "查看IL2CPP类型信息", __indent);
             help("utype", "[TYPE_INDEX]*", "查看引擎类型信息", __indent);
             help("stat", "[RANK]", "按类型输出IL2CPP对象内存占用前RANK名的简报[支持内存追踪过滤]", __indent);
