@@ -47,10 +47,10 @@ void processRecord(const char * filepath)
     char cmdpath[128];
     mkdir("__commands", 0777);
     memset(cmdpath, 0, sizeof(cmdpath));
-    sprintf(cmdpath, "__commands/%s.clog", mainCrawler.snapshot.uuid.c_str());
+    sprintf(cmdpath, "__commands/%s.mlog", mainCrawler.snapshot.uuid.c_str());
     
-    ofstream clog;
-    clog.open(cmdpath, ofstream::app);
+    ofstream mlog;
+    mlog.open(cmdpath, ofstream::app);
     
     char uuid[40];
     std::strcpy(uuid, mainCrawler.snapshot.uuid.c_str());
@@ -476,7 +476,7 @@ void processRecord(const char * filepath)
         {
             recordable = false;
             printf("\e[0m");
-            clog.close();
+            mlog.close();
             return;
         }
         else if (strbeg(command, "help"))
@@ -531,8 +531,8 @@ void processRecord(const char * filepath)
         
         if (!replaying && recordable)
         {
-            clog.clear();
-            clog << input.c_str() << endl;
+            mlog.clear();
+            mlog << input.c_str() << endl;
         }
     }
 }

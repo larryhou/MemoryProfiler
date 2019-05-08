@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <iostream>
+#include <fstream>
 
 #include "utils.h"
 #include "Crawler/record.h"
@@ -23,10 +24,36 @@ void processRecord(const char *filepath)
     RecordCrawler crawler;
     crawler.load(filepath);
     
+    auto iter = filepath + strlen(filepath);
+    auto stop = filepath;
+    while (iter != stop)
+    {
+        if (*iter == '/')
+        {
+            ++iter;
+            break;
+        }
+        --iter;
+    }
+    
+    auto ptr = &*iter;
+    char filename[strlen(ptr)];
+    memset(filename, 0, sizeof(filename));
+    memcpy(filename, ptr, sizeof(filename) - 4);
+    
+    char cmdpath[256];
+    mkdir("__commands", 0777);
+    memset(cmdpath, 0, sizeof(cmdpath));
+    sprintf(cmdpath, "__commands/%s.plog", filename);
+    
+    std::ofstream plog;
+    plog.open(cmdpath, std::ofstream::app);
+    
     std::istream *stream = &std::cin;
     while (true)
     {
         auto replaying = typeid(*stream) != typeid(std::cin);
+        auto recordable = true;
         
         std::cout << "\e[93m/> ";
         std::string input;
@@ -40,6 +67,17 @@ void processRecord(const char *filepath)
             }
             stream->clear();
             replaying ? usleep(500000) : usleep(100000);
+        }
+        
+        if (replaying)
+        {
+            auto iter = input.begin();
+            while (iter != input.end())
+            {
+                cout << *iter++ << std::flush;
+                usleep(50000);
+            }
+            cout << endl;
         }
         
         cout << "\e[0m" << "\e[36m";
@@ -209,13 +247,33 @@ void processRecord(const char *filepath)
                                    }
                                });
         }
+        else if (strbeg(command, "replay"))
+        {
+            recordable = false;
+            std::vector<string> commands;
+            readCommandOptions(command, [&](std::vector<const char *> &options)
+                               {
+                                   auto ifs = new ifstream;
+                                   if (options.size() == 1)
+                                   {
+                                       ifs->open(cmdpath);
+                                   }
+                                   else
+                                   {
+                                       ifs->open(options[1]);
+                                   }
+                                   stream = ifs;
+                               });
+        }
         else if (strbeg(command, "quit"))
         {
+            recordable = false;
             cout << "\e[0m";
             exit(0);
         }
         else if (strbeg(command, "help"))
         {
+            recordable = false;
             const int __indent = 5;
             help("alloc", "[FRAME_OFFSET] [FRAME_COUNT]", "搜索申请动态内存的帧", __indent);
             help("frame","[FRAME_INDEX]", "查看帧时间消耗详情", __indent);
@@ -232,7 +290,14 @@ void processRecord(const char *filepath)
         }
         else
         {
+            recordable = false;
             printf("not supported command [%s]\n", command);
+        }
+        
+        if (!replaying && recordable)
+        {
+            plog.clear();
+            plog << input.c_str() << endl;
         }
     }
 }
