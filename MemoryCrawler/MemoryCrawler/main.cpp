@@ -508,10 +508,10 @@ void processRecord(const char * filepath)
             help("utype", "[TYPE_INDEX]*", "查看引擎类型信息", __indent);
             help("stat", "[RANK]", "按类型输出IL2CPP对象内存占用前RANK名的简报[支持内存追踪过滤]", __indent);
             help("ustat", "[RANK]", "按类型输出引擎对象内存占用前RANK名的简报[支持内存追踪过滤]", __indent);
-            help("bar", "[RANK]", "按类型输出IL2CPP对象内存分布图形简报[支持内存追踪过滤]", __indent);
-            help("ubar", "[RANK]", "按类型输出引擎对象内存分布图形简报[支持内存追踪过滤]", __indent);
+            help("bar", "[RANK]", "输出IL2CPP类型内存占用前RANK名图形简报[支持内存追踪过滤]", __indent);
+            help("ubar", "[RANK]", "输出引擎类型内存占用前RANK名图形简报[支持内存追踪过滤]", __indent);
             help("list", NULL, "列举IL2CPP类型所有活跃对象内存占用简报[支持内存追踪过滤]", __indent);
-            help("ulist", NULL, "列举引擎对象类型所有活跃对象内存占用简报[支持内存追踪过滤]", __indent);
+            help("ulist", NULL, "列举引擎类型所有活跃对象内存占用简报[支持内存追踪过滤]", __indent);
             help("save", NULL, "把当前内存快照分析结果以sqlite3格式保存到本机", __indent);
             help("uuid", NULL, "查看内存快照UUID", __indent);
             help("heap", NULL, "输出动态内存简报", __indent);
