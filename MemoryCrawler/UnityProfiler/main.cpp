@@ -24,27 +24,13 @@ void processRecord(const char *filepath)
     RecordCrawler crawler;
     crawler.load(filepath);
     
-    auto iter = filepath + strlen(filepath);
-    auto stop = filepath;
-    while (iter != stop)
-    {
-        if (*iter == '/')
-        {
-            ++iter;
-            break;
-        }
-        --iter;
-    }
-    
-    auto ptr = &*iter;
-    char filename[strlen(ptr)];
-    memset(filename, 0, sizeof(filename));
-    memcpy(filename, ptr, sizeof(filename) - 4);
+    auto filename = basename(filepath);
     
     char cmdpath[256];
     mkdir("__commands", 0777);
     memset(cmdpath, 0, sizeof(cmdpath));
     sprintf(cmdpath, "__commands/%s.plog", filename);
+    delete [] filename;
     
     std::ofstream plog;
     plog.open(cmdpath, std::ofstream::app);

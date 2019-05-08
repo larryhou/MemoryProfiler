@@ -44,10 +44,13 @@ void processRecord(const char * filepath)
     MemorySnapshotCrawler mainCrawler(filepath);
     mainCrawler.crawl();
     
+    auto filename = basename(filepath);
+    
     char cmdpath[128];
     mkdir("__commands", 0777);
     memset(cmdpath, 0, sizeof(cmdpath));
-    sprintf(cmdpath, "__commands/%s.mlog", mainCrawler.snapshot.uuid.c_str());
+    sprintf(cmdpath, "__commands/%s.mlog", filename);
+    delete [] filename;
     
     ofstream mlog;
     mlog.open(cmdpath, ofstream::app);

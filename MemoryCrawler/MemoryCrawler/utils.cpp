@@ -11,6 +11,32 @@
 
 char __help_padding[64];
 
+const char *basename(const char *filepath)
+{
+    auto offset = filepath + strlen(filepath);
+    const char *upper = nullptr;
+    
+    while (offset != filepath)
+    {
+        if (upper == nullptr && *offset == '.') {upper = offset;}
+        if (*offset == '/')
+        {
+            ++offset;
+            break;
+        }
+        --offset;
+    }
+    
+    auto name = &*offset;
+    auto size = upper - offset;
+    
+    char *filename = new char[size + 1];
+    memset(filename, 0, size + 1);
+    memcpy(filename, name, size);
+    return filename;
+}
+
+
 void help(const char *command, const char *options, const char *description, const int width)
 {
     auto indent = std::max(0, width - (int)strlen(command));
