@@ -53,7 +53,7 @@ void RecordCrawler::crawl()
             auto size = iter->second.size();
             assert(iter->first == __fs.readUInt8());
             AreaStatistics statistics;
-            statistics.index = iter->first;
+            statistics.type = (ProfilerArea)iter->first;
             
             for (auto i = 0; i < size; i++)
             {
@@ -330,8 +330,10 @@ void RecordCrawler::readMetadatas()
     auto count = __fs.readUInt8();
     for (auto i = 0; i < count; i++)
     {
-        auto area = __fs.readUInt8();
-        auto iter = __metadatas.insert(std::pair<int32_t, std::vector<string>>(area, std::vector<string>())).first;
+        auto area = (ProfilerArea)__fs.readUInt8();
+        auto name = __fs.readString();
+        __names.insert(std::pair<ProfilerArea, string>(area, name));
+        auto iter = __metadatas.insert(std::pair<ProfilerArea, std::vector<string>>(area, std::vector<string>())).first;
         auto itemCount = __fs.readUInt8();
         
         __statsize += 1 + itemCount * 4;
@@ -400,7 +402,7 @@ void RecordCrawler::inspectFrame(int32_t frameIndex)
     
     auto &frame = __frames[__cursor - __lowerFrameIndex];
     
-    __fs.seek(frame.offset + 12, seekdir_t::beg);
+    __fs.seek(frame.offset + 12 + __statsize, seekdir_t::beg);
     readFrameSamples([&](auto &samples, auto &relations)
               {
                   int32_t alloc = 0;
@@ -415,6 +417,21 @@ void RecordCrawler::inspectFrame(int32_t frameIndex)
                   printf("[FRAME] index=%d time=%.3fms fps=%.1f alloc=%d offset=%d\n", frame.index, frame.time, frame.fps, alloc, frame.offset);
                   dumpFrameStacks(-1, samples, relations, frame.time);
               });
+    auto &statistics = frame.statistics.graphs;
+    for (auto i = 0; i < statistics.size(); i++)
+    {
+        auto area = (ProfilerArea)i;
+        auto &item = statistics[i];
+        auto &propeties = __metadatas.at(area);
+        std::cout << (i % 2 == 0 ? "\e[32m" : "\e[33m");
+        printf("[%18s]", __names.at(area).c_str());
+        for (auto n = 0; n < item.properties.size(); n++)
+        {
+            auto &p = item.properties[n];
+            printf(" '%s'=%.0f", propeties[n].c_str(), p);
+        }
+        printf("\n");
+    }
 }
 
 void RecordCrawler::dumpFrameStacks(int32_t entity, std::vector<StackSample> &samples, std::map<int32_t, std::vector<int32_t> > &relations, const float depthTime, const char *indent)
@@ -462,6 +479,21 @@ void RecordCrawler::dumpFrameStacks(int32_t entity, std::vector<StackSample> &sa
                 memset(iter + 5, 0, 1);
                 dumpFrameStacks(*i, samples, relations, s.totalTime, __nest_indent);
             }
+        }
+    }
+}
+
+void RecordCrawler::dumpMetadatas()
+{
+    for (auto iter = __metadatas.begin(); iter != __metadatas.end(); iter++)
+    {
+        auto &name = __names[iter->first];
+        auto &children = iter->second;
+        printf("[%02d]'%s'\n", iter->first, name.c_str());
+        
+        for (auto i = 0; i < children.size(); i++)
+        {
+            printf("    [%d]'%s'\n", i, children[i].c_str());
         }
     }
 }

@@ -72,6 +72,7 @@ namespace Moobyte.MemoryProfiler
             for (var area = ProfilerArea.CPU; area  < ProfilerArea.AreaCount; area++)
             {
                 stream.Write((byte)area);
+                stream.Write(area.ToString());
                 List<int> children;
                 metadatas.Add((int)area, children = new List<int>());
                 var properties = ProfilerDriver.GetGraphStatisticsPropertiesForArea(area);

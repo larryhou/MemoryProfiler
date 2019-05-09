@@ -251,6 +251,14 @@ void processRecord(const char *filepath)
                                    stream = ifs;
                                });
         }
+        else if (strbeg(command, "meta"))
+        {
+            crawler.dumpMetadatas();
+        }
+        else if (strbeg(command, "perf"))
+        {
+            
+        }
         else if (strbeg(command, "quit"))
         {
             recordable = false;

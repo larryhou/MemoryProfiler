@@ -39,7 +39,7 @@ enum ProfilerArea:int32_t {
 
 struct AreaStatistics
 {
-    int32_t index;
+    ProfilerArea type;
     std::vector<float> properties;
 };
 
@@ -81,7 +81,8 @@ private:
     std::vector<std::string> __strings;
     size_t __strOffset;
     
-    std::map<int32_t, std::vector<string>> __metadatas;
+    std::map<ProfilerArea, string> __names;
+    std::map<ProfilerArea, std::vector<string>> __metadatas;
     size_t __dataOffset;
     int32_t __statsize;
     
@@ -109,6 +110,8 @@ public:
     void findFramesWithFPS(float fps, std::function<bool(float a, float b)> predicate);
     void findFramesWithAlloc(int32_t frameOffset = -1, int32_t frameCount = -1);
     void findFramesContains(int32_t functionNameRef);
+    
+    void dumpMetadatas();
     
     void summary();
     
