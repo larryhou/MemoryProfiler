@@ -116,7 +116,7 @@ void processRecord(const char *filepath)
         }
         else if (strbeg(command, "info"))
         {
-            crawler.summary();
+            crawler.summarize();
         }
         else if (strbeg(command, "alloc"))
         {
@@ -141,17 +141,17 @@ void processRecord(const char *filepath)
                                    }
                                });
         }
-        else if (strbeg(command, "stat"))
+        else if (strbeg(command, "func"))
         {
             readCommandOptions(command, [&](std::vector<const char *> &options)
                                {
                                    if (options.size() == 1)
                                    {
-                                       crawler.generateStatistics();
+                                       crawler.statByFunction();
                                    }
                                    else
                                    {
-                                       crawler.generateStatistics(atoi(options[1]));
+                                       crawler.statByFunction(atoi(options[1]));
                                    }
                                });
         }
@@ -161,7 +161,7 @@ void processRecord(const char *filepath)
                                {
                                    if (options.size() > 1)
                                    {
-                                       crawler.findFramesContains(atoi(options[1]));
+                                       crawler.findFramesWithFunction(atoi(options[1]));
                                    }
                                });
         }
@@ -205,7 +205,7 @@ void processRecord(const char *filepath)
                                {
                                    if (options.size() == 1)
                                    {
-                                       crawler.summary();
+                                       crawler.summarize();
                                    }
                                    else
                                    {
@@ -255,9 +255,80 @@ void processRecord(const char *filepath)
         {
             crawler.dumpMetadatas();
         }
-        else if (strbeg(command, "perf"))
+        else if (strbeg(command, "stat"))
         {
+            readCommandOptions(command, [&](std::vector<const char *> &options)
+                               {
+                                   if (options.size() >= 2)
+                                   {
+                                       int32_t property = 0;
+                                       int32_t area = atoi(options[1]);
+                                       if (options.size() >= 3)
+                                       {
+                                           property = atoi(options[2]);
+                                       }
+                                       crawler.statValues((ProfilerArea)area, property);
+                                   }
+                               });
             
+        }
+        else if (strbeg(command, "seek"))
+        {
+            readCommandOptions(command, [&](std::vector<const char *> &options)
+                               {
+                                   if (options.size() >= 4)
+                                   {
+                                       int32_t property = 0;
+                                       int32_t area = atoi(options[1]);
+                                       property = atoi(options[2]);
+                                       float threshold = atof(options[3]);
+                                       if (options.size() >= 5)
+                                       {
+                                           auto sign = options[4];
+                                           if (strbeg(sign, ">"))
+                                           {
+                                               crawler.findFramesMatchValue((ProfilerArea)area, property, threshold, [](float a, float b) {return a > b;});
+                                           }
+                                           else if (strbeg(sign, "<"))
+                                           {
+                                               crawler.findFramesMatchValue((ProfilerArea)area, property, threshold, [](float a, float b) {return a < b;});
+                                           }
+                                           else
+                                           {
+                                               crawler.findFramesMatchValue((ProfilerArea)area, property, threshold, [](float a, float b) {return a == b;});
+                                           }
+                                       }
+                                       else
+                                       {
+                                           crawler.findFramesMatchValue((ProfilerArea)area, property, threshold, [](float a, float b) {return a > b;});
+                                       }
+                                   }
+                                   else
+                                   {
+                                       printf("seek [PROFILER_AREA] [PROPERTY] [VALUE]\n");
+                                   }
+                                   
+                               });
+        }
+        else if (strbeg(command, "lock"))
+        {
+            readCommandOptions(command, [&](std::vector<const char *> &options)
+                               {
+                                   if (options.size() == 1)
+                                   {
+                                       crawler.lock();
+                                   }
+                                   else
+                                   {
+                                       int32_t frameCount = -1;
+                                       int32_t frameIndex = atoi(options[1]);
+                                       if (options.size() >= 3)
+                                       {
+                                           frameCount = atoi(options[2]);
+                                       }
+                                       crawler.lock(frameIndex, frameCount);
+                                   }
+                               });
         }
         else if (strbeg(command, "quit"))
         {
@@ -271,11 +342,15 @@ void processRecord(const char *filepath)
             const int __indent = 5;
             help("alloc", "[FRAME_OFFSET] [FRAME_COUNT]", "搜索申请动态内存的帧", __indent);
             help("frame","[FRAME_INDEX]", "查看帧时间消耗详情", __indent);
-            help("stat", NULL, "按照方法名统计时间消耗", __indent);
+            help("func", NULL, "按照方法名统计时间消耗", __indent);
             help("find", "[FUNCTION_NAME_REF]*", "按照方法名索引查找调用帧", __indent);
             help("list", "[FRAME_OFFSET] [±FRAME_COUNT] [+|-]", "列举帧简报 支持排序(+按fps升序 -按fps降序)输出 默认不排序", __indent);
             help("next", "[STEP]", "查看后STEP[=1]帧时间消耗详情", __indent);
             help("prev", "[STEP]", "查看前STEP[=1]帧时间消耗详情", __indent);
+            help("meta", NULL, "查看性能指标参数", __indent);
+            help("lock", "[FRAME_INDEX] [FRAME_COUNT]", "锁定帧范围", __indent);
+            help("stat", "[PROFILER_AREA] [PROPERTY]", "统计性能指标", __indent);
+            help("seek", "[PROFILER_AREA] [PROPERTY] [VALUE] [>|=|<]", "搜索性能指标满足条件(>大于VALUE[默认] =等于VALUE <小于VALUE)的帧", __indent);
             help("info", NULL, "性能摘要", __indent);
             help("fps", "[FPS] [>|=|<]", "搜索满足条件(>大于FPS =等于FPS <小于FPS[默认])的帧", __indent);
             help("help", NULL, "帮助", __indent);

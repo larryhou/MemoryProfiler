@@ -34,7 +34,7 @@ void RecordCrawler::load(const char *filepath)
     crawl();
     
     __sampler.end();
-    __sampler.summary();
+    __sampler.summarize();
 }
 
 void RecordCrawler::crawl()
@@ -74,12 +74,41 @@ void RecordCrawler::crawl()
     
     __lowerFrameIndex = __frames[0].index;
     __upperFrameIndex = __lowerFrameIndex + __frames.size();
+    __range = std::make_tuple(__lowerFrameIndex, __upperFrameIndex);
     __cursor = __lowerFrameIndex;
     
     __sampler.end();
 }
 
-void RecordCrawler::summary()
+void RecordCrawler::lock(int32_t frameIndex, int32_t frameCount)
+{
+    auto lower = std::get<0>(__range);
+    auto upper = std::get<1>(__range);
+    if (frameIndex >= lower && frameIndex < upper)
+    {
+        frameCount = frameCount > 0 ? std::min(upper - frameIndex, frameCount) : (upper - frameIndex);
+    }
+    else
+    {
+        frameCount = upper - lower;
+        frameIndex = lower;
+    }
+    
+    if (frameCount == 0)
+    {
+        __lowerFrameIndex = lower;
+        __upperFrameIndex = upper;
+    }
+    else
+    {
+        __lowerFrameIndex = frameIndex;
+        __upperFrameIndex = frameIndex + frameCount;
+    }
+    
+    printf("frames=[%d, %d)\n", __lowerFrameIndex, __upperFrameIndex);
+}
+
+void RecordCrawler::summarize()
 {
     Statistics<float> fps;
     for (auto i = 0; i < __frames.size(); i++)
@@ -92,14 +121,17 @@ void RecordCrawler::summary()
     
     auto f = (double)__startTime * 1E-6;
     auto t = (double)__stopTime * 1E-6;
-    printf("frames=[%d, %d)=%d elapse=(%.3f, %.3f)=%.3fs fps=%.1f±%.3f=[%.1f, %.1f]\n", __lowerFrameIndex, __upperFrameIndex, __upperFrameIndex - __lowerFrameIndex, f, t, t - f, fps.mean, fps.sd, fps.min, fps.max);
+    auto lower = std::get<0>(__range);
+    auto upper = std::get<1>(__range);
+    printf("frames=[%d, %d)=%d elapse=(%.3f, %.3f)=%.3fs fps=%.1f±%.3f=[%.1f, %.1f]\n", lower, upper, upper - lower, f, t, t - f, fps.mean, fps.sd, fps.min, fps.max);
 }
 
 void RecordCrawler::findFramesWithFPS(float fps, std::function<bool (float, float)> predicate)
 {
-    for (auto i = 0; i < __frames.size(); i++)
+    auto baseIndex = std::get<0>(__range);
+    for (auto i = __lowerFrameIndex; i < __upperFrameIndex; i++)
     {
-        auto &frame = __frames[i];
+        auto &frame = __frames[i - baseIndex];
         if (predicate(frame.fps, fps))
         {
             printf("[FRAME] index=%d time=%.3fms fps=%.1f offset=%d\n", frame.index, frame.time, frame.fps, frame.offset);
@@ -109,7 +141,9 @@ void RecordCrawler::findFramesWithFPS(float fps, std::function<bool (float, floa
 
 void RecordCrawler::iterateSamples(std::function<void (int32_t, StackSample &)> callback, bool clearProgress)
 {
-    __fs.seek(__frames[0].offset, seekdir_t::beg);
+    auto &frame = __frames[__lowerFrameIndex - std::get<0>(__range)];
+    
+    __fs.seek(frame.offset, seekdir_t::beg);
     auto frameCount = __upperFrameIndex - __lowerFrameIndex;
     
     int32_t iterCount = 0;
@@ -148,7 +182,7 @@ void RecordCrawler::iterateSamples(std::function<void (int32_t, StackSample &)> 
     std::cout << (clearProgress ? '\r' : '\n');
 }
 
-void RecordCrawler::generateStatistics(int32_t rank)
+void RecordCrawler::statByFunction(int32_t rank)
 {
     std::map<int32_t, int32_t> callsStat;
     std::map<int32_t, float> timeStat;
@@ -214,7 +248,7 @@ void RecordCrawler::generateStatistics(int32_t rank)
     }
 }
 
-void RecordCrawler::findFramesContains(int32_t functionNameRef)
+void RecordCrawler::findFramesWithFunction(int32_t functionNameRef)
 {
     std::vector<int32_t> results;
     iterateSamples([&](int32_t index, StackSample &sample)
@@ -224,25 +258,72 @@ void RecordCrawler::findFramesContains(int32_t functionNameRef)
                            results.push_back(index);
                        }
                    }, false);
+    auto baseIndex = std::get<0>(__range);
     for (auto i = results.begin(); i != results.end(); i++)
     {
-        auto &frame = __frames[*i - __lowerFrameIndex];
+        auto &frame = __frames[*i - baseIndex];
         printf("[FRAME] index=%d time=%.3fms fps=%.1f offset=%d\n", frame.index, frame.time, frame.fps, frame.offset);
     }
 }
 
-void RecordCrawler::findFramesWithAlloc(int32_t frameOffset, int32_t frameCount)
+void RecordCrawler::findFramesMatchValue(ProfilerArea area, int32_t property, float value, std::function<bool (float, float)> predicate)
 {
-    if (frameOffset >= __lowerFrameIndex && frameOffset < __upperFrameIndex)
+    auto &check = __frames[0].statistics.graphs;
+    if (check.size() <= (int32_t)area) {return;}
+    if (check[0].properties.size() <= property) {return;}
+    
+    auto baseIndex = std::get<0>(__range);
+    
+    std::vector<int32_t> results;
+    for (auto i = __lowerFrameIndex; i < __upperFrameIndex; i++)
     {
-        __fs.seek(__frames[frameOffset - __lowerFrameIndex].offset, seekdir_t::beg);
-        frameCount = frameCount > 0 ? std::min(__upperFrameIndex - frameOffset, frameCount) : (__upperFrameIndex - frameOffset);
+        auto index = i - baseIndex;
+        auto &frame = __frames[index];
+        auto flag = predicate(frame.statistics.graphs[area].properties[property], value);
+        if (flag) {results.push_back(i);}
+    }
+    for (auto i = results.begin(); i != results.end(); i++)
+    {
+        auto &frame = __frames[*i - baseIndex];
+        printf("[FRAME] index=%d time=%.3fms fps=%.1f offset=%d\n", frame.index, frame.time, frame.fps, frame.offset);
+    }
+}
+
+void RecordCrawler::statValues(ProfilerArea area, int32_t property)
+{
+    auto &check = __frames[0].statistics.graphs;
+    if (check.size() <= (int32_t)area) {return;}
+    if (check[0].properties.size() <= property) {return;}
+    
+    auto baseIndex = std::get<0>(__range);
+    
+    Statistics<float> stats;
+    for (auto i = __lowerFrameIndex; i < __upperFrameIndex; i++)
+    {
+        auto index = i - baseIndex;
+        auto &frame = __frames[index];
+        stats.collect(frame.statistics.graphs[area].properties[property]);
+    }
+    
+    stats.summarize();
+    
+    printf("[%s][%s]", __names[area].c_str(), __metadatas.at(area)[property].c_str());
+    printf(" mean=%.3f±%.3f min=%.0f max=%.0f\n", stats.mean, stats.sd, stats.min, stats.max);
+}
+
+void RecordCrawler::findFramesWithAlloc(int32_t frameIndex, int32_t frameCount)
+{
+    auto baseIndex = std::get<0>(__range);
+    if (frameIndex >= __lowerFrameIndex && frameIndex < __upperFrameIndex)
+    {
+        __fs.seek(__frames[frameIndex - baseIndex].offset, seekdir_t::beg);
+        frameCount = frameCount > 0 ? std::min(__upperFrameIndex - frameIndex, frameCount) : (__upperFrameIndex - frameIndex);
     }
     else
     {
-        __fs.seek(__frames[0].offset, seekdir_t::beg);
+        __fs.seek(__frames[__lowerFrameIndex - baseIndex].offset, seekdir_t::beg);
         frameCount = __upperFrameIndex - __lowerFrameIndex;
-        frameOffset = __lowerFrameIndex;
+        frameIndex = __lowerFrameIndex;
     }
     if (frameCount == 0) {return;}
     
@@ -396,11 +477,11 @@ void RecordCrawler::readFrameSamples(std::function<void (std::vector<StackSample
 
 void RecordCrawler::inspectFrame(int32_t frameIndex)
 {
-    if (frameIndex <  __lowerFrameIndex) {return;}
-    if (frameIndex >= __upperFrameIndex) {return;}
+    if (frameIndex <  std::get<0>(__range)) {return;}
+    if (frameIndex >= std::get<1>(__range)) {return;}
     __cursor = frameIndex;
     
-    auto &frame = __frames[__cursor - __lowerFrameIndex];
+    auto &frame = __frames[__cursor - std::get<0>(__range)];
     
     __fs.seek(frame.offset + 12 + __statsize, seekdir_t::beg);
     readFrameSamples([&](auto &samples, auto &relations)
@@ -518,32 +599,34 @@ void RecordCrawler::prev(int32_t step)
     inspectFrame(__cursor - step);
 }
 
-void RecordCrawler::list(int32_t frameOffset, int32_t frameCount, int32_t sorting)
+void RecordCrawler::list(int32_t frameIndex, int32_t frameCount, int32_t sorting)
 {
     if (frameCount < 0)
     {
-        frameOffset += frameCount + 1;
+        frameIndex += frameCount + 1;
         frameCount = -frameCount;
     }
     
-    if (frameOffset >= __lowerFrameIndex && frameOffset < __upperFrameIndex)
+    if (frameIndex >= __lowerFrameIndex && frameIndex < __upperFrameIndex)
     {
-        frameCount = frameCount > 0 ? std::min(__upperFrameIndex - frameOffset, frameCount) : (__upperFrameIndex - frameOffset);
+        frameCount = frameCount > 0 ? std::min(__upperFrameIndex - frameIndex, frameCount) : (__upperFrameIndex - frameIndex);
     }
     else
     {
         frameCount = __upperFrameIndex - __lowerFrameIndex;
-        frameOffset = __lowerFrameIndex;
+        frameIndex = __lowerFrameIndex;
     }
     
     if (frameCount == 0) {return;}
     
     std::vector<int32_t> slice;
     
+    auto baseIndex = std::get<0>(__range);
+    
     Statistics<float> stats;
     for (auto i = 0; i < frameCount; i++)
     {
-        auto index = (frameOffset + i) - __lowerFrameIndex;
+        auto index = (frameIndex + i) - baseIndex;
         auto &frame = __frames[index];
         stats.collect(frame.fps);
         slice.push_back(index);
@@ -576,7 +659,7 @@ void RecordCrawler::list(int32_t frameOffset, int32_t frameCount, int32_t sortin
     std::vector<RenderFrame *> excepts;
     for (auto i = 0; i < frameCount; i++)
     {
-        auto index = (frameOffset + i) - __lowerFrameIndex;
+        auto index = (frameIndex + i) - baseIndex;
         auto &frame = __frames[index];
         if (frame.fps < stats.min) { excepts.push_back(&frame); }
     }
