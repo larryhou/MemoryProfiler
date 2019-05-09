@@ -34,6 +34,8 @@ namespace Moobyte.MemoryProfiler
         {
             StartRecording(false);
         }
+
+        private static Dictionary<int, List<int>> entities;
         
         public static void StartRecording(bool includeUnityFormat = false)
         {
@@ -61,6 +63,36 @@ namespace Moobyte.MemoryProfiler
             stream.Write('C'); // + 1
             stream.Write(DateTime.Now); // + 8
             stream.Write((uint)0); // + 4
+            
+            stream.Write((uint)0); // meta data size
+            
+            var offset = stream.Position;
+            entities = new Dictionary<int, List<int>>();
+            stream.Write((byte)ProfilerArea.AreaCount); // area count
+            for (var area = ProfilerArea.CPU; area  < ProfilerArea.AreaCount; area++)
+            {
+                stream.Write((byte)area);
+                List<int> children;
+                entities.Add((int)area, children = new List<int>());
+                var properties = ProfilerDriver.GetGraphStatisticsPropertiesForArea(area);
+                stream.Write((byte)properties.Length);
+                for (var i = 0; i < properties.Length; i++)
+                {
+                    var name = properties[i];
+                    var identifier = ProfilerDriver.GetStatisticsIdentifier(name);
+                    stream.Write(name);
+                    
+                    children.Add(identifier);
+                }
+            }
+
+            var position = stream.Position;
+            var size = stream.Position - offset;
+            stream.Seek(offset - 4, SeekOrigin.Begin);
+            stream.Write((uint)size);
+            stream.Seek(position, SeekOrigin.Begin);
+            
+            provider = new float[ProfilerDriver.maxHistoryLength];
             
             Profiler.enabled = true;
             if (includeUnityFormat)
@@ -128,10 +160,12 @@ namespace Moobyte.MemoryProfiler
         
         private static Dictionary<string, int> strmap;
         private static int strseq;
-        
+
+        private static float[] provider;
         static void Update()
         {
             var stopFrameIndex = ProfilerDriver.lastFrameIndex;
+            
             
             var frameIndex = Math.Max(frameCursor + 1, ProfilerDriver.firstFrameIndex);
             while (frameIndex <= stopFrameIndex)
@@ -182,6 +216,21 @@ namespace Moobyte.MemoryProfiler
                 stream.Write(frameIndex);
                 stream.Write(string.IsNullOrEmpty(root.frameTime) ? (1000f / frameFPS) : float.Parse(root.frameTime));
                 stream.Write(frameFPS);
+                
+                //encode statistics
+                for (ProfilerArea area = 0; area < ProfilerArea.AreaCount; area++)
+                {
+                    var statistics = entities[(int)area];
+                    stream.Write((byte)area);
+                    for (var i = 0; i < statistics.Count; i++)
+                    {
+                        var maxValue = 0.0f;
+                        var identifier = statistics[i];
+                        ProfilerDriver.GetStatisticsValues(identifier, frameIndex, 1.0f, provider, out maxValue);
+                        stream.Write(provider[0]);
+                    }
+                }
+                
                 // encode samples
                 stream.Write(samples.Count);
                 foreach (var pair in samples)
