@@ -57,7 +57,7 @@ public:
     int begin(const char *event);
     int64_t end();
     
-    void summary();
+    void summarize();
     
 private:
     clocktime_t clock()
@@ -119,7 +119,7 @@ int64_t TimeSampler<T>::end()
 }
 
 template <class T>
-void TimeSampler<T>::summary()
+void TimeSampler<T>::summarize()
 {
     assert(__records.size() == __timestamps.size());
     if (__records.size() == 0) {return;}

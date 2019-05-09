@@ -519,7 +519,7 @@ MemorySnapshotCrawler *SnapshotCrawlerCache::read(const char *uuid)
     __sampler.end(); // ::read
     
     __sampler.end();
-    __sampler.summary();
+    __sampler.summarize();
     return crawler;
 }
 
@@ -649,7 +649,7 @@ void SnapshotCrawlerCache::save(MemorySnapshotCrawler &crawler)
     __sampler.end();
     
     __sampler.end();
-    __sampler.summary();
+    __sampler.summarize();
 }
 
 SnapshotCrawlerCache::~SnapshotCrawlerCache()

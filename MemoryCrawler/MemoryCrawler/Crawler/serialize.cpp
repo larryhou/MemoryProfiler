@@ -54,7 +54,7 @@ PackedMemorySnapshot &MemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
         __fs->ignore(8);
     }
     __sampler.end();
-    __sampler.summary();
+    __sampler.summarize();
     return snapshot;
 }
 
