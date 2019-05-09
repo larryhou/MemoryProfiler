@@ -35,7 +35,7 @@ namespace Moobyte.MemoryProfiler
             StartRecording(false);
         }
 
-        private static Dictionary<int, List<int>> entities;
+        private static Dictionary<int, List<int>> metadatas;
         
         public static void StartRecording(bool includeUnityFormat = false)
         {
@@ -67,13 +67,13 @@ namespace Moobyte.MemoryProfiler
             stream.Write((uint)0); // meta data size
             
             var offset = stream.Position;
-            entities = new Dictionary<int, List<int>>();
+            metadatas = new Dictionary<int, List<int>>();
             stream.Write((byte)ProfilerArea.AreaCount); // area count
             for (var area = ProfilerArea.CPU; area  < ProfilerArea.AreaCount; area++)
             {
                 stream.Write((byte)area);
                 List<int> children;
-                entities.Add((int)area, children = new List<int>());
+                metadatas.Add((int)area, children = new List<int>());
                 var properties = ProfilerDriver.GetGraphStatisticsPropertiesForArea(area);
                 stream.Write((byte)properties.Length);
                 for (var i = 0; i < properties.Length; i++)
@@ -220,7 +220,7 @@ namespace Moobyte.MemoryProfiler
                 //encode statistics
                 for (ProfilerArea area = 0; area < ProfilerArea.AreaCount; area++)
                 {
-                    var statistics = entities[(int)area];
+                    var statistics = metadatas[(int)area];
                     stream.Write((byte)area);
                     for (var i = 0; i < statistics.Count; i++)
                     {
