@@ -20,6 +20,34 @@
 #include "perf.h"
 #include "stat.h"
 
+enum ProfilerArea:int32_t {
+    PA_CPU = 0,
+    PA_GPU,
+    PA_Rendering,
+    PA_Memory,
+    PA_Audio,
+    PA_Video,
+    PA_Physics,
+    PA_Physics2D,
+    PA_NetworkMessages,
+    PA_NetworkOperations,
+    PA_UI,
+    PA_UIDetails,
+    PA_GlobalIllumination,
+    PA_AreaCount
+};
+
+struct AreaStatistics
+{
+    int32_t index;
+    std::vector<float> properties;
+};
+
+struct FrameStatistics
+{
+    std::vector<AreaStatistics> graphs;
+};
+
 struct StackSample
 {
     int32_t id;
@@ -36,6 +64,8 @@ struct RenderFrame
     float time;
     float fps;
     
+    FrameStatistics statistics;
+    
     int32_t offset;
 };
 
@@ -49,7 +79,11 @@ private:
     TimeSampler<std::nano> __sampler;
     
     std::vector<std::string> __strings;
-    int64_t __strOffset;
+    size_t __strOffset;
+    
+    std::map<int32_t, std::vector<string>> __metadatas;
+    size_t __dataOffset;
+    int32_t __statsize;
     
     int32_t __cursor;
     InstanceManager<RenderFrame> __frames;
@@ -81,7 +115,8 @@ public:
     ~RecordCrawler();
     
 private:
-    void loadStrings();
+    void readStrings();
+    void readMetadatas();
     void crawl();
     void readFrameSamples(std::function<void(std::vector<StackSample> &, std::map<int32_t, std::vector<int32_t>> &)> completion);
     void dumpFrameStacks(int32_t entity, std::vector<StackSample> &samples, std::map<int32_t, std::vector<int32_t>> &relations, const float depthTime, const char *indent = "");

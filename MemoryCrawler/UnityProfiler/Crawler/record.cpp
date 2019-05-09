@@ -24,11 +24,13 @@ void RecordCrawler::load(const char *filepath)
     __startTime = __fs.readUInt64();
     __strOffset = __fs.readUInt32();
     
-    auto offset = __fs.tell();
+    readMetadatas();
+    __dataOffset = __fs.tell();
     
-    loadStrings();
+    readStrings();
     
-    __fs.seek(offset, seekdir_t::beg);
+    __fs.seek(__dataOffset, seekdir_t::beg);
+    
     crawl();
     
     __sampler.end();
@@ -45,6 +47,21 @@ void RecordCrawler::crawl()
         frame.index = __fs.readUInt32();
         frame.time = __fs.readFloat();
         frame.fps = __fs.readFloat();
+        
+        for (auto iter = __metadatas.begin(); iter != __metadatas.end(); iter++)
+        {
+            auto size = iter->second.size();
+            assert(iter->first == __fs.readUInt8());
+            AreaStatistics statistics;
+            statistics.index = iter->first;
+            
+            for (auto i = 0; i < size; i++)
+            {
+                statistics.properties.push_back(__fs.readFloat());
+            }
+            
+            frame.statistics.graphs.emplace_back(statistics);
+        }
         
         auto sampleCount = __fs.readUInt32();
         __fs.ignore(sampleCount * 24);
@@ -105,6 +122,8 @@ void RecordCrawler::iterateSamples(std::function<void (int32_t, StackSample &)> 
         auto index = __fs.readUInt32();
         __fs.readFloat(); // time
         __fs.readFloat(); // fps
+        
+        __fs.ignore(__statsize);
         
         readFrameSamples([&](auto &samples, auto &relations)
                     {
@@ -243,6 +262,8 @@ void RecordCrawler::findFramesWithAlloc(int32_t frameOffset, int32_t frameCount)
         auto time = __fs.readFloat();
         auto fps = __fs.readFloat();
         
+        __fs.ignore(__statsize);
+        
         auto alloc = 0;
         readFrameSamples([&](auto &samples, auto &relations)
                   {
@@ -280,7 +301,7 @@ void RecordCrawler::findFramesWithAlloc(int32_t frameOffset, int32_t frameCount)
     }
 }
 
-void RecordCrawler::loadStrings()
+void RecordCrawler::readStrings()
 {
     __sampler.begin("RecordCrawler::loadStrings");
     __sampler.begin("seek");
@@ -298,6 +319,30 @@ void RecordCrawler::loadStrings()
     __stopTime = __fs.readUInt64();
     __sampler.end();
     __sampler.end();
+}
+
+void RecordCrawler::readMetadatas()
+{
+    __statsize = 0;
+    auto size = __fs.readUInt32();
+    
+    auto offset = __fs.tell();
+    auto count = __fs.readUInt8();
+    for (auto i = 0; i < count; i++)
+    {
+        auto area = __fs.readUInt8();
+        auto iter = __metadatas.insert(std::pair<int32_t, std::vector<string>>(area, std::vector<string>())).first;
+        auto itemCount = __fs.readUInt8();
+        
+        __statsize += 1 + itemCount * 4;
+        for (auto i = 0; i < itemCount; i++)
+        {
+            string name = __fs.readString();
+            iter->second.emplace_back(name);
+        }
+    }
+    
+    assert(__fs.tell() - offset == size);
 }
 
 void RecordCrawler::readFrameSamples(std::function<void (std::vector<StackSample> &, std::map<int32_t, std::vector<int32_t> > &)> completion)

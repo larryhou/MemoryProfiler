@@ -86,6 +86,22 @@ namespace Moobyte.MemoryProfiler
 			stream.Write((uint)v);
 		}
 		
+		public static void Write(this Stream stream, ushort v)
+		{
+			int count = 0;
+			int shift = 0;
+			while (count++ < 2)
+			{
+				stream.WriteByte((byte) ((v >> shift) & 0xFF));
+				shift += 8;
+			}
+		}
+		
+		public static void Write(this Stream stream, short v)
+		{
+			stream.Write((ushort)v);
+		}
+		
 		public static void Write(this Stream stream, ulong v)
 		{
 			int count = 0;
