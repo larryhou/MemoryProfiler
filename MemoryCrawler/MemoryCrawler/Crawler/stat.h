@@ -28,7 +28,7 @@ public:
     T reasonableMaximum;
     
     double mean;
-    double sd;
+    double standardDeviation;
     
 public:
     Statistics();
@@ -70,15 +70,15 @@ void Statistics<T>::summarize()
     
     mean = (double)sum / (double)__samples.size();
     
-    double dx = 0;
+    double variance = 0;
     for (auto iter = __samples.begin(); iter != __samples.end(); iter++)
     {
-        dx += pow((double)*iter - mean, 2);
+        variance += pow((double)*iter - mean, 2);
     }
     
-    sd = pow(dx / (double)(__samples.size() - 1), 0.5);
-    auto upper = mean + 3 * sd;
-    auto lower = mean - 3 * sd;
+    standardDeviation = pow(variance / (double)(__samples.size() - 1), 0.5);
+    auto upper = mean + 3 * standardDeviation;
+    auto lower = mean - 3 * standardDeviation;
     
     reasonableMaximum = minimum;
     reasonableMinimum = maximum;
