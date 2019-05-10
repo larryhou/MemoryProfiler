@@ -390,7 +390,7 @@ void RecordCrawler::findFramesWithAlloc(int32_t frameOffset, int32_t frameCount)
         
         if (iterCount >= frameCount) {break;}
     }
-    printf("\n");
+    printf("\r");
     
     for (auto iter = frames.begin(); iter != frames.end(); iter++)
     {
