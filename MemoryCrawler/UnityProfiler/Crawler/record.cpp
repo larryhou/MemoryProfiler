@@ -158,8 +158,8 @@ void RecordCrawler::findFramesWithFPS(float fps, std::function<bool (float, floa
 void RecordCrawler::iterateSamples(std::function<void (int32_t, StackSample &)> callback, bool clearProgress)
 {
     auto &frame = __frames[__lowerFrameIndex - std::get<0>(__range)];
-    
     __fs.seek(frame.offset, seekdir_t::beg);
+    
     auto frameCount = __upperFrameIndex - __lowerFrameIndex;
     
     int32_t iterCount = 0;
