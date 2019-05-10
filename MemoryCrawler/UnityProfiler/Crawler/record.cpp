@@ -565,7 +565,7 @@ void RecordCrawler::dumpFrameStacks(int32_t entity, std::vector<StackSample> &sa
                 memcpy(__nest_indent, indent, __size);
                 memset(__nest_indent + __size, '\x20', 3);
                 memset(__nest_indent + __size + 3, 0, 1);
-                if (depth > 0 && __depth + 1 < depth)
+                if (depth <= 0 || __depth + 1 < depth)
                 {
                     dumpFrameStacks(*i, samples, relations, s.totalTime, depth, __nest_indent, __depth + 1);
                 }
@@ -578,7 +578,7 @@ void RecordCrawler::dumpFrameStacks(int32_t entity, std::vector<StackSample> &sa
                 memcpy(iter, "│", 3);
                 memset(iter + 3, '\x20', 2);
                 memset(iter + 5, 0, 1);
-                if (depth > 0 && __depth + 1 < depth)
+                if (depth <= 0 || __depth + 1 < depth)
                 {
                     dumpFrameStacks(*i, samples, relations, s.totalTime, depth, __nest_indent, __depth + 1);
                 }
