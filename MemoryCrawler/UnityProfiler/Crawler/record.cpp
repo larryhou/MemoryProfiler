@@ -655,7 +655,7 @@ void RecordCrawler::list(int32_t frameIndex, int32_t frameCount, int32_t sorting
         printf("[FRAME] index=%d time=%.3fms fps=%.1f offset=%d\n", frame.index, frame.time, frame.fps, frame.offset);
     }
     
-    printf("[SUMMARY] fps=%.1f±%.1f range=[%.1f, %.1f] reasonable=[%.1f, %.1f]", stats.mean, 3 * stats.standardDeviation, stats.minimum, stats.maximum, stats.reasonableMinimum, stats.reasonableMaximum);
+    printf("\e[37m[SUMMARY] fps=%.1f±%.1f range=[%.1f, %.1f] reasonable=[%.1f, %.1f]", stats.mean, 3 * stats.standardDeviation, stats.minimum, stats.maximum, stats.reasonableMinimum, stats.reasonableMaximum);
     std::vector<RenderFrame *> excepts;
     for (auto i = 0; i < frameCount; i++)
     {
