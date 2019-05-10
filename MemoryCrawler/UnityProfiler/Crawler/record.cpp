@@ -121,7 +121,6 @@ void RecordCrawler::summarize(bool rangeEnabled)
         }
         
         fps.summarize();
-        
         printf("frames=[%d, %d)=%d fps=%.1f±%.1f range=[%.1f, %.1f] reasonable=[%.1f, %.1f]\n", __lowerFrameIndex, __upperFrameIndex, __upperFrameIndex - __lowerFrameIndex, fps.mean, 3 * fps.standardDeviation, fps.minimum, fps.maximum, fps.reasonableMinimum, fps.reasonableMaximum);
     }
     else
@@ -328,21 +327,22 @@ void RecordCrawler::statValues(ProfilerArea area, int32_t property)
     printf(" mean=%.3f±%.3f range=[%.0f, %.0f] reasonable=[%.0f, %.0f]\n", stats.mean, stats.standardDeviation, stats.minimum, stats.maximum, stats.reasonableMinimum, stats.reasonableMaximum);
 }
 
-void RecordCrawler::findFramesWithAlloc(int32_t frameIndex, int32_t frameCount)
+void RecordCrawler::findFramesWithAlloc(int32_t frameOffset, int32_t frameCount)
 {
-    auto baseIndex = std::get<0>(__range);
-    if (frameIndex >= __lowerFrameIndex && frameIndex < __upperFrameIndex)
+    if (frameOffset < 0) {frameOffset = 0;}
+    if (frameCount < 0)
     {
-        __fs.seek(__frames[frameIndex - baseIndex].offset, seekdir_t::beg);
-        frameCount = frameCount > 0 ? std::min(__upperFrameIndex - frameIndex, frameCount) : (__upperFrameIndex - frameIndex);
+        frameCount = __upperFrameIndex - __lowerFrameIndex;
     }
     else
     {
-        __fs.seek(__frames[__lowerFrameIndex - baseIndex].offset, seekdir_t::beg);
-        frameCount = __upperFrameIndex - __lowerFrameIndex;
-        frameIndex = __lowerFrameIndex;
+        frameCount = std::min(std::max(1, frameCount), __upperFrameIndex - __lowerFrameIndex);
     }
     if (frameCount == 0) {return;}
+    
+    auto baseIndex = std::get<0>(__range);
+    auto frameIndex = __lowerFrameIndex + frameOffset;
+    __fs.seek(__frames[frameIndex - baseIndex].offset, seekdir_t::beg);
     
     int32_t iterCount = 0;
     
@@ -616,29 +616,23 @@ void RecordCrawler::prev(int32_t step)
     inspectFrame(__cursor - step);
 }
 
-void RecordCrawler::list(int32_t frameIndex, int32_t frameCount, int32_t sorting)
+void RecordCrawler::list(int32_t frameOffset, int32_t frameCount, int32_t sorting)
 {
+    if (frameOffset < 0) {frameOffset = 0;}
     if (frameCount < 0)
     {
-        frameIndex += frameCount + 1;
-        frameCount = -frameCount;
-    }
-    
-    if (frameIndex >= __lowerFrameIndex && frameIndex < __upperFrameIndex)
-    {
-        frameCount = frameCount > 0 ? std::min(__upperFrameIndex - frameIndex, frameCount) : (__upperFrameIndex - frameIndex);
+        frameCount = __upperFrameIndex - __lowerFrameIndex;
     }
     else
     {
-        frameCount = __upperFrameIndex - __lowerFrameIndex;
-        frameIndex = __lowerFrameIndex;
+        frameCount = std::min(std::max(1, frameCount), __upperFrameIndex - __lowerFrameIndex);
     }
-    
     if (frameCount == 0) {return;}
     
     std::vector<int32_t> slice;
     
     auto baseIndex = std::get<0>(__range);
+    auto frameIndex = __lowerFrameIndex + frameOffset;
     
     Statistics<float> stats;
     for (auto i = 0; i < frameCount; i++)
