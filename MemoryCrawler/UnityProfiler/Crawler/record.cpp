@@ -123,7 +123,7 @@ void RecordCrawler::summarize()
     auto t = (double)__stopTime * 1E-6;
     auto lower = std::get<0>(__range);
     auto upper = std::get<1>(__range);
-    printf("frames=[%d, %d)=%d elapse=(%.3f, %.3f)=%.3fs fps=%.1f±%.3f=[%.1f, %.1f]\n", lower, upper, upper - lower, f, t, t - f, fps.mean, fps.sd, fps.min, fps.max);
+    printf("frames=[%d, %d)=%d elapse=(%.3f, %.3f)=%.3fs fps=%.1f±%.3f=[%.1f, %.1f]\n", lower, upper, upper - lower, f, t, t - f, fps.mean, fps.sd, fps.minimum, fps.maximum);
 }
 
 void RecordCrawler::findFramesWithFPS(float fps, std::function<bool (float, float)> predicate)
@@ -224,7 +224,7 @@ void RecordCrawler::statByFunction(int32_t rank)
     
     char header[8];
     memset(header, 0, sizeof(header));
-    sprintf(header, " %%-%ds", width.opt_max);
+    sprintf(header, " %%-%ds", width.reasonableMaximum);
     
     for (auto i = 0; i < functions.size(); i++)
     {
@@ -308,7 +308,7 @@ void RecordCrawler::statValues(ProfilerArea area, int32_t property)
     stats.summarize();
     
     printf("[%s][%s]", __names[area].c_str(), __metadatas.at(area)[property].c_str());
-    printf(" mean=%.3f±%.3f min=%.0f max=%.0f\n", stats.mean, stats.sd, stats.min, stats.max);
+    printf(" mean=%.3f±%.3f min=%.0f max=%.0f\n", stats.mean, stats.sd, stats.minimum, stats.maximum);
 }
 
 void RecordCrawler::findFramesWithAlloc(int32_t frameIndex, int32_t frameCount)
@@ -655,13 +655,13 @@ void RecordCrawler::list(int32_t frameIndex, int32_t frameCount, int32_t sorting
         printf("[FRAME] index=%d time=%.3fms fps=%.1f offset=%d\n", frame.index, frame.time, frame.fps, frame.offset);
     }
     
-    printf("[SUMMARY] fps=%.3f±%.3f[%.1f, %.1f]", stats.mean, stats.sd, stats.min, stats.max);
+    printf("[SUMMARY] fps=%.3f±%.3f[%.1f, %.1f]", stats.mean, stats.sd, stats.minimum, stats.maximum);
     std::vector<RenderFrame *> excepts;
     for (auto i = 0; i < frameCount; i++)
     {
         auto index = (frameIndex + i) - baseIndex;
         auto &frame = __frames[index];
-        if (frame.fps < stats.min) { excepts.push_back(&frame); }
+        if (frame.fps < stats.minimum) { excepts.push_back(&frame); }
     }
     if (excepts.size() > 0)
     {

@@ -21,11 +21,11 @@ class Statistics
     std::vector<T> __samples;
     
 public:
-    T min;
-    T max;
+    T minimum;
+    T maximum;
     
-    T opt_min;
-    T opt_max;
+    T reasonableMinimum;
+    T reasonableMaximum;
     
     double mean;
     double sd;
@@ -35,12 +35,16 @@ public:
     void collect(T sample);
     void summarize();
     void clear();
+    int32_t size();
+    
+    void iterateUnusualMaximums(std::function<void(int32_t, T)> callback);
+    void iterateUnsualMinimums(std::function<void(int32_t, T)> callback);
 };
 
 template <class T>
 Statistics<T>::Statistics()
 {
-    static_assert(std::is_arithmetic<T>::value, "NOT summarable type");
+    static_assert(std::is_arithmetic<T>::value, "NOT summarizable type");
 }
 
 template <class T>
@@ -54,14 +58,14 @@ void Statistics<T>::summarize()
 {
     T sum = 0;
     
-    min = __samples[0];
-    max = 0;
+    minimum = __samples[0];
+    maximum = 0;
     for (auto iter = __samples.begin(); iter != __samples.end(); iter++)
     {
         auto v = *iter;
         sum += v;
-        if (v > max) {max = v;}
-        if (v < min) {min = v;}
+        if (v > maximum) {maximum = v;}
+        if (v < minimum) {minimum = v;}
     }
     
     mean = (double)sum / (double)__samples.size();
@@ -72,18 +76,48 @@ void Statistics<T>::summarize()
         dx += pow((double)*iter - mean, 2);
     }
     
-    double sd = pow(dx / (double)(__samples.size() - 1), 0.5);
+    sd = pow(dx / (double)(__samples.size() - 1), 0.5);
     auto upper = mean + 3 * sd;
     auto lower = mean - 3 * sd;
     
-    opt_max = min;
-    opt_min = max;
+    reasonableMaximum = minimum;
+    reasonableMinimum = maximum;
     for (auto iter = __samples.begin(); iter != __samples.end(); iter++)
     {
         auto v = *iter;
-        if (v > opt_max && v <= upper) {opt_max = v;}
-        if (v < opt_min && v >= lower) {opt_min = v;}
+        if (v > reasonableMaximum && v <= upper) {reasonableMaximum = v;}
+        if (v < reasonableMinimum && v >= lower) {reasonableMinimum = v;}
     }
+}
+
+template <class T>
+void Statistics<T>::iterateUnusualMaximums(std::function<void (int32_t, T)> callback)
+{
+    int32_t index = 0;
+    for (auto iter = __samples.begin(); iter != __samples.end(); iter++)
+    {
+        auto value = *iter;
+        if (value > reasonableMaximum) { callback(index, value); }
+        ++index;
+    }
+}
+
+template <class T>
+void Statistics<T>::iterateUnsualMinimums(std::function<void (int32_t, T)> callback)
+{
+    int32_t index = 0;
+    for (auto iter = __samples.begin(); iter != __samples.end(); iter++)
+    {
+        auto value = *iter;
+        if (value < reasonableMinimum) { callback(index, value); }
+        ++index;
+    }
+}
+
+template <class T>
+int32_t Statistics<T>::size()
+{
+    return __samples.size();
 }
 
 template <class T>
