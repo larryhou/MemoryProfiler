@@ -492,7 +492,7 @@ void RecordCrawler::readFrameSamples(std::function<void (std::vector<StackSample
     completion(samples, relations);
 }
 
-void RecordCrawler::inspectFrame(int32_t frameIndex)
+void RecordCrawler::inspectFrame(int32_t frameIndex, int32_t depth)
 {
     if (frameIndex <  std::get<0>(__range)) {return;}
     if (frameIndex >= std::get<1>(__range)) {return;}
@@ -513,7 +513,7 @@ void RecordCrawler::inspectFrame(int32_t frameIndex)
                       }
                   }
                   printf("[FRAME] index=%d time=%.3fms fps=%.1f alloc=%d offset=%d\n", frame.index, frame.time, frame.fps, alloc, frame.offset);
-                  dumpFrameStacks(-1, samples, relations, frame.time);
+                  dumpFrameStacks(-1, samples, relations, frame.time, depth);
               });
     auto &statistics = frame.statistics.graphs;
     for (auto i = 0; i < statistics.size(); i++)
@@ -532,7 +532,7 @@ void RecordCrawler::inspectFrame(int32_t frameIndex)
     }
 }
 
-void RecordCrawler::dumpFrameStacks(int32_t entity, std::vector<StackSample> &samples, std::map<int32_t, std::vector<int32_t> > &relations, const float depthTime, const char *indent)
+void RecordCrawler::dumpFrameStacks(int32_t entity, std::vector<StackSample> &samples, std::map<int32_t, std::vector<int32_t> > &relations, const float totalTime, const int32_t depth, const char *indent, const int32_t __depth)
 {
     auto __size = strlen(indent);
     char __indent[__size + 2*3 + 1]; // indent + 2×tabulator + \0
@@ -553,7 +553,7 @@ void RecordCrawler::dumpFrameStacks(int32_t entity, std::vector<StackSample> &sa
             closed ? memcpy(tabular, "└", 3) : memcpy(tabular, "├", 3);
             auto &s = samples[*i];
             auto &name = __strings[s.nameRef];
-            printf("\e[36m%s%s \e[33mtime=%.3f%%/%.3fms \e[32mself=%.3f%%/%.3fms \e[37mcalls=%d", __indent, name.c_str(), s.totalTime * 100 / depthTime, s.totalTime, s.selfTime * 100/s.totalTime, s.selfTime, s.callsCount);
+            printf("\e[36m%s%s \e[33mtime=%.3f%%/%.3fms \e[32mself=%.3f%%/%.3fms \e[37mcalls=%d", __indent, name.c_str(), s.totalTime * 100 / totalTime, s.totalTime, s.selfTime * 100/s.totalTime, s.selfTime, s.callsCount);
             if (s.gcAllocBytes > 0) {printf(" \e[31malloc=%d", s.gcAllocBytes);}
             printf(" \e[90m*%d\e[0m\n", s.nameRef);
             
@@ -565,7 +565,10 @@ void RecordCrawler::dumpFrameStacks(int32_t entity, std::vector<StackSample> &sa
                 memcpy(__nest_indent, indent, __size);
                 memset(__nest_indent + __size, '\x20', 3);
                 memset(__nest_indent + __size + 3, 0, 1);
-                dumpFrameStacks(*i, samples, relations, s.totalTime, __nest_indent);
+                if (depth > 0 && __depth + 1 < depth)
+                {
+                    dumpFrameStacks(*i, samples, relations, s.totalTime, depth, __nest_indent, __depth + 1);
+                }
             }
             else
             {
@@ -575,7 +578,10 @@ void RecordCrawler::dumpFrameStacks(int32_t entity, std::vector<StackSample> &sa
                 memcpy(iter, "│", 3);
                 memset(iter + 3, '\x20', 2);
                 memset(iter + 5, 0, 1);
-                dumpFrameStacks(*i, samples, relations, s.totalTime, __nest_indent);
+                if (depth > 0 && __depth + 1 < depth)
+                {
+                    dumpFrameStacks(*i, samples, relations, s.totalTime, depth, __nest_indent, __depth + 1);
+                }
             }
         }
     }
@@ -596,14 +602,14 @@ void RecordCrawler::dumpMetadatas()
     }
 }
 
-void RecordCrawler::inspectFrame()
+void RecordCrawler::inspectFrame(int32_t depth)
 {
     if (__cursor < __lowerFrameIndex || __cursor >= __upperFrameIndex)
     {
         __cursor = __lowerFrameIndex;
     }
     
-    inspectFrame(__cursor);
+    inspectFrame(__cursor, depth);
 }
 
 void RecordCrawler::next(int32_t step)

@@ -97,8 +97,8 @@ public:
     
     void load(const char *filepath);
     
-    void inspectFrame(int32_t frameIndex);
-    void inspectFrame();
+    void inspectFrame(int32_t frameIndex, int32_t depth);
+    void inspectFrame(int32_t depth);
     
     void list(int32_t frameOffset = -1, int32_t frameCount = 10, int32_t sorting = 0);
     
@@ -128,7 +128,7 @@ private:
     void readMetadatas();
     void crawl();
     void readFrameSamples(std::function<void(std::vector<StackSample> &, std::map<int32_t, std::vector<int32_t>> &)> completion);
-    void dumpFrameStacks(int32_t entity, std::vector<StackSample> &samples, std::map<int32_t, std::vector<int32_t>> &relations, const float depthTime, const char *indent = "");
+    void dumpFrameStacks(int32_t entity, std::vector<StackSample> &samples, std::map<int32_t, std::vector<int32_t>> &relations, const float totalTime, const int32_t depth = 0, const char *indent = "",  const int32_t __depth = 0);
 };
 
 #endif /* record_h */
