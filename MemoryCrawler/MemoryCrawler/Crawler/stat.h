@@ -91,7 +91,7 @@ void Statistics<T>::summarize()
 }
 
 template <class T>
-void Statistics<T>::iterateUnusualMaximums(std::function<void (int32_t, T)> callback)
+void Statistics<T>::iterateUnusualMaximums(std::function<void (int32_t/*index*/, T)> callback)
 {
     int32_t index = 0;
     for (auto iter = __samples.begin(); iter != __samples.end(); iter++)
@@ -103,7 +103,7 @@ void Statistics<T>::iterateUnusualMaximums(std::function<void (int32_t, T)> call
 }
 
 template <class T>
-void Statistics<T>::iterateUnsualMinimums(std::function<void (int32_t, T)> callback)
+void Statistics<T>::iterateUnsualMinimums(std::function<void (int32_t/*index*/, T)> callback)
 {
     int32_t index = 0;
     for (auto iter = __samples.begin(); iter != __samples.end(); iter++)
