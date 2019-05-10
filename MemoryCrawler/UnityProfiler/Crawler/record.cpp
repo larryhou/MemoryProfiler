@@ -108,22 +108,39 @@ void RecordCrawler::lock(int32_t frameIndex, int32_t frameCount)
     printf("frames=[%d, %d)\n", __lowerFrameIndex, __upperFrameIndex);
 }
 
-void RecordCrawler::summarize()
+void RecordCrawler::summarize(bool rangeEnabled)
 {
-    Statistics<float> fps;
-    for (auto i = 0; i < __frames.size(); i++)
+    if (rangeEnabled)
     {
-        auto &frame = __frames[i];
-        fps.collect(frame.fps);
+        Statistics<float> fps;
+        auto baseIndex = std::get<0>(__range);
+        for (auto i = __lowerFrameIndex; i < __upperFrameIndex; i++)
+        {
+            auto &frame = __frames[i - baseIndex];
+            fps.collect(frame.fps);
+        }
+        
+        fps.summarize();
+        
+        printf("frames=[%d, %d)=%d fps=%.1f±%.1f range=[%.1f, %.1f] reasonable=[%.1f, %.1f]\n", __lowerFrameIndex, __upperFrameIndex, __upperFrameIndex - __lowerFrameIndex, fps.mean, 3 * fps.standardDeviation, fps.minimum, fps.maximum, fps.reasonableMinimum, fps.reasonableMaximum);
     }
-    
-    fps.summarize();
-    
-    auto f = (double)__startTime * 1E-6;
-    auto t = (double)__stopTime * 1E-6;
-    auto lower = std::get<0>(__range);
-    auto upper = std::get<1>(__range);
-    printf("frames=[%d, %d)=%d elapse=(%.3f, %.3f)=%.3fs fps=%.1f±%.1f range=[%.1f, %.1f] reasonable=[%.1f, %.1f]\n", lower, upper, upper - lower, f, t, t - f, fps.mean, 3 * fps.standardDeviation, fps.minimum, fps.maximum, fps.reasonableMinimum, fps.reasonableMaximum);
+    else
+    {
+        Statistics<float> fps;
+        for (auto i = 0; i < __frames.size(); i++)
+        {
+            auto &frame = __frames[i];
+            fps.collect(frame.fps);
+        }
+        
+        fps.summarize();
+        
+        auto f = (double)__startTime * 1E-6;
+        auto t = (double)__stopTime * 1E-6;
+        auto lower = std::get<0>(__range);
+        auto upper = std::get<1>(__range);
+        printf("frames=[%d, %d)=%d elapse=(%.3f, %.3f)=%.3fs fps=%.1f±%.1f range=[%.1f, %.1f] reasonable=[%.1f, %.1f]\n", lower, upper, upper - lower, f, t, t - f, fps.mean, 3 * fps.standardDeviation, fps.minimum, fps.maximum, fps.reasonableMinimum, fps.reasonableMaximum);
+    }
 }
 
 void RecordCrawler::findFramesWithFPS(float fps, std::function<bool (float, float)> predicate)

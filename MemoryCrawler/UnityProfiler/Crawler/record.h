@@ -119,7 +119,7 @@ public:
     
     void dumpMetadatas();
     
-    void summarize();
+    void summarize(bool rangeEnabled);
     
     ~RecordCrawler();
     

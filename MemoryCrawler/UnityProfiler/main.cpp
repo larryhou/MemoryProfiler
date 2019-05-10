@@ -116,7 +116,7 @@ void processRecord(const char *filepath)
         }
         else if (strbeg(command, "info"))
         {
-            crawler.summarize();
+            crawler.summarize(false);
         }
         else if (strbeg(command, "alloc"))
         {
@@ -205,7 +205,7 @@ void processRecord(const char *filepath)
                                {
                                    if (options.size() == 1)
                                    {
-                                       crawler.summarize();
+                                       crawler.summarize(true);
                                    }
                                    else
                                    {
