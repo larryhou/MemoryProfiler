@@ -330,13 +330,13 @@ void RecordCrawler::statValues(ProfilerArea area, int32_t property)
 void RecordCrawler::findFramesWithAlloc(int32_t frameOffset, int32_t frameCount)
 {
     if (frameOffset < 0) {frameOffset = 0;}
-    if (frameCount < 0)
+    if (frameCount <= 0)
     {
         frameCount = __upperFrameIndex - __lowerFrameIndex;
     }
     else
     {
-        frameCount = std::min(std::max(1, frameCount), __upperFrameIndex - __lowerFrameIndex);
+        frameCount = std::min(frameCount, __upperFrameIndex - __lowerFrameIndex);
     }
     if (frameCount == 0) {return;}
     
@@ -619,13 +619,13 @@ void RecordCrawler::prev(int32_t step)
 void RecordCrawler::list(int32_t frameOffset, int32_t frameCount, int32_t sorting)
 {
     if (frameOffset < 0) {frameOffset = 0;}
-    if (frameCount < 0)
+    if (frameCount <= 0)
     {
         frameCount = __upperFrameIndex - __lowerFrameIndex;
     }
     else
     {
-        frameCount = std::min(std::max(1, frameCount), __upperFrameIndex - __lowerFrameIndex);
+        frameCount = std::min(frameCount, __upperFrameIndex - __lowerFrameIndex);
     }
     if (frameCount == 0) {return;}
     
