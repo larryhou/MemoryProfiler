@@ -40,19 +40,45 @@ Unity还提供另外一个内存分析工具MemoryProfiler(图\ref{mp})
 
 MemoryProfiler[源码](https://bitbucket.org/Unity-Technologies/memoryprofiler)托管在Bitbucket，但是从最后提交记录来看，这个内存工具已经超过2年半没有任何更新了，但是这期间Unity可是发布了好多个版本，想想就有点后怕。
 \
-<!-- ![在Bitbucket托管的MemoryProfiler项目\label{cm1}](figures/bitbucket-mp.png) -->
-
-![MemoryProfiler项目代码更新状态\label{cm2}](figures/bitbucket-cm.png)\
+![MemoryProfiler项目代码更新状态\label{cm}](figures/bitbucket-cm.png)\
 
 有热心开发者也忍受不了Unity这缓慢的更新节奏，干脆自己动手基于源码在[github](https://github.com/GameBuildingBlocks/PerfAssist)上更新优化，并更改了检索的交互方式。
 \
-![PerAssist新增特性\label{pf}](figures/perf-assist.png)\
+![PerfAssist新增特性\label{pf}](figures/perf-assist.png)\
 
 不过这也只是在MemoryProfiler的基础上增加检索的便利性，跟理想的检索工具还有很大差距，虽然在内存的类别上做了相对MemoryProfiler更加清晰的区分，但是没有系统化的重构设计，内存分析过程依然异常缓慢，甚至会在分析过程中异常崩溃。
 \
 ![内存分析过程中崩溃\label{crash}](figures/crash.png)
+\
 
+```c#
+namespace MemoryProfilerWindow
+{
+    static class ManagedHeapExtensions
+    {
+        public static BytesAndOffset Find(this MemorySection[] heap, UInt64 address, 
+            VirtualMachineInformation virtualMachineInformation)
+        {
+            foreach (var segment in heap)
+            {
+                if (address >= segment.startAddress 
+                    && address < (segment.startAddress + (ulong) segment.bytes.Length))
+                {
+                    return new BytesAndOffset() 
+                        { 
+                            bytes = segment.bytes,
+                            offset = (int)(address - segment.startAddress), 
+                            pointerSize = virtualMachineInformation.pointerSize
+                        };
+                }
+                
+            }
 
+            return new BytesAndOffset();
+        }
+    }
+}
+```
 
 
 # UnityProfiler
@@ -85,13 +111,17 @@ const char *basename(const char *filepath)
     return filename;
 }
 ```
+### info
 ### frame
 ### next
 ### prev
-### stat
+### func
 ### find
 ### list
-### info
+### meta
+### lock
+### stat
+### seek
 ### fps
 ### help
 ### quit
