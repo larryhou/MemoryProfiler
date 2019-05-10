@@ -123,7 +123,7 @@ void RecordCrawler::summarize()
     auto t = (double)__stopTime * 1E-6;
     auto lower = std::get<0>(__range);
     auto upper = std::get<1>(__range);
-    printf("frames=[%d, %d)=%d elapse=(%.3f, %.3f)=%.3fs fps=%.1f±%.3f=[%.1f, %.1f]\n", lower, upper, upper - lower, f, t, t - f, fps.mean, fps.standardDeviation, fps.minimum, fps.maximum);
+    printf("frames=[%d, %d)=%d elapse=(%.3f, %.3f)=%.3fs fps=%.1f±%.1f range=[%.1f, %.1f] reasonable=[%.1f, %.1f]\n", lower, upper, upper - lower, f, t, t - f, fps.mean, 3 * fps.standardDeviation, fps.minimum, fps.maximum, fps.reasonableMinimum, fps.reasonableMaximum);
 }
 
 void RecordCrawler::findFramesWithFPS(float fps, std::function<bool (float, float)> predicate)
@@ -308,7 +308,7 @@ void RecordCrawler::statValues(ProfilerArea area, int32_t property)
     stats.summarize();
     
     printf("[%s][%s]", __names[area].c_str(), __metadatas.at(area)[property].c_str());
-    printf(" mean=%.3f±%.3f min=%.0f max=%.0f\n", stats.mean, stats.standardDeviation, stats.minimum, stats.maximum);
+    printf(" mean=%.3f±%.3f range=[%.0f, %.0f] reasonable=[%.0f, %.0f]\n", stats.mean, stats.standardDeviation, stats.minimum, stats.maximum, stats.reasonableMinimum, stats.reasonableMaximum);
 }
 
 void RecordCrawler::findFramesWithAlloc(int32_t frameIndex, int32_t frameCount)
@@ -655,7 +655,7 @@ void RecordCrawler::list(int32_t frameIndex, int32_t frameCount, int32_t sorting
         printf("[FRAME] index=%d time=%.3fms fps=%.1f offset=%d\n", frame.index, frame.time, frame.fps, frame.offset);
     }
     
-    printf("[SUMMARY] fps=%.3f±%.3f[%.1f, %.1f]", stats.mean, stats.standardDeviation, stats.minimum, stats.maximum);
+    printf("[SUMMARY] fps=%.1f±%.1f range=[%.1f, %.1f] reasonable=[%.1f, %.1f]", stats.mean, 3 * stats.standardDeviation, stats.minimum, stats.maximum, stats.reasonableMinimum, stats.reasonableMaximum);
     std::vector<RenderFrame *> excepts;
     for (auto i = 0; i < frameCount; i++)
     {

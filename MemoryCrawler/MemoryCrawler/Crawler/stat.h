@@ -21,6 +21,9 @@ class Statistics
     std::vector<T> __samples;
     
 public:
+    constexpr static float CI95_TAIL = 1.28156;
+    constexpr static float CI95_BODY = 1.64489;
+    
     T minimum;
     T maximum;
     
@@ -38,7 +41,7 @@ public:
     int32_t size();
     
     void iterateUnusualMaximums(std::function<void(int32_t, T)> callback);
-    void iterateUnsualMinimums(std::function<void(int32_t, T)> callback);
+    void iterateUnusualMinimums(std::function<void(int32_t, T)> callback);
 };
 
 template <class T>
@@ -103,7 +106,7 @@ void Statistics<T>::iterateUnusualMaximums(std::function<void (int32_t/*index*/,
 }
 
 template <class T>
-void Statistics<T>::iterateUnsualMinimums(std::function<void (int32_t/*index*/, T)> callback)
+void Statistics<T>::iterateUnusualMinimums(std::function<void (int32_t/*index*/, T)> callback)
 {
     int32_t index = 0;
     for (auto iter = __samples.begin(); iter != __samples.end(); iter++)
