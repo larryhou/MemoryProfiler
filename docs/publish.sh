@@ -2,6 +2,7 @@
 
 set -x
 pandoc \
+	-f markdown+footnotes \
 	--number-sections    \
 	--table-of-contents  \
 	--output README.pdf  \

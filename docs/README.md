@@ -80,51 +80,257 @@ namespace MemoryProfilerWindow
 }
 ```
 
+\newpage
 
 # UnityProfiler
+
 ## 简介
-## 命令手册
-### alloc
-```c++
-const char *basename(const char *filepath)
+
+UnityProfiler以Unity引擎自带的Profiler工具生成的性能数据为基础，提供多种维度的工具来帮助发现性能问题。该工具前期预研阶段使用Python测试逻辑，最终使用C++实现，这样可以利用C++的强大计算能力来提升解析速度，提高性能分析效率。由于是基于Unity的原生接口获取数据，所以需要保证Profiler工具打开后能看到性能采集界面，真机调试确保按照[官方文档](https://docs.unity3d.com/Manual/ProfilerWindow.html "Profiler Window")正确配置。
+\
+![](figures/up-p1.png)
+\
+![](figures/up-p2.png)
+\
+
+## 原理
+
+Unity编辑器提供的Profiler调试工具，有多个维度的性能数据，我们比较常用的就是查看CPU维度的函数调用开销。这个数据可以通过Unity未公开的编辑器库
+UnityEditorInternal来获取，鉴于未公开也谈不上查阅官方文档来获取性能数据采集细节，所以需要通过反编译查看源码才能知道其实现原理：构造类UnityEditorInternal.ProfilerProperty对象，调用GetColumnAsSingle方法来获取函数调用堆栈相关的性能数据。
+
+```C#
+var root = new ProfilerProperty();
+root.SetRoot(frameIndex, ProfilerColumn.TotalTime, ProfilerViewType.Hierarchy);
+root.onlyShowGPUSamples = false;
+
+var drawCalls = root.GetColumnAsSingle(ProfilerColumn.DrawCalls);
+samples.Add(sequence, new StackSample
 {
-    auto offset = filepath + strlen(filepath);
-    const char *upper = nullptr;
-    
-    while (offset != filepath)
+    id = sequence,
+    name = root.propertyName,
+    callsCount = (int)root.GetColumnAsSingle(ProfilerColumn.Calls),
+    gcAllocBytes = (int)root.GetColumnAsSingle(ProfilerColumn.GCMemory),
+    totalTime = root.GetColumnAsSingle(ProfilerColumn.TotalTime),
+    selfTime = root.GetColumnAsSingle(ProfilerColumn.SelfTime),
+});
+```
+
+除了函数堆栈方面的开销，Unity还有渲染、物理、UI、网络等其他维度的数据，这些数据要通过另外一个接口来获取。
+
+```C#
+for (ProfilerArea area = 0; area < ProfilerArea.AreaCount; area++)
+{
+    var statistics = metadatas[(int)area];
+    stream.Write((byte)area);
+    for (var i = 0; i < statistics.Count; i++)
     {
-        if (upper == nullptr && *offset == '.') {upper = offset;}
-        if (*offset == '/')
-        {
-            ++offset;
-            break;
-        }
-        --offset;
+        var maxValue = 0.0f;
+        var identifier = statistics[i];
+        ProfilerDriver.GetStatisticsValues(identifier, frameIndex, 1.0f, provider, out maxValue);
+        stream.Write(provider[0]);
     }
-    
-    auto name = &*offset;
-    auto size = upper - offset;
-    
-    char *filename = new char[size + 1];
-    memset(filename, 0, size + 1);
-    memcpy(filename, name, size);
-    return filename;
 }
 ```
+
+本工具基于以上接口把采集到的数据保存为PFC格式，该格式为自定义格式，使用了多种算法优化数据存储，比Unity编辑器录制的原始数据节省80%的存储空间，同时用C++语言编写多种维度的性能分析工具，可以高效率地定位卡顿问题。
+
+## 命令手册
+### alloc
+
+**alloc** *[FRAME_OFFSET][=0] [FRAME_COUNT][=0]*
+
+|参数|可选|描述|
+|-|-|-|
+|FRAME_OFFSET|是|命令起始帧相对于第一帧的整形偏移量|
+|FRAME_COUNT|是|命令作用帧数量|
+
+alloc可以在指定的帧区间内搜索所有调用GC.Alloc分配内存的渲染帧。
+
+    /> alloc 0 1000 
+    [FRAME] index=2 time=23.970ms fps=41.7 alloc=10972 offset=12195
+    [FRAME] index=124 time=25.770ms fps=38.8 alloc=184 offset=1326925
+    [FRAME] index=127 time=24.870ms fps=40.2 alloc=10972 offset=1359192
+    [FRAME] index=250 time=25.740ms fps=38.8 alloc=184 offset=2682771
+    [FRAME] index=253 time=24.690ms fps=40.5 alloc=10972 offset=2715142
+
+
+
+如果FRAME_OFFSET和FRAME_COUNT留空，alloc将所有可用帧作为参数进行条件搜索。
+
 ### info
+
+无参数，查看当前性能录像的基本信息。
+
+    frames=[1, 44611)=44610 elapse=(1557415446.004, 1557416582.579)=1136.574s fps=39.9±12.8 range=[1.3, 240.6] reasonable=[27.2, 52.5]
+
 ### frame
+
+**frame** *[FRAME_INDEX] [STACK_DEPTH][=0]*
+
+|参数|可选|描述|
+|-|-|-|
+|FRAME_INDEX|是|指定帧序号|
+|STACK_DEPTH|是|指定函数调用堆栈层级，默认完整堆栈|
+
+frame可以查看指定渲染帧的详细函数调用堆栈信息，见下图。
+\
+![](figures/up-frame.png)
+\
+在函数堆栈的底部，还有当前帧其他性能指标数据，主要有CPU、GPU、Rendering、Memory、Audio、Video、Physics、Physics2D、NetworkMessages、NetworkOperations、UI、UIDetails、GlobalIllumination等13个指标。
+\
+![](figures/up-frame-quota.png)
+\
+每次执行frame都会记录当前查询的帧序号，如果所有参数留空，则重复查看当前帧数据。
+
 ### next
+
+**next** *[FRAME_OFFSET][=1]*
+
+|参数|可选|描述|
+|-|-|-|
+|FRAME_OFFSET|是|相对当前帧的偏移|
+
+next命令相当于按照指定帧偏移量修改当前帧序号同时调用frame命令生成帧数据。
+
 ### prev
+
+**prev** *[FRAME_OFFSET][=1]*
+
+|参数|可选|描述|
+|-|-|-|
+|FRAME_OFFSET|是|相对当前帧的偏移|
+
+prev命令相当于按照指定帧偏移量修改当前帧序号同时调用frame命令生成帧数据。
+
 ### func
+
+**func** *[RANK][=0]*
+
+|参数|可选|描述|
+|-|-|-|
+|RANK|是|指定显示排行榜前RANK个数据|
+
+func在当前可用帧区间内，按照函数名统计每个函数的时间消耗，并按照从大到小的顺序排序，RANK参数可以限定列举范围，默认列举所有函数的时间统计。
+
+    /> func 1
+    34.99%    849.26ms #100     ███████████████████████████████████ WaitForTargetFPS *1
+    /> func 5
+    34.99%    849.26ms #100     ███████████████████████████████████ WaitForTargetFPS *1
+     5.32%    129.07ms #5916    █████ WaitForJobGroup *27
+     4.92%    119.39ms #100     █████ Profiler.CollectMemoryAllocationStats *128
+     4.58%    111.14ms #1000    █████ RenderForward.RenderLoopJob *7
+     2.20%     53.34ms #500     ██ Camera.Render *3
+
+第一列表示函数时间消耗百分比，第二列表示时间消耗的总毫秒数，第三列表示函数调用的总次数，最后一列以\*开头的数字表示函数引用。
+
 ### find
+
+**find** *[FUNCTION_REF]*
+
+|参数|可选|描述|
+|-|-|-|
+|FUNCTION_REF|是|指定函数引用|
+
+frame和func命令可以生成以\*开头的数字函数引用，find在当前帧区间内查找调用了指定函数的帧。
+\
+![](figures/up-find.png)
+\
+
 ### list
+
+**list** *[FRAME_OFFSET][=0] [FRAME_COUNT][=0]*
+
+|参数|可选|描述|
+|-|-|-|
+|FRAME_OFFSET|是|命令起始帧相对于第一帧的整形偏移量|
+|FRAME_COUNT|是|命令作用帧数量|
+
+list列举指定范围的帧基本信息，如果所有参数留空则列举当前帧区间的所有帧信息。
+\
+![](figures/up-list.png)
+\
+
 ### meta
+
+meta查看性能指标索引，每个性能指标由两个索引确定，比如Scripts由0-1确定，该命令用来为stat和seek提交输入参数。
+
+\newpage
+![](figures/up-meta.svg)
+\
+
 ### lock
+
+**lock** *[FRAME_INDEX][=0] [FRAME_COUNT][=0]*
+
+|参数|可选|描述|
+|-|-|-|
+|FRAME_INDEX|是|起始帧序号|
+|FRAME_COUNT|是|锁定相对于起始帧的帧数量|
+
+lock参数留空恢复原始帧区间，一旦锁定帧区间，其他除info命令以外的其他命令均在该区间执行相关操作。
+\
+![](figures/up-lock.png)
+\
+
 ### stat
+
+**stat** *[PROFILER_AREA] [PROPERTY]*
+
+|参数|可选|描述|
+|-|-|-|
+|PROFILER_AREA|否|meta命令生成一级索引|
+|PROPERTY|否|meta命令生成的二级索引|
+
+stat在当前帧区间按照参数指标进行数学统计，给出99.87%置信区间的边界值，以及均值和标准差信息。
+
+    /> stat 0 1
+    [CPU][Scripts] mean=1874400.000±316545.565 range=[1582000, 2965000] reasonable=[1582000, 2269000]
+
+range表示当前帧区间Scripts时间消耗的最小值和最大值，单位是纳秒[1毫秒=1000000纳秒]，reasonable表示按照3倍标准差剔除极大值后的合理取值范围，超出该范围的值应该仔细检查，因为按照统计学在正态分布里面3倍标准差可以覆盖99.87%的数据。
+
 ### seek
+
+**seek** *[PROFILER_AREA] [PROPERTY] [VALUE] [PREDICATE][=>]*
+
+|参数|可选|描述|
+|-|-|-|
+|PROFILER_AREA|是|meta命令生成一级索引|
+|PROPERTY|是|meta命令生成二级索引|
+|VALUE|是|临界值|
+|PREDICATE|是|>大于临界值、=等于临界值、<小于临界值三种参数|
+
+seek按照参数确定的指标进行所搜比对，默认列举大于临界值的帧信息，可以通过PREDICATE选择大于、等于和小于比对方式进行过滤帧数据。
+ 
+    /> stat 0 1
+    [CPU][Scripts] mean=1874400.000±316545.565 range=[1582000, 2965000] reasonable=[1582000, 2269000]
+    /> seek 0 1 2269000
+    [FRAME] index=10012 time=23.880ms fps=41.9 offset=128599965
+
 ### fps
+
+**fps** *[FPS] [PREDICATE][=>]*
+
+
+|参数|可选|描述|
+|-|-|-|
+|FPS|否|FPS临界值|
+|PREDICATE|否|>大于临界值、=等于临界值、<小于临界值三种参数|
+
+    /> fps
+    frames=[20000, 20100)=100 fps=40.2±1.2 range=[39.2, 41.5] reasonable=[39.2, 41.2]
+    /> fps 41.2 >
+    [FRAME] index=20066 time=24.080ms fps=41.5 offset=261880027
+
+当参数留空时，fps统计当前帧区间的帧率信息，指定FPS临界值后，则默认过滤大于临界值的帧数据，可以通过PREDICATE选择大于、等于和小于比对方式进行过滤帧数据。
+
 ### help
+
+显示帮助信息。
+
 ### quit
+
+退出当前进程。
+
 ## 使用案例
 ### 追踪渲染丢帧
 ### 追踪动态内存分配
@@ -132,6 +338,7 @@ const char *basename(const char *filepath)
 
 # MemoryCrawler
 ## 简介
+## 原理
 ## 命令手册
 ### read
 ### load

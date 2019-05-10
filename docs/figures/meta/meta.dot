@@ -1,0 +1,128 @@
+digraph
+{
+    bgcolor=transparent;
+    edge[arrowhead=none];
+	nodesep=.1;
+	ranksep=3;
+	rankdir=LR;
+	splines=polyline;
+	labeljust=l
+    node[shape=plain, tailport=e, fontname="Cochin"];
+	subgraph acluster_left{
+	rank=min;
+    a0[label="[0]CPU" shape=component];
+    p0_0[label="[0]Rendering"];
+    p0_1[label="[1]Scripts"];
+    p0_2[label="[2]Physics"];
+    p0_3[label="[3]GarbageCollector"];
+    p0_4[label="[4]VSync"];
+    p0_5[label="[5]Global Illumination"];
+    p0_6[label="[6]UI"];
+    p0_7[label="[7]Others"];
+    
+    a1[label="[1]GPU" shape=component];
+    p1_0[label="[0]Opaque"];
+    p1_1[label="[1]Transparent"];
+    p1_2[label="[2]Shadows/Depth"];
+    p1_3[label="[3]Deferred PrePass"];
+    p1_4[label="[4]Deferred Lighting"];
+    p1_5[label="[5]PostProcess"];
+    p1_6[label="[6]Other"];
+    a1->{p1_0 p1_1 p1_2 p1_3 p1_4 p1_5 p1_6};
+    a2[label="[2]Rendering" shape=component];
+    p2_0[label="[0]Batches"];
+    p2_1[label="[1]SetPass Calls"];
+    p2_2[label="[2]Triangles"];
+    p2_3[label="[3]Vertices"];
+    a2->{p2_0 p2_1 p2_2 p2_3};
+    a3[label="[3]Memory" shape=component];
+    p3_0[label="[0]Total Allocated"];
+    p3_1[label="[1]Texture Memory"];
+    p3_2[label="[2]Mesh Memory"];
+    p3_3[label="[3]Material Count"];
+    p3_4[label="[4]Object Count"];
+    p3_5[label="[5]Total GC Allocated"];
+    p3_6[label="[6]GC Allocated"];
+    a3->{p3_0 p3_1 p3_2 p3_3 p3_4 p3_5 p3_6};
+    a10[label="[10]UI" shape=component];
+    p10_0[label="[0]Layout"];
+    p10_1[label="[1]Render"];
+    a10->{p10_0 p10_1};
+    a11[label="[11]UIDetails" shape=component];
+    p11_0[label="[0]UI Batches"];
+    p11_1[label="[1]UI Vertices"];
+    a11->{p11_0 p11_1};
+    a4[label="[4]Audio" shape=component];
+    p4_0[label="[0]Playing Audio Sources"];
+    p4_1[label="[1]Audio Voices"];
+    p4_2[label="[2]Total Audio CPU"];
+    p4_3[label="[3]Total Audio Memory"];
+    a4->{p4_0 p4_1 p4_2 p4_3};
+	a5[label="[5]Video" shape=component];
+	p5_0[label="[0]Total Video Sources"];
+	p5_1[label="[1]Playing Video Sources"];
+	p5_2[label="[2]Total Video Memory"];
+	a5->{p5_0 p5_1 p5_2};
+    
+}
+a0->{p0_0 p0_1 p0_2 p0_3 p0_4 p0_5 p0_6 p0_7};
+subgraph acluster_right {
+rank=sink;
+
+a6[label="[6]Physics" shape=component];
+p6_0[label="[0]Active Dynamic"];
+p6_1[label="[1]Active Kinematic"];
+p6_2[label="[2]Static Colliders"];
+p6_3[label="[3]Rigidbody"];
+p6_4[label="[4]Trigger Overlaps"];
+p6_5[label="[5]Active Constraints"];
+p6_6[label="[6]Contacts"];
+a6->{p6_0 p6_1 p6_2 p6_3 p6_4 p6_5 p6_6};
+    a7[label="[7]PhysicsD" shape=component];
+    p7_0[label="[0]Total Bodies"];
+    p7_1[label="[1]Active Bodies"];
+    p7_2[label="[2]Sleeping Bodies"];
+    p7_3[label="[3]Dynamic Bodies"];
+    p7_4[label="[4]Kinematic Bodies"];
+    p7_5[label="[5]Static Bodies"];
+    p7_6[label="[6]Contacts"];
+    p7_7[label="[7]Step Time"];
+
+	
+    a7->{p7_0 p7_1 p7_2 p7_3 p7_4 p7_5 p7_6 p7_7};
+    a8[label="[8]NetworkMessages" shape=component];
+    p8_0[label="[0]Protocol Packets In"];
+    p8_1[label="[1]Buffered Msgs In"];
+    p8_2[label="[2]Unbuffered Msgs In"];
+    p8_3[label="[3]Protocol Packets Out"];
+    p8_4[label="[4]Buffered Msgs Out"];
+    p8_5[label="[5]Unbuffered Msgs Out"];
+    p8_6[label="[6]Pending Buffers"];
+    a8->{p8_0 p8_1 p8_2 p8_3 p8_4 p8_5 p8_6};
+    a9[label="[9]NetworkOperations" shape=component];
+    p9_0[label="[0]Command"];
+    p9_1[label="[1]ClientRPC"];
+    p9_2[label="[2]SyncVar"];
+    p9_3[label="[3]Sync List"];
+    p9_4[label="[4]Sync Event"];
+    p9_5[label="[5]User Message"];
+    p9_6[label="[6]Object Destroy"];
+    p9_7[label="[7]Object Create"];
+    a9->{p9_0 p9_1 p9_2 p9_3 p9_4 p9_5 p9_6 p9_7};
+    
+    a12[label="[12]GlobalIllumination" shape=component];
+    p12_0[label="[0]Total CPU"];
+    p12_1[label="[1]Light Probe"];
+    p12_2[label="[2]Setup"];
+    p12_3[label="[3]Environment"];
+    p12_4[label="[4]Input Lighting"];
+    p12_5[label="[5]Systems"];
+    p12_6[label="[6]Solve Tasks"];
+    p12_7[label="[7]Dynamic Objects"];
+    p12_8[label="[8]Other Commands"];
+    p12_9[label="[9]Blocked Command Write"];
+    a12->{p12_0 p12_1 p12_2 p12_3 p12_4 p12_5 p12_6 p12_7 p12_8 p12_9};
+}
+	Quotas[label="Profiler Quotas" shape=box3d];
+   Quotas->{a0 a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 a11 a12};
+}
