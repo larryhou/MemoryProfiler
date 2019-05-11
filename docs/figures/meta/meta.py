@@ -11,6 +11,7 @@ if __name__ == "__main__":
     data = json.load(fp=open(filepath))
 
     entities = []
+    quota_count = 0
     for area in range(len(data)):
         item = data[area]
         entities.append('a{}'.format(area))
@@ -22,9 +23,11 @@ if __name__ == "__main__":
             id = 'p{}_{}'.format(area, n)
             fp.write('    {}[label="{}"];\n'.format(id, properties[n]))
             children.append(id)
+            quota_count += 1
         fp.write('    a{}->{{{}}};\n'.format(area, ' '.join(children)))
     fp.write('   Quotas->{{{}}};\n'.format(' '.join(entities)))
     fp.write('}\n')
     fp.seek(0)
     print(fp.read())
     fp.close()
+    print(quota_count)
