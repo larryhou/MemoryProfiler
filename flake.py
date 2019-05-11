@@ -152,13 +152,13 @@ def main():
     options = arguments.parse_args(sys.argv[1:])
     margin = options.margin
 
-    rect, path = generate_flake_square(options=options)
+    rect, path = generate_tree(options=options)
 
     buf = io.StringIO()
     buf.write('<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="{:.2f} {:.2f} {:.2f} {:.2f}">\n'.format(
         rect.minX-margin, rect.minY-margin, rect.maxX - rect.minX + 2 * margin, rect.maxY - rect.minY + 2 * margin
     ))
-    buf.write('<path style="stroke:rgb(0,0,0);stroke-width:1;fill:none" d="')
+    buf.write('<path style="stroke:rgb(0,0,0);stroke-width:2;fill:none" d="')
     buf.write('M{:.2f} {:.2f}'.format(0, 0))
     buf.write(path)
     buf.write('" />\n</svg>\n')

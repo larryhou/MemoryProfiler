@@ -1433,7 +1433,7 @@ void MemorySnapshotCrawler::findNObject(address_t address)
     {
         auto &no = snapshot.nativeObjects->items[index];
         auto &nt = snapshot.nativeTypes->items[no.nativeTypeArrayIndex];
-        printf("%08llx name='%s' type='%s'%d size=%d", no.nativeObjectAddress, no.name->c_str(), nt.name->c_str(), nt.typeIndex, no.size);
+        printf("0x%08llx name='%s' type='%s'%d size=%d", no.nativeObjectAddress, no.name->c_str(), nt.name->c_str(), nt.typeIndex, no.size);
         if (no.managedObjectArrayIndex >= 0)
         {
             auto &mo = managedObjects[no.managedObjectArrayIndex];

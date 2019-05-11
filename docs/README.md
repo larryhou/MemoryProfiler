@@ -8,6 +8,10 @@ mainfont: Baskerville
 CJKmainfont: Hiragino Sans GB
 <!-- monofont: Fira Code -->
 monofont: Courier New
+
+header-includes:
+ - \usepackage{fvextra}
+ - \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,commandchars=\\\{\}}
 ---
 
 # 前言
@@ -34,11 +38,11 @@ Unity还提供另外一个内存分析工具MemoryProfiler(图\ref{mp})
 
 在这个界面的左边彩色区域里，*MemoryProfiler*按类型占用总内存大小绘制对应面积比例的矩阵图，第一次看到还是蛮酷炫的，*Unity*是想通过这个矩阵图向开发者提供对象内存检索入口，但是实际使用过程中问题多多。
 
-- 内存分析过程缓慢
-- 在众多无差别的小方格里面找到实际关心的资源很难，虽然可以放大缩小，但感觉并没有提升检索的便利性
-- 每个对象只提供父级引用关系，无法看到完整的对象引用链，容易在跳转过程中迷失
-- 引擎对象的引用和*IL2CPP*对象的引用混为一谈，让使用者对引用关系的理解模糊不清
-- 没有按引擎对象内存和*IL2CPP*对象内存分类区别统计，加深使用者对内存使用的误解
+1. 内存分析过程缓慢
+2. 在众多无差别的小方格里面找到实际关心的资源很难，虽然可以放大缩小，但感觉并没有提升检索的便利性
+3. 每个对象只提供父级引用关系，无法看到完整的对象引用链，容易在跳转过程中搞错上下文关系
+4. 引擎对象的引用和*il2cpp*对象的引用混为一谈，让使用者对引用关系的理解模糊不清
+5. 没有按引擎对象内存和*il2cpp*对象内存分类区别统计，加深使用者对内存使用的误解
 
 *MemoryProfiler*[源码](https://bitbucket.org/Unity-Technologies/memoryprofiler)托管在*Bitbucket*，但是从最后提交记录来看，这个内存工具已经超过**2**年半没有任何更新了，但是这期间*Unity*可是发布了好多个版本，想想就有点后怕。
 \
@@ -48,12 +52,12 @@ Unity还提供另外一个内存分析工具MemoryProfiler(图\ref{mp})
 \
 ![PerfAssist新增特性\label{pf}](figures/perf-assist.png)\
 
-不过这也只是在*MemoryProfiler*的基础上增加检索的便利性，跟理想的检索工具还有很大差距，虽然在内存的类别上做了相对*MemoryProfiler*更加清晰的区分，但是没有系统化的重构设计，内存分析过程依然异常缓慢，甚至会在分析过程中异常崩溃。
+不过这也只是在*MemoryProfiler*的基础上有比较大的更新，主要是增加检索的便利性以及内存快照对比，使用起来比*MemoryProfiler*初代产品方便了不少，但是由于交互界面的限制，也无法完整展示内存引用关系，内存分析过程依然异常缓慢，甚至会在分析过程中异常崩溃。
 \
 ![内存分析过程中崩溃\label{crash}](figures/crash.png)
 \
 
-基于*Unity*性能调试工具现实存在问题，我开发了UnityProfiler和MemoryCrawler两款工具，分别替代*Profiler*以及*MemoryProfiler*进行相同领域的性能调试，这两个款均使用纯*C++*实现，因为经过与*C#*、*Python*对比后发现*C++*有绝对的计算优势，可以非常明显提升性能数据分析效率和稳定性。但是这两个款工具都没有可视化交互界面，不过并不影响分析结果的查看，它们都内置命令行模式的交互方式，并提供了丰富的命令，可以对性能数据做全方位的分析定位。
+鉴于*Unity*性能调试工具现实存在问题，我觉得亟待开发面向开发者、提供更多维度、更高效率的性能调试工具，于是我开发了UnityProfiler和MemoryCrawler两款工具，分别替代*Profiler*以及*MemoryProfiler*进行相同领域的性能调试，这两个款均使用纯*C++*实现，因为经过与*C#*、*Python*对比后发现*C++*有绝对的计算优势，可以非常明显提升性能数据分析效率和稳定性。这两款工具的定位是：降低*Unity*游戏性能调试的门槛，让拥有不同开发经验的开发者都可以轻松定位各种性能问题，尽管都没有可视化交互界面，不过并不影响分析结果的查看，它们都内置命令行模式的交互方式，并提供了丰富的命令，可以对性能数据做全方位的分析定位。
 
 
 \newpage
@@ -101,8 +105,7 @@ for (ProfilerArea area = 0; area < ProfilerArea.AreaCount; area++)
     {
         var maxValue = 0.0f;
         var identifier = statistics[i];
-        ProfilerDriver.GetStatisticsValues(identifier, frameIndex, 1.0f, 
-                                           provider, out maxValue);
+        ProfilerDriver.GetStatisticsValues(identifier, frameIndex, 1.0f, provider, out maxValue);
         stream.Write(provider[0]);
     }
 }
@@ -137,8 +140,10 @@ alloc可以在指定的帧区间内搜索所有调用*GC.Alloc*分配内存的�
 
 无参数，查看当前性能录像的基本信息。
 
-    frames=[1, 44611)=44610 elapse=(1557415446.004, 1557416582.579)=1136.574s 
-    fps=39.9±12.8 range=[1.3, 240.6] reasonable=[27.2, 52.5]
+```bash
+/> info
+frames=[1, 44611)=44610 elapse=(1557415446.004, 1557416582.579)=1136.574s fps=39.9±12.8 range=[1.3, 240.6] reasonable=[27.2, 52.5]
+```
 
 ### frame
 
@@ -257,9 +262,21 @@ meta查看性能指标索引，包含*CPU、GPU、Rendering、Memory、Audio、V
 |*frame_count*|是|锁定相对于起始帧的帧数量|
 
 lock参数留空恢复原始帧区间，一旦锁定帧区间，其他除info命令以外的其他命令均在该区间执行相关操作。
-\
-![](figures/up-lock.png)
-\
+
+    /> lock 10000 20 
+    frames=[10000, 10020)
+    /> list
+    [FRAME] index=10000 time=24.850ms fps=40.2 offset=128440337
+    [FRAME] index=10001 time=24.880ms fps=40.2 offset=128453746
+    [FRAME] index=10002 time=25.070ms fps=39.9 offset=128467283
+    [FRAME] index=10003 time=25.420ms fps=39.3 offset=128480596
+    [FRAME] index=10004 time=24.120ms fps=41.4 offset=128494037
+    [FRAME] index=10005 time=24.930ms fps=40.1 offset=128507158
+    [FRAME] index=10006 time=25.390ms fps=39.4 offset=128520567
+    [FRAME] index=10007 time=24.590ms fps=40.7 offset=128533880
+    [FRAME] index=10008 time=24.560ms fps=40.7 offset=128547161
+    [FRAME] index=10009 time=24.900ms fps=40.2 offset=128560474
+    [SUMMARY] fps=40.2±1.9 range=[39.3, 41.4] reasonable=[39.3, 41.4]
 
 ### stat
 
@@ -291,11 +308,12 @@ stat在当前帧区间按照参数指标进行数学统计，给出99.87%置信�
 
 seek按照参数确定的指标进行所搜比对，默认列举大于临界值的帧信息，可以通过*predicate*选择大于、等于和小于比对方式进行过滤帧数据。
  
-    /> stat 0 1
-    [CPU][Scripts] mean=1874400.000±316545.565 range=[1582000, 2965000] 
-    reasonable=[1582000, 2269000]
-    /> seek 0 1 2269000
-    [FRAME] index=10012 time=23.880ms fps=41.9 offset=128599965
+```bash
+/> stat 0 1
+[CPU][Scripts] mean=1874400.000±316545.565 range=[1582000, 2965000] reasonable=[1582000, 2269000]
+/> seek 0 1 2269000
+[FRAME] index=10012 time=23.880ms fps=41.9 offset=128599965
+```
 
 调用该命令前建议先用stat对性能指标进行简单数学统计，然后根据最大值或者最小值搜索可能存在性能问题的渲染帧。
 
@@ -349,53 +367,625 @@ seek按照参数确定的指标进行所搜比对，默认列举大于临界值�
 ![](figures/up-case-alloc.png)
 \
 
-1. 使用`alloc 0 100`列出当前帧区间子区间[0, 100)内有动态内存产生的渲染帧，可以看到*30055*帧产生了比较多的内存
+1. 使用`alloc 0 100`列出当前帧区间子区间[0, 100)内有动态内存产生的渲染帧，可以看到**30055**帧产生了比较多的内存。
 2. 使用`frame 30055`查看目标帧的详细数据。
 
 
 ## 小结
 
-UnityProfiler以巧妙的方式编码性能数据，节省80%的存储空间，内置多种命令以超高效率在不同维度帮助大家发现性能问题，并快速定位到产生问题的帧，使用该工具可以有效地帮助大家提升游戏质量。
+UnityProfiler以巧妙的方式编码性能数据，节省80%的存储空间，内置多种命令以超高效率在不同维度帮助大家发现性能问题，并快速定位到产生问题的帧，使用该工具可以有效地帮助大家解决卡顿问题，从而提升游戏质量。
 
-\newpage
 # MemoryCrawler
 ## 简介
+
+MemoryCrawler以*Unity*引擎生成的内存快照数据为基础，提供多种维度的工具来帮助发现内存问题。该工具前期预研阶段使用*Python*测试逻辑，最终使用*C++*实现。由于是基于*Unity*的原生接口获取数据，所以需要保证*Profiler*工具打开后能看到性能采集界面，真机调试确保按照[官方文档](https://docs.unity3d.com/Manual/ProfilerWindow.html "Profiler Window")正确配置。
+
+内存分析是个高计算密度的过程，使用*C#*分析将是个漫长的过程，毕竟是在mono环境运行，MemoryCrawler用*C++*作为开发语言，同时也获得了可观的分析速度，基本在百毫秒级别，也就是眨眼的功夫就完成数据分析，相比*Unity*提供*MemoryProfiler*在内存数据的解析速度、问题定位速度方面都是一个质的飞跃。
+
 ## 原理
+
+在命名空间*UnityEditor.MemoryProfiler*有个类*MemorySnapshot*可以请求生成内存快照，一般情况下内存快照创建需要时间，所以需要侦听*MemorySnapshot.OnSnapshotReceived*事件，拿到内存数据就可以做相关的内存分析了。
+
+```C#
+MemorySnapshot.OnSnapshotReceived += OnSnapshotComplete;
+MemorySnapshot.RequestNewSnapshot();
+
+private static void OnSnapshotComplete(PackedMemorySnapshot snapshot)
+{
+    MemorySnapshot.OnSnapshotReceived -= OnSnapshotComplete;
+    ExportMemorySnapshot(snapshot, false);
+}
+```
+
 ## 命令手册
 ### read
+
+**read** *[uuid]*
+
+
+|参数|可选|描述|
+|-|-|-|
+|*uuid*|是|每个内存快照都有一个唯一16字节36字符的*uuid*|
+
+read加载缓存在*sqlite*里面的内存快照分析结果，*uuid*为原始内存快照的标识符，使用read的前提是存在相应的缓存文件，通过uuid命令可以查看快照的*uuid*。如果*uuid*留空则，加载当前内存快照的缓存文件。read加载完缓存后，会自动与当前内存快照做差异分析。
+
 ### load
+
+**load** *[pms_filepath]*
+
+|参数|可选|描述|
+|-|-|-|
+|*pms_filepath*|**否**|内存快照路径|
+
+load从原始内存快照文件加载内存数据并进行内存分析，其他功能与read相同，会自动与当前内存快照做差异分析。
+
 ### track
+
+**track** *[tracking_mode]*
+
+|参数|可选|描述|
+|-|-|-|
+|*tracking_mode*|是|内存追踪模式 *alloc*=内存增长追踪模式 *leak*=内存泄漏追踪模式 *?*=查看当前模式|
+
+使用read或load加载完另外一个内存快照后，会自动与当前内存快照做内存差异分析，设置追踪模式可以方便地在差异内存里面定位内存问题。*tracking_mode*留空时则清除当前追踪模式。
+
+    /> read e4a5b509-f9cc-a84e-9f90-c502a54fe76e
+    [0] SnapshotCrawlerCache=19492135
+        [1] SnapshotCrawlerCache::read=19490006
+            [2] open=1400984
+            [3] read_PackedMemorySnapshot=9540012
+                [4] read_native_types=450704
+                [5] read_native_objects=2932726
+                [6] read_managed_types=6111619
+                    [7] read_type_fields=802478
+                [8] read_vm=42409
+            [9] read_MemorySnapshotCrawler=8371204
+                [10] read_managed_objects=8370010
+    /> track alloc
+    ENTER TRACKING ALLOC MODE
+    /> track ?
+    ENTER TRACKING ALLOC MODE
+    /> track leak
+    ENTER TRACKING LEAK MODE
+    /> track
+    LEAVE TRACKING MODE
+
 ### str
+
+**str** *[address]*
+
+|参数|可选|描述|
+|-|-|-|
+|*address*|**否**|字符串对象的内存地址|
+
+```C#
+/> str 3106572216
+0xb92a87b8 130 '很遗憾，我们现在无法向您继续提供服务。我们的数据存储在EEA地区之外，为了为您提供服务我们的支持团队必须从其他司法管辖区访问数据。'
+```
+第一列参数为字符串地址的16进制形式，第二列为字符串占用内存大小，第三列为字符串内容。
+\pagebreak
+
 ### ref
-### uref
+
+**ref** *[address]*
+
+|参数|可选|描述|
+|-|-|-|
+|*address*|**否**|对象的内存地址|
+
+查找保持当前对象在内存中活跃的关系链，使用递归遍历父级引用关系，但是每层递归最多产生两个分支，因为对象在内存中的引用关系有可能很复杂，导致递归深度过大而耗用过多电脑内存以及过多的关系链。通常我们理想的引用关系是下图这样的，深度有限，引用简单。
+\
+\
+\
+![](figures/iter-3.svg){width=40%}\ ![](figures/iter-5.svg){width=50%}
+
+\pagebreak
+但实际上每一层递归节点都有可能产生很多递归分支，导致遍历节点异常庞大，所以ref做了对每层递归分支数量做了限制，这样哪怕对象引用关系很复杂的情况下也可以得到部分引用关系，下图只是每层递归2个分支一共9层递归的模型，实际的引用树状图可能无法用图来描绘出来。
+<br /> <br /> <br /> <br /> <br />
+<br /> <br /> <br /> <br /> <br />
+\
+\
+\
+![](figures/iter-9.svg)
+\
+ref接受一个内存地址参数，可以自动识别八进制、十进制以及十六进制，*3106572216*为上个例子中的字符串地址。
+```c#
+/> ref 3106572216
+<GCHandle>::ApplicationTranslator 0xebb97d20
+    .{database:translation_protocol.TranslationContainer} 0xc085f460
+    .{_clases:System.Collections.Generic.List<translation_protocol.ClassContainer>} 0xe37d7f00
+    .{_items:translation_protocol.ClassContainer}[8] 0xb9153018
+    .{_fields:System.Collections.Generic.List<translation_protocol.LocalizedItem>} 0xb9153000
+    .{_items:translation_protocol.LocalizedItem}[0] 0xb91c55e0
+    .{_text:System.String} 0xb92a87b8
+<Static>::dataconfig.DataConfigManager::{dataObserver:dataconfig.DataConfigObserver} 0xd361bf18
+    .{prev:dataconfig.DataConfigObserver} 0xd361bee0
+    .{m_target:ApplicationTranslator} 0xebb97d20
+    .{database:translation_protocol.TranslationContainer} 0xc085f460
+    .{_clases:System.Collections.Generic.List<translation_protocol.ClassContainer>} 0xe37d7f00
+    .{_items:translation_protocol.ClassContainer}[8] 0xb9153018
+    .{_fields:System.Collections.Generic.List<translation_protocol.LocalizedItem>} 0xb9153000
+    .{_items:translation_protocol.LocalizedItem}[0] 0xb91c55e0
+    .{_text:System.String} 0xb92a87b8
+<Static>::ApplicationTranslator::{_shared:ApplicationTranslator} 0xebb97d20
+    .{database:translation_protocol.TranslationContainer} 0xc085f460
+    .{_clases:System.Collections.Generic.List<translation_protocol.ClassContainer>} 0xe37d7f00
+    .{_items:translation_protocol.ClassContainer}[8] 0xb9153018
+    .{_fields:System.Collections.Generic.List<translation_protocol.LocalizedItem>} 0xb9153000
+    .{_items:translation_protocol.LocalizedItem}[0] 0xb91c55e0
+    .{_text:System.String} 0xb92a87b8
+<Static>::HardStrings.LaunchStart::{TIPS_REJECT_DATA_POLICY:System.String} 0xb92a87b8
+```
+在这个例子中，可以看出*3106572216*有四个引用关系，第一个引用被*Unity*的*GCHandle*，其他三个分别被静态对象引用，引用的终点和当前对象之间为引用链经过的对象路径，每一个对象节点都有清晰的变量名以及对象地址。
+\pagebreak
+
 ### REF
+
+**REF** *[address]*
+
+|参数|可选|描述|
+|-|-|-|
+|*address*|**否**|对象的内存地址|
+
+同ref相同，REF列举保持对象在内存中活跃的关系链，不同的是REF尝试遍历所有的引用关系，如果遇到引用关系复杂，递归深度比较大的情况下，会采用递归总量限制保证REF在合理的内存开销下列举尽可能多的关系链，对于没有递归到终点的关系链会用星号\*标记。对于复杂对象，可能会产生大量的引用链，会花费比较长的时间打印关系链结果。
+
+|引用标记|说明|
+|-|-|-|
+|*GCHandle*|表示对象最终被*Unity*的*GCHandle*管理器引用，如果这是对象仅有的引用，*Unity*会在合适的时机自动释放|
+|*Static*|表示对象被静态类引用|
+|星号|表示递归深度过大，当前引用链被中断|
+|∞|表示对象被环式引用|
+
+### uref
+
+**uref** *[address]*
+
+|参数|可选|描述|
+|-|-|-|
+|*address*|**否**|对象的内存地址|
+
+列举*Unity*引擎创建的*native*对象引用关系链，与ref对应，使用有限递归分支列举部分引用关系链。
+
+    /> uref 3269982224
+    <SIS>.{Sprite:0xcd2a8ad0:'mu'}.{Texture2D:0xc2e7f810:'Country_RGB'} 
+    <SIS>.{Sprite:0xcd2a7950:'ml'}.{Texture2D:0xc2e7f810:'Country_RGB'} 
+
+|引用标记|说明|
+|-|-|-|
+|*SIS*|*Store In Scene*|
+|*DDO*|*Dont't Destry Object*|
+|*UMO*|*Unity Manager Object*|
+|星号|表示递归深度过大，当前引用链被中断|
+|∞|表示对象被环式引用|
+
 ### UREF
+
+**UREF** *[address]*
+
+|参数|可选|描述|
+|-|-|-|
+|*address*|**否**|对象的内存地址|
+
+同REF类似，但是遍历引擎对象的所有引用关系链。
+
+    /> UKREF 3269982224
+    <SIS>.{Sprite:0xcd2a8ad0:'mu'}.{Texture2D:0xc2e7f810:'Country_RGB'} 
+    <SIS>.{Sprite:0xcd2a7950:'ml'}.{Texture2D:0xc2e7f810:'Country_RGB'} 
+    <SIS>.{Sprite:0xcd373b50:'br'}.{Texture2D:0xc2e7f810:'Country_RGB'} 
+    <SIS>.{Sprite:0xcd2c8fd0:'sa'}.{Texture2D:0xc2e7f810:'Country_RGB'} 
+    <SIS>.{Sprite:0xcd3ebad0:'ao'}.{Texture2D:0xc2e7f810:'Country_RGB'} 
+    <SIS>.{Sprite:0xcd2c94d0:'sc'}.{Texture2D:0xc2e7f810:'Country_RGB'} 
+    <SIS>.{Sprite:0xcd2906d0:'gb'}.{Texture2D:0xc2e7f810:'Country_RGB'} 
+    <SIS>.{Sprite:0xcd2c5650:'no'}.{Texture2D:0xc2e7f810:'Country_RGB'} 
+    <SIS>.{Sprite:0xcd375590:'cg'}.{Texture2D:0xc2e7f810:'Country_RGB'} 
+    <SIS>.{Sprite:0xcd2a7e50:'mn'}.{Texture2D:0xc2e7f810:'Country_RGB'} 
+    <SIS>.{Sprite:0xcd29a0d0:'ki'}.{Texture2D:0xc2e7f810:'Country_RGB'} 
+    <SIS>.{Sprite:0xcd2a8d50:'mv'}.{Texture2D:0xc2e7f810:'Country_RGB'} 
+    <SIS>.{Sprite:0xcd299e50:'kh'}.{Texture2D:0xc2e7f810:'Country_RGB'} 
+    <SIS>.{Sprite:0xcd2c6550:'pa'}.{Texture2D:0xc2e7f810:'Country_RGB'} 
+    <SIS>.{Sprite:0xcd2dd2d0:'ws'}.{Texture2D:0xc2e7f810:'Country_RGB'} 
+    <SIS>.{Sprite:0xcd377d90:'dm'}.{Texture2D:0xc2e7f810:'Country_RGB'} 
+    <SIS>.{Sprite:0xcd2a7450:'mh'}.{Texture2D:0xc2e7f810:'Country_RGB'} 
+    <SIS>.{Sprite:0xcd2c6cd0:'pg'}.{Texture2D:0xc2e7f810:'Country_RGB'} 
+    <SIS>.{Sprite:0xcd3eb350:'ag'}.{Texture2D:0xc2e7f810:'Country_RGB'} 
+    <SIS>.{Sprite:0xcd2d7ed0:'uz'}.{Texture2D:0xc2e7f810:'Country_RGB'} 
+    <SIS>.{Sprite:0xcd2d4550:'sv'}.{Texture2D:0xc2e7f810:'Country_RGB'} 
+
 ### kref
-### ukref
+
+**kref** *[address]*
+
+|参数|可选|描述|
+|-|-|-|
+|*address*|**否**|对象的内存地址|
+
+同ref功能相同，但是剔除`*`和`∞`开头的关系链，在数据量比较大的情况下会比较有用。
+
 ### KREF
+
+**KREF** *[address]*
+
+|参数|可选|描述|
+|-|-|-|
+|*address*|**否**|对象的内存地址|
+
+同REF功能相同，但是剔除`*`和`∞`开头的关系链，在数据量比较大的情况下会比较有用。
+
+### ukref
+
+**ukref** *[address]*
+
+|参数|可选|描述|
+|-|-|-|
+|*address*|**否**|对象的内存地址|
+
+同uref功能相同，但是剔除`*`和`∞`开头的关系链，在数据量比较大的情况下会比较有用。
+
 ### UKREF
+
+**UKREF** *[address]*
+
+|参数|可选|描述|
+|-|-|-|
+|*address*|**否**|对象的内存地址|
+
+同UREF功能相同，但是剔除`*`和`∞`开头的关系链，在数据量比较大的情况下会比较有用。
+
 ### link
+
+**link** *[address]*
+
+|参数|可选|描述|
+|-|-|-|
+|*address*|**否**|对象的内存地址|
+
+对于继承于*UnityEngine.Object*类的对象，可以使用该命令查看对应的*native*引擎对象地址，可以方便在不同的内存空间进行审视对象内存。
+
+    /> link 3816674832
+    3269982224
+    /> uref 3269982224
+    <SIS>.{Sprite:0xcd2a8ad0:'mu'}.{Texture2D:0xc2e7f810:'Country_RGB'} 
+    <SIS>.{Sprite:0xcd2a7950:'ml'}.{Texture2D:0xc2e7f810:'Country_RGB'} 
+
 ### ulink
+
+**ulink** *[address]*
+
+|参数|可选|描述|
+|-|-|-|
+|*address*|**否**|对象的内存地址|
+
+使用该命令查看*native*引擎对象对应的*il2cpp*对象，可以方便在不同的内存空间进行审视对象内存。
+
+    /> ulink 3269982224
+    3816674832
+    /> ref 3816674832
+    <GCHandle>::UnityEngine.Texture2D 0xe37dd610
+
 ### show
+
+**show** *[address]*
+
+|参数|可选|描述|
+|-|-|-|
+|*address*|**否**|对象的内存地址|
+
+```C#
+/> show 3495241968
+System.String 0xd05528f0
+├─length:System.Int32 = 42
+└─start_char:System.Char = \u5411
+/> show 0xb8fb00e0
+translation_protocol.LocalizedItem 0xb8fb00e0
+├─_sid:System.String = NULL
+├─_uid:System.Nullable<System.UInt32>
+│  ├─value:System.UInt32 = 200160
+│  └─has_value:System.Boolean = true
+├─_text:System.String 0xd05528f0 = '向四周瞬间投出大量的魔刃，对周围半径3格的敌人造成175/225/275点魔法伤害。'
+└─extensionObject:ProtoBuf.IExtension = NULL
+```
+
 ### ushow
+
+**ushow** *[address]*
+
+|参数|可选|描述|
+|-|-|-|
+|*address*|**否**|对象的内存地址|
+
+该命令用来查看当前*native*引擎对象内部保持的引用关系链。
+
+```C#
+/> ushow 0xbcbff110
+'LanguageSelect':GameObject 0xbcbff110
+└─'NameTxt2':GameObject 0xb9b8a450=144
+   └─'LocalIEFlag':MonoScript 0xc2fa3610=244
+```
+
 ### find
+
+**find** *[address]*
+
+|参数|可选|描述|
+|-|-|-|
+|*address*|**否**|对象的内存地址|
+
+find查看*il2cpp*对象并展示相关信息。
+
+```C#
+/> find 0xb8fe1ec0
+0xb8fe1ec0 type='translation_protocol.LocalizedItem'1614 size=28 assembly='ProtobufProtocol'
+```
+对象类型名之后的数字**1614**为对象类型引用，可以使用type命令查看类型信息。
+
 ### ufind
+
+**ufind** *[address]*
+
+|参数|可选|描述|
+|-|-|-|
+|*address*|**否**|对象的内存地址|
+
+ufind查看*native*引擎对象并展示相关信息。
+
+```C#
+/> ufind 3266512656
+0xc2b30710 name='INetworkService' type='MonoScript'158 size=244
+```
+对象类型名之后的数字**158**为对象类型引用，可以使用utype命令查看类型信息。
+
 ### type
+
+**type** *[type_ref]*
+
+|参数|可选|描述|
+|-|-|-|
+|*type_ref*|**否**|*il2cpp*类型引用|
+
+type查看*il2cpp*类型信息，通过find、stat、bar可以得到类型引用。
+
+```C#
+/> type 1614
+0xbba39b40 name='translation_protocol.LocalizedItem'1614 size=28 baseOrElementType='System.Object'0 assembly='ProtobufProtocol' instanceMemory=329420 instanceCount=11765
+    isStatic=false name='_sid' offset=8 typeIndex=23
+    isStatic=false name='_uid' offset=12 typeIndex=3520
+    isStatic=false name='_text' offset=20 typeIndex=23
+    isStatic=false name='extensionObject' offset=24 typeIndex=617
+```
+
 ### utype
+
+**utype** *[type_ref]*
+
+|参数|可选|描述|
+|-|-|-|
+|*type_ref*|**否**|*native*引擎类型引用|
+
+utype查看*native*引擎类型信息，通过ufind、ustat、ubar可以得到类型引用。
+
+```C#
+/> utype 158
+name='MonoScript'158 nativeBaseType='TextAsset'156 instanceMemory=812217 instanceCount=3087
+```
+
 ### stat
+
+**stat** *[rank][=5]*
+
+|参数|可选|描述|
+|-|-|-|
+|*rank*|是|限定*il2cpp*类型实例显示数量|
+
+stat按照*il2cpp*类型为分组，列举每个类型内存占用前*rank*名的实例对象信息，按照类型总内存从小到大排序。
+
+    /> stat
+    ┌────────────────────────────────────────
+    │ [System.Byte] memory=2 type_index=15
+    │ 0x00000000      1 System.Byte
+    │ 0x00000010      1 System.Byte
+    ├────────────────────────────────────────
+    │ [System.Char] memory=4 type_index=22
+    │ 0x00000000      2 System.Char
+    │ 0x00000008      2 System.Char
+    ├────────────────────────────────────────
+    │ [DG.Tweening.LogBehaviour] memory=4 type_index=1195
+    │ 0x00000008      4 DG.Tweening.LogBehaviour
+    ├────────────────────────────────────────
+    │ [LogSeverity] memory=4 type_index=2103
+    │ 0x0000002c      4 LogSeverity
+    ├────────────────────────────────────────
+    │ [TheNextMoba.Module.Arena.ArenaPlayMode] memory=4 type_index=2199
+    │ 0x00000004      4 TheNextMoba.Module.Arena.ArenaPlayMode
+
 ### ustat
+
+**ustat** *[rank][=5]*
+
+|参数|可选|描述|
+|-|-|-|
+|*rank*|是|限定*native*引擎类型实例显示数量|
+
+ustat按照*native*引擎类型为分组，列举每个类型内存占用前*rank*名的实例对象信息，按照类型总内存从小到大排序。
+
+    /> ustat
+    ┌────────────────────────────────────────
+    │ [Texture2DArray] memory=4 type_index=170
+    │ 0xc8384a50       4 'UnityDefault2DArray'
+    ├────────────────────────────────────────
+    │ [NavMeshSettings] memory=48 type_index=200
+    │ 0xc9920c10      48 'NavMeshSettings'
+    ├────────────────────────────────────────
+    │ [GUILayer] memory=52 type_index=42
+    │ 0xcdbd5060      52 'UICamera'
+    ├────────────────────────────────────────
+    │ [DelayedCallManager] memory=76 type_index=179
+    │ 0xcdab4ea0      76 'DelayedCallManager'
+    ├────────────────────────────────────────
+    │ [MeshFilter] memory=104 type_index=94
+    │ 0xc4abe8c0      52 'glow'
+    │ 0xbb61b9e0      52 'glow'
+
 ### list
+
+**list** *[type_ref]*
+
+|参数|可选|描述|
+|-|-|-|
+|*type_ref*|**否**|*il2cpp*类型引用|
+
+list列举*type_ref*指定*il2cpp*类型的所有实例对象信息，该命令的结果受*track*设置影响。
+
+    /> list 2904
+    [dataconfig.BAG_ITEM_CONF[]][=] memory=288
+    0xebb91360       16 dataconfig.BAG_ITEM_CONF[]
+    0xebb8d260      272 dataconfig.BAG_ITEM_CONF[]
+    [SUMMARY] count=2 memory=288
+
 ### ulist
+
+**ulist** *[type_ref]*
+
+|参数|可选|描述|
+|-|-|-|
+|*type_ref*|**否**|排行榜数量|
+
+ulist列举*type_ref*指定*native*引擎类型的所有实例对象信息，该命令的结果受*track*设置影响。
+
+    /> ulist 156
+    [TextAsset][=] memory=1090701
+    0xce55af30      113 'dataconfig_mode_sub_type_conf'
+    0xce559b80      519 'dataconfig_msg_language_conf'
+    0xce55ac20   103555 'ja_JP_language'
+    0xce55aa60   125146 'en_US_language'
+    0xce5598e0   128359 'ru_RU_language'
+    0xce557ce0   140676 'zh_Hant_TW_language'
+    0xb1584010   592333 'zh_Hans_CN_language'
+    [SUMMARY] count=7 memory=1090701
+
 ### bar
+
+**bar** *[rank]*
+
+|参数|可选|描述|
+|-|-|-|
+|*rank*|**否**|排行榜数量|
+
+bar按照*il2cpp*类型进行内存统计，并打印前*rank*的类型内存分配信息，该命令的结果受*track*设置影响。
+
+```
+/> bar 5
+ 21.73  21.73 ██████████████████████ System.String 1523764 #17554 *23
+ 16.35  38.08 ████████████████ UnityEngine.UIVertex[] 1146656 #473 *2742
+ 16.24  54.32 ████████████████ UnityEngine.UIVertex 1139164 #14989 *537
+  5.95  60.26 ██████ UnityEngine.Vector3 416952 #34746 *442
+  4.70  64.96 █████ translation_protocol.LocalizedItem 329420 #11765 *1614
+```
+
+第一列为当前类型占用总内存的百分比，第二列为排行榜累积百分比，第三列为类型名，第四列为类型占用内存字节数，以#开头的第五列为当前类型的实例数量，以星号\*开头的数字为类型引用。
+
 ### ubar
+
+**ubar** *[rank]*
+
+|参数|可选|描述|
+|-|-|-|
+|*rank*|**否**|排行榜数量|
+
+ubar按照*native*引擎类型进行内存统计，并打印前*rank*的类型内存分配信息，该命令的结果受*track*设置影响。
+
+```
+/> ubar 5
+ 41.18  41.18 █████████████████████████████████████████ Font 16161642 #9 *132
+ 34.08  75.26 ██████████████████████████████████ Texture2D 13373919 #133 *168
+ 11.94  87.20 ████████████ ResourceManager 4683935 #1 *191
+  2.78  89.97 ███ TextAsset 1090701 #7 *156
+  2.56  92.54 ███ MonoBehaviour 1005039 #2102 *63
+```
+
+第一列为当前类型占用总内存的百分比，第二列为排行榜累积百分比，第三列为类型名，第四列为类型占用内存字节数，以#开头的第五列为当前类型的实例数量，以星号\*开头的数字为类型引用。
+
 ### heap
+
+显示当前堆内存信息。
+\
+\
+![](figures/heap.png)
+\
+
 ### save
+
+把当前内存快照的分析结果保存为*sqlite*格式。
+
+```
+/> save
+[0] SnapshotCrawlerCache=222266990
+    [1] SnapshotCrawlerCache::save=222263272
+        [2] open=6161533
+        [3] create_native_types=1428120
+        [4] create_native_objects=1240330
+        [5] create_managed_types=851252
+        [6] create_type_fields=1380078
+        [7] create_objects=832663
+        [8] insert_native_types=2176337
+        [9] insert_native_objects=12473052
+        [10] insert_managed_types=18660698
+        [11] remove_redundants=35515270
+        [12] insert_objects=114539829
+        [13] insert_vm=1615608
+        [14] insert_strings=24375049
+```
+
 ### uuid
+
+显示当前内存快照的唯一标识符。
+
+    /> uuid
+    4da88f70-5539-a848-afae-bef6c93fd7f4
+
 ### help
+
+显示帮助。
+
+```
+/> help
+ read [UUID]* 读取以sqlite3保存的内存快照缓存
+ load [PMS_FILE_PATH]* 加载内存快照文件
+track [alloc|leak] 追踪内存增长以及泄露问题
+  str [ADDRESS]* 解析地址对应的字符串内容
+  ref [ADDRESS]* 列举保持IL2CPP对象内存活跃的引用关系
+ uref [ADDRESS]* 列举保持引擎对象内存活跃的引用关系
+  REF [ADDRESS]* 列举保持IL2CPP对象内存活跃的全量引用关系
+ UREF [ADDRESS]* 列举保持引擎对象内存活跃的全量引用关系
+ kref [ADDRESS]* 列举保持IL2CPP对象内存活跃的引用关系并剔除干扰项
+ukref [ADDRESS]* 列举保持引擎对象内存活跃的引用关系并剔除干扰项
+ KREF [ADDRESS]* 列举保持IL2CPP对象内存活跃的全量引用关系并剔除干扰项
+UKREF [ADDRESS]* 列举保持引擎对象内存活跃的全量引用关系并剔除干扰项
+ link [ADDRESS]* 查看与IL2CPP对象链接的引擎对象
+ulink [ADDRESS]* 查看与引擎对象链接的IL2CPP对象
+ show [ADDRESS]* 查看IL2CPP对象内存排布以及变量值
+ushow [ADDRESS]* 查看引擎对象内部的引用关系
+ find [ADDRESS]* 查找IL2CPP对象
+ufind [ADDRESS]* 查找引擎对象
+ type [TYPE_INDEX]* 查看IL2CPP类型信息
+utype [TYPE_INDEX]* 查看引擎类型信息
+ stat [RANK] 按类型输出IL2CPP对象内存占用前RANK名的简报[支持内存追踪过滤]
+ustat [RANK] 按类型输出引擎对象内存占用前RANK名的简报[支持内存追踪过滤]
+  bar [RANK] 输出IL2CPP类型内存占用前RANK名图形简报[支持内存追踪过滤]
+ ubar [RANK] 输出引擎类型内存占用前RANK名图形简报[支持内存追踪过滤]
+ list 列举IL2CPP类型所有活跃对象内存占用简报[支持内存追踪过滤]
+ulist 列举引擎类型所有活跃对象内存占用简报[支持内存追踪过滤]
+ heap [RANK] 输出动态内存简报
+ save 把当前内存快照分析结果以sqlite3格式保存到本机
+ uuid 查看内存快照UUID
+ help 帮助
+ quit 退出
+ ```
+
 ### quit
 
+退出当前内存快照分析。
+
 ## 使用案例
-### 检视内存对象
 ### 追踪内存增长
 ### 追踪内存泄漏
 ### 优化Mono内存
