@@ -48,11 +48,11 @@ Unity还提供另外一个内存分析工具MemoryProfiler(图\ref{mp})
 \
 ![MemoryProfiler项目代码更新状态\label{cm}](figures/bitbucket-cm.png)\
 
-有热心开发者也忍受不了*Unity*这缓慢的更新节奏，干脆自己动手基于源码在[github](https://github.com/GameBuildingBlocks/PerfAssist)上更新优化，并更改了检索的交互方式。
+有热心开发者也忍受不了*Unity*这缓慢的更新节奏，干脆自己动手基于源码在[*github*](https://github.com/GameBuildingBlocks/PerfAssist)上进行优化。
 \
 ![PerfAssist新增特性\label{pf}](figures/perf-assist.png)\
 
-不过这也只是在*MemoryProfiler*的基础上有比较大的更新，主要是增加检索的便利性以及内存快照对比，使用起来比*MemoryProfiler*初代产品方便了不少，但是由于交互界面的限制，也无法完整展示内存引用关系，内存分析过程依然异常缓慢，甚至会在分析过程中异常崩溃。
+*PerfAssist*在*MemoryProfiler*源码的基础上做了比较大的更新，主要是增加检索的便利性以及内存快照对比，使用起来比*MemoryProfiler*初代产品方便了不少，但是由于交互界面的限制，也无法完整展示内存引用关系，内存分析过程依然异常缓慢，甚至会在分析过程中异常崩溃。
 \
 ![内存分析过程中崩溃\label{crash}](figures/crash.png)
 \
