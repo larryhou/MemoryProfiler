@@ -10,6 +10,7 @@
 #define types_h
 #include <ios>
 #include <string>
+#include <cassert>
 
 using byte_t = unsigned char;
 using address_t = int64_t;

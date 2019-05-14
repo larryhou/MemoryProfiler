@@ -10,8 +10,8 @@
 #define cache_h
 
 #include <stdio.h>
-#include <sqlite3.h>
 #include <new>
+#include "sqlite3.h"
 #include "crawler.h"
 #include "perf.h"
 

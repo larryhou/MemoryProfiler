@@ -14,6 +14,7 @@
 
 #include <stdio.h>
 #include <math.h>
+#include <functional>
 
 template <class T>
 class Statistics

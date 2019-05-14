@@ -8,3 +8,7 @@
 xcuserdata
 __*
 
+bin/
+build/
+
+!CMakeLists.txt

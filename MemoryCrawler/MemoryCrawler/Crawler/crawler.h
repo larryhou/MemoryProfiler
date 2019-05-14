@@ -16,6 +16,7 @@
 #include <vector>
 #include <map>
 #include <unordered_map>
+#include <functional>
 #include "snapshot.h"
 #include "heap.h"
 #include "perf.h"

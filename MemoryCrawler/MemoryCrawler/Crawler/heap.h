@@ -9,6 +9,7 @@
 #ifndef heap_h
 #define heap_h
 
+#include <cstring>
 #include "types.h"
 #include "snapshot.h"
 

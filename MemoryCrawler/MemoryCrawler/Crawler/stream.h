@@ -9,9 +9,12 @@
 #ifndef stream_h
 #define stream_h
 
+#include <ios>
+#include <iostream>
 #include <fstream>
 #include <string>
 #include <streambuf>
+#include <functional>
 #include "types.h"
 
 using std::string;

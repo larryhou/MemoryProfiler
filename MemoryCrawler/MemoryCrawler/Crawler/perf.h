@@ -14,6 +14,7 @@
 #include <vector>
 #include <chrono>
 #include "types.h"
+#include <cstring>
 
 using std::vector;
 using std::string;
