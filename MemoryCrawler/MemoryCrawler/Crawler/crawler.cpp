@@ -1,4 +1,4 @@
-//
+﻿//
 //  crawler.cpp
 //  MemoryCrawler
 //
@@ -594,7 +594,11 @@ const string MemorySnapshotCrawler::getUTFString(address_t address, int32_t &siz
     auto *data = getString(address, size);
     if (data != nullptr)
     {
+#if defined _MSC_VER
+        auto utf = __convertor.to_bytes(reinterpret_cast<const int16_t *>(data));
+#else
         auto utf = __convertor.to_bytes(data);
+#endif
         if (compactMode)
         {
             for (auto iter = utf.begin(); iter != utf.end(); iter++)
@@ -1451,8 +1455,8 @@ void MemorySnapshotCrawler::findNObject(address_t address)
 void MemorySnapshotCrawler::dumpByteArray(const char *data, int32_t size)
 {
     auto iter = data;
-    char str[size * 2 + 1];
-    memset(str, 0, sizeof(str));
+    auto str = new char[size * 2 + 1];
+    memset(str, 0, sizeof(char) * (size * 2 + 1));
     char hex[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
     for (auto i = 0; i < size; i++)
     {
@@ -1462,13 +1466,14 @@ void MemorySnapshotCrawler::dumpByteArray(const char *data, int32_t size)
         iter++;
     }
     printf("%s", str);
+    delete[] str;
 }
 
 void MemorySnapshotCrawler::dumpNObjectHierarchy(PackedNativeUnityEngineObject *no, set<int64_t> antiCircular, const char *indent, int32_t __iter_depth, int32_t __iter_capacity)
 {
     auto __size = strlen(indent);
-    char __indent[__size + 2*3 + 1]; // indent + 2×tabulator + \0
-    memset(__indent, 0, sizeof(__indent));
+    auto __indent = new char[__size + 2*3 + 1]; // indent + 2×tabulator + \0
+    memset(__indent, 0, sizeof(char) * (__size + 2*3 + 1));
     memcpy(__indent, indent, __size);
     char *tabular = __indent + __size;
     memcpy(tabular + 3, "─", 3);
@@ -1504,32 +1509,36 @@ void MemorySnapshotCrawler::dumpNObjectHierarchy(PackedNativeUnityEngineObject *
             
             if (closed)
             {
-                char __nest_indent[__size + 1 + 2 + 1]; // indent + space + 2×space + \0
+                char* __nest_indent = new char[__size + 1 + 2 + 1]; // indent + space + 2×space + \0
                 memcpy(__nest_indent, indent, __size);
                 memset(__nest_indent + __size, '\x20', 3);
                 memset(__nest_indent + __size + 3, 0, 1);
                 dumpNObjectHierarchy(&no, __antiCircular, __nest_indent, __iter_depth + 1, __iter_capacity * toCount);
+                delete[] __nest_indent;
             }
             else
             {
-                char __nest_indent[__size + 3 + 2 + 1]; // indent + tabulator + 2×space + \0
+                char* __nest_indent = new char[__size + 3 + 2 + 1]; // indent + tabulator + 2×space + \0
                 char *iter = __nest_indent + __size;
                 memcpy(__nest_indent, indent, __size);
                 memcpy(iter, "│", 3);
                 memset(iter + 3, '\x20', 2);
                 memset(iter + 5, 0, 1);
                 dumpNObjectHierarchy(&no, __antiCircular, __nest_indent, __iter_depth + 1, __iter_capacity * toCount);
+                delete[] __nest_indent;
             }
         }
     }
+
+    delete[] __indent;
 }
 
 void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescription *type,
                                                  set<int64_t> antiCircular, bool isActualType, const char *indent, int32_t __iter_depth)
 {
     auto __size = strlen(indent);
-    char __indent[__size + 2*3 + 1]; // indent + 2×tabulator + \0
-    memset(__indent, 0, sizeof(__indent));
+    char* __indent = new char[__size + 2*3 + 1]; // indent + 2×tabulator + \0
+    memset(__indent, 0, sizeof(char) * (__size + 2*3 + 1));
     memcpy(__indent, indent, __size);
     char *tabular = __indent + __size;
     memcpy(tabular + 3, "─", 3);
@@ -1615,23 +1624,27 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
             printf("\n");
             if (closed)
             {
-                char __nest_indent[__size + 1 + 2 + 1]; // indent + space + 2×space + \0
+                char* __nest_indent = new char[__size + 1 + 2 + 1]; // indent + space + 2×space + \0
                 memcpy(__nest_indent, indent, __size);
                 memset(__nest_indent + __size, '\x20', 3);
                 memset(__nest_indent + __size + 3, 0, 1);
                 dumpMObjectHierarchy(elementAddress, elementType, __antiCircular, true, __nest_indent, __iter_depth + 1);
+                delete[] __nest_indent;
             }
             else
             {
-                char __nest_indent[__size + 3 + 2 + 1]; // indent + tabulator + 2×space + \0
+                char* __nest_indent = new char[__size + 3 + 2 + 1]; // indent + tabulator + 2×space + \0
                 char *iter = __nest_indent + __size;
                 memcpy(__nest_indent, indent, __size);
                 memcpy(iter, "│", 3);
                 memset(iter + 3, '\x20', 2);
                 memset(iter + 5, 0, 1);
                 dumpMObjectHierarchy(elementAddress, elementType, __antiCircular, true, __nest_indent, __iter_depth + 1);
+                delete[] __nest_indent;
             }
         }
+
+        delete[] __indent;
         
         return;
     }
@@ -1729,21 +1742,23 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
             
             if (closed)
             {
-                char __nest_indent[__size + 1 + 2 + 1]; // indent + space + 2×space + \0
+                char* __nest_indent = new char[__size + 1 + 2 + 1]; // indent + space + 2×space + \0
                 memcpy(__nest_indent, __indent, __size);
                 memset(__nest_indent + __size, '\x20', 3);
                 memset(__nest_indent + __size + 3, 0, 1);
                 dumpMObjectHierarchy(fieldAddress, fieldType, __antiCircular, true, __nest_indent, __iter_depth + 1);
+                delete[] __nest_indent;
             }
             else
             {
-                char __nest_indent[__size + 3 + 2 + 1]; // indent + tabulator + 2×space + \0
+                char* __nest_indent = new char[__size + 3 + 2 + 1]; // indent + tabulator + 2×space + \0
                 char *iter = __nest_indent + __size;
                 memcpy(__nest_indent, __indent, __size);
                 memcpy(iter, "│", 3);
                 memset(iter + 3, '\x20', 2);
                 memset(iter + 5, 0, 1);
                 dumpMObjectHierarchy(fieldAddress, fieldType, __antiCircular, true, __nest_indent, __iter_depth + 1);
+                delete[] __nest_indent;
             }
         }
     }

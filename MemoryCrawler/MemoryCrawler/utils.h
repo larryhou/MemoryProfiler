@@ -13,6 +13,7 @@
 #include <vector>
 #include <functional>
 #include <cstring>
+#include <algorithm>
 
 bool strbeg(const char *str, const char *cmp);
 void readCommandOptions(const char *command, std::function<void(std::vector<const char *> &)> callback);

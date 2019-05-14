@@ -1,4 +1,4 @@
-//
+﻿//
 //  main.cpp
 //  MemoryCrawler
 //
@@ -11,7 +11,11 @@
 #include <locale>
 #include <codecvt>
 #include <stdlib.h>
+#if defined _MSC_VER
+#include <direct.h>
+#else 
 #include <sys/stat.h>
+#endif
 #include <fstream>
 #include "Crawler/crawler.h"
 #include "Crawler/cache.h"
@@ -36,7 +40,8 @@ address_t castAddress(const char *v)
     }
 }
 
-#include <unistd.h>
+#include <chrono>
+#include <thread>
 #include <memory>
 using std::ofstream;
 void processRecord(const char * filepath)
@@ -47,7 +52,13 @@ void processRecord(const char * filepath)
     auto filename = basename(filepath);
     
     char cmdpath[128];
+
+#if defined _MSC_VER
+    _mkdir("__commands");
+#else
     mkdir("__commands", 0777);
+#endif
+
     memset(cmdpath, 0, sizeof(cmdpath));
     sprintf(cmdpath, "__commands/%s.mlog", filename);
     delete [] filename;
@@ -76,7 +87,8 @@ void processRecord(const char * filepath)
                 replaying = false;
             }
             stream->clear();
-            replaying ? usleep(500000) : usleep(100000);
+            replaying ? std::this_thread::sleep_for(std::chrono::microseconds(500000)) 
+            : std::this_thread::sleep_for(std::chrono::microseconds(100000));
         }
         
         if (replaying)
@@ -85,7 +97,7 @@ void processRecord(const char * filepath)
             while (iter != input.end())
             {
                 cout << *iter++ << std::flush;
-                usleep(50000);
+                std::this_thread::sleep_for(std::chrono::microseconds(50000));
             }
             cout << endl;
         }
@@ -464,14 +476,22 @@ void processRecord(const char * filepath)
         {
             readCommandOptions(command, [&](std::vector<const char *> options)
                                {
+#if defined _MSC_VER
+                                   std::wstring_convert<std::codecvt_utf8<int16_t>, int16_t> convertor;
+#else
                                    std::wstring_convert<std::codecvt_utf8<char16_t>, char16_t> convertor;
+#endif
                                    for (auto i = 1; i < options.size(); i++)
                                    {
                                        auto address = castAddress(options[i]);
                                        int32_t size = 0;
                                        auto data = mainCrawler.getString(address, size);
                                        if (data == nullptr) {continue;}
+#if defined _MSC_VER
+                                       printf("0x%08llx %d \e[32m'%s'\n", address, size, convertor.to_bytes(reinterpret_cast<const int16_t *>(data)).c_str());
+#else
                                        printf("0x%08llx %d \e[32m'%s'\n", address, size, convertor.to_bytes(data).c_str());
+#endif
                                    }
                                });
         }

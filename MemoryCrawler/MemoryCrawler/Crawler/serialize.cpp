@@ -30,7 +30,11 @@ PackedMemorySnapshot &MemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
     }
     else
     {
+#if defined _MSC_VER
+        __fs->seek(0, std::ios::beg);
+#else
         __fs->seek(0, seekdir_t::beg);
+#endif
     }
     
     __sampler.begin("read_header");

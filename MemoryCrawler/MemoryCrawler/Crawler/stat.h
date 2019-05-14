@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <functional>
+#include <algorithm>
 
 template <class T>
 class Statistics

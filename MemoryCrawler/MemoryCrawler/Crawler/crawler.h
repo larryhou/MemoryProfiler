@@ -17,6 +17,7 @@
 #include <map>
 #include <unordered_map>
 #include <functional>
+#include <algorithm>
 #include "snapshot.h"
 #include "heap.h"
 #include "perf.h"
@@ -109,8 +110,12 @@ private:
     HeapMemoryReader *__memoryReader;
     StaticMemoryReader *__staticMemoryReader;
     VirtualMachineInformation *__vm;
-    
+
+#if defined _MSC_VER
+    std::wstring_convert<std::codecvt_utf8<int16_t>, int16_t> __convertor;
+#else
     std::wstring_convert<std::codecvt_utf8<char16_t>, char16_t> __convertor;
+#endif
     
     TimeSampler<std::nano> __sampler;
     address_t *__mirror = nullptr;

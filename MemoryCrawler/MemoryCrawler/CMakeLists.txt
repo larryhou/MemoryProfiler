@@ -1,6 +1,6 @@
 aux_source_directory(. SRC_FILES)
 
-file(GLOB PROJ_HEADERS "*.h")
+file(GLOB PROJ_HEADERS "*.h" "./Crawler/*.h")
 
 source_group("Headers" FILES ${PROJ_HEADERS})
 

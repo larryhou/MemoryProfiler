@@ -7,7 +7,11 @@
 //
 
 #include "cache.h"
+#if defined _MSC_VER
+#include <direct.h>
+#else 
 #include <sys/stat.h>
+#endif
 #include <string>
 
 SnapshotCrawlerCache::SnapshotCrawlerCache()
@@ -566,7 +570,12 @@ void SnapshotCrawlerCache::save(MemorySnapshotCrawler &crawler)
     if (crawler.snapshot.uuid == string()) {return;}
     
     __sampler.begin("SnapshotCrawlerCache::save");
+
+#if defined _MSC_VER
+    _mkdir(__workspace);
+#else
     mkdir(__workspace, 0777);
+#endif
     
     char filepath[64];
     sprintf(filepath, "%s/%s.db", __workspace, crawler.snapshot.uuid.c_str());

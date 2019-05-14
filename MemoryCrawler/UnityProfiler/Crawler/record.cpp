@@ -1,4 +1,4 @@
-//
+﻿//
 //  record.cpp
 //  UnityProfiler
 //
@@ -28,9 +28,13 @@ void RecordCrawler::load(const char *filepath)
     __dataOffset = __fs.tell();
     
     readStrings();
-    
+
+#if defined _MSC_VER
+    __fs.seek(__dataOffset, std::ios::beg);
+#else
     __fs.seek(__dataOffset, seekdir_t::beg);
-    
+#endif
+
     crawl();
     
     __sampler.end();
@@ -158,7 +162,12 @@ void RecordCrawler::findFramesWithFPS(float fps, std::function<bool (float, floa
 void RecordCrawler::iterateSamples(std::function<void (int32_t, StackSample &)> callback, bool clearProgress)
 {
     auto &frame = __frames[__lowerFrameIndex - std::get<0>(__range)];
+    
+#if defined _MSC_VER
+    __fs.seek(frame.offset, std::ios::beg);
+#else
     __fs.seek(frame.offset, seekdir_t::beg);
+#endif
     
     auto frameCount = __upperFrameIndex - __lowerFrameIndex;
     
@@ -342,7 +351,12 @@ void RecordCrawler::findFramesWithAlloc(int32_t frameOffset, int32_t frameCount)
     
     auto baseIndex = std::get<0>(__range);
     auto frameIndex = __lowerFrameIndex + frameOffset;
+
+#if defined _MSC_VER
+    __fs.seek(__frames[frameIndex - baseIndex].offset, std::ios::beg);
+#else
     __fs.seek(__frames[frameIndex - baseIndex].offset, seekdir_t::beg);
+#endif
     
     int32_t iterCount = 0;
     
@@ -403,7 +417,13 @@ void RecordCrawler::readStrings()
 {
     __sampler.begin("RecordCrawler::loadStrings");
     __sampler.begin("seek");
+
+#if defined _MSC_VER
+    __fs.seek(__strOffset, std::ios::beg);
+#else
     __fs.seek(__strOffset, seekdir_t::beg);
+#endif
+    
     __sampler.end();
     __sampler.begin("read");
     auto count = __fs.readUInt32();
@@ -500,7 +520,12 @@ void RecordCrawler::inspectFrame(int32_t frameIndex, int32_t depth)
     
     auto &frame = __frames[__cursor - std::get<0>(__range)];
     
+#if defined _MSC_VER
+    __fs.seek(frame.offset + 12 + __statsize, std::ios::beg);
+#else
     __fs.seek(frame.offset + 12 + __statsize, seekdir_t::beg);
+#endif
+
     readFrameSamples([&](auto &samples, auto &relations)
               {
                   int32_t alloc = 0;
@@ -535,8 +560,8 @@ void RecordCrawler::inspectFrame(int32_t frameIndex, int32_t depth)
 void RecordCrawler::dumpFrameStacks(int32_t entity, std::vector<StackSample> &samples, std::map<int32_t, std::vector<int32_t> > &relations, const float totalTime, const int32_t depth, const char *indent, const int32_t __depth)
 {
     auto __size = strlen(indent);
-    char __indent[__size + 2*3 + 1]; // indent + 2×tabulator + \0
-    memset(__indent, 0, sizeof(__indent));
+    char* __indent = new char[__size + 2*3 + 1]; // indent + 2×tabulator + \0
+    memset(__indent, 0, sizeof(char) * (__size + 2*3 + 1));
     memcpy(__indent, indent, __size);
     char *tabular = __indent + __size;
     memcpy(tabular + 3, "─", 3);
@@ -561,7 +586,7 @@ void RecordCrawler::dumpFrameStacks(int32_t entity, std::vector<StackSample> &sa
             
             if (closed)
             {
-                char __nest_indent[__size + 1 + 2 + 1]; // indent + space + 2×space + \0
+                char* __nest_indent = new char[__size + 1 + 2 + 1]; // indent + space + 2×space + \0
                 memcpy(__nest_indent, indent, __size);
                 memset(__nest_indent + __size, '\x20', 3);
                 memset(__nest_indent + __size + 3, 0, 1);
@@ -569,10 +594,11 @@ void RecordCrawler::dumpFrameStacks(int32_t entity, std::vector<StackSample> &sa
                 {
                     dumpFrameStacks(*i, samples, relations, s.totalTime, depth, __nest_indent, __depth + 1);
                 }
+                delete[] __nest_indent;
             }
             else
             {
-                char __nest_indent[__size + 3 + 2 + 1]; // indent + tabulator + 2×space + \0
+                char* __nest_indent = new char[__size + 3 + 2 + 1]; // indent + tabulator + 2×space + \0
                 char *iter = __nest_indent + __size;
                 memcpy(__nest_indent, indent, __size);
                 memcpy(iter, "│", 3);
@@ -582,9 +608,12 @@ void RecordCrawler::dumpFrameStacks(int32_t entity, std::vector<StackSample> &sa
                 {
                     dumpFrameStacks(*i, samples, relations, s.totalTime, depth, __nest_indent, __depth + 1);
                 }
+                delete[] __nest_indent;
             }
         }
     }
+
+    delete[] __indent;
 }
 
 void RecordCrawler::dumpMetadatas()
