@@ -1020,6 +1020,86 @@ int32_t MemorySnapshotCrawler::findTypeOfAddress(address_t address)
     return findTypeAtTypeAddress(typePtr);
 }
 
+void MemorySnapshotCrawler::dumpRedundants(int32_t typeIndex)
+{
+    auto &type = snapshot.typeDescriptions->items[typeIndex];
+    
+    map<size_t, vector<int32_t>> stats;
+    for (auto i = 0; i < managedObjects.size(); i++)
+    {
+        auto &mo = managedObjects[i];
+        if (mo.typeIndex == typeIndex)
+        {
+            auto *data = __memoryReader->readMemory(mo.address);
+            
+            size_t hash = 0;
+            if (type.isValueType)
+            {
+                 hash = __hash.get(data + __vm->objectHeaderSize, mo.size);
+            }
+            else
+            {
+                hash = __hash.get(data, mo.size);
+            }
+            
+            auto match = stats.find(hash);
+            if (match == stats.end())
+            {
+                match = stats.insert(pair<size_t, vector<int32_t>>(hash, vector<int32_t>())).first;
+            }
+            
+            match->second.push_back(mo.managedObjectIndex);
+        }
+    }
+    
+    map<size_t, int32_t> memory;
+    vector<size_t> target;
+    
+    printf("%s typeIndex=%d instanceCount=%d instanceMemory=%d\n", type.name->c_str(), typeIndex, type.instanceCount, type.instanceMemory);
+    for (auto iter = stats.begin(); iter != stats.end(); iter++)
+    {
+        auto &children = iter->second;
+        if (children.size() == 1) {continue;}
+        
+        auto total = 0;
+        for (auto n = children.begin(); n != children.end(); n++)
+        {
+            auto &mo = managedObjects[*n];
+            total += mo.size;
+        }
+        
+        memory.insert(pair<size_t, int32_t>(iter->first, total));
+        target.push_back(iter->first);
+    }
+    
+    std::sort(target.begin(), target.end(), [&](size_t a, size_t b)
+              {
+                  auto ma = memory.at(a);
+                  auto mb = memory.at(b);
+                  if (ma != mb) { return ma > mb; }
+                  return a > b;
+              });
+    auto isString = type.typeIndex == snapshot.managedTypeIndex.system_String;
+    for (auto iter = target.begin(); iter != target.end(); iter++)
+    {
+        auto hash = *iter;
+        auto &children = stats.at(hash);
+        printf("\e[36m%8d #%-2d", memory.at(hash), (int32_t)children.size());
+        
+        bool extraComplate = false;
+        for (auto n= children.begin(); n != children.end(); n++)
+        {
+            auto &mo = managedObjects[*n];
+            auto size = 0;
+            if (!extraComplate && isString) {printf(" \e[32m'%s'", getUTFString(mo.address, size, true).c_str());}
+            printf(" \e[33m0x%08llx", mo.address);
+            if (type.isArray) {printf(":%d", mo.size);}
+            extraComplate = true;
+        }
+        printf("\n");
+    }
+}
+
 address_t MemorySnapshotCrawler::findMObjectOfNObject(address_t address)
 {
     if (address == 0){return -1;}
