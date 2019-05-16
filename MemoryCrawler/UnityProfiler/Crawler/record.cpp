@@ -108,22 +108,38 @@ void RecordCrawler::lock(int32_t frameIndex, int32_t frameCount)
     printf("frames=[%d, %d)\n", __lowerFrameIndex, __upperFrameIndex);
 }
 
-void RecordCrawler::summarize()
+void RecordCrawler::summarize(bool rangeEnabled)
 {
-    Statistics<float> fps;
-    for (auto i = 0; i < __frames.size(); i++)
+    if (rangeEnabled)
     {
-        auto &frame = __frames[i];
-        fps.collect(frame.fps);
+        Statistics<float> fps;
+        auto baseIndex = std::get<0>(__range);
+        for (auto i = __lowerFrameIndex; i < __upperFrameIndex; i++)
+        {
+            auto &frame = __frames[i - baseIndex];
+            fps.collect(frame.fps);
+        }
+        
+        fps.summarize();
+        printf("frames=[%d, %d)=%d fps=%.1f±%.1f range=[%.1f, %.1f] reasonable=[%.1f, %.1f]\n", __lowerFrameIndex, __upperFrameIndex, __upperFrameIndex - __lowerFrameIndex, fps.mean, 3 * fps.standardDeviation, fps.minimum, fps.maximum, fps.reasonableMinimum, fps.reasonableMaximum);
     }
-    
-    fps.summarize();
-    
-    auto f = (double)__startTime * 1E-6;
-    auto t = (double)__stopTime * 1E-6;
-    auto lower = std::get<0>(__range);
-    auto upper = std::get<1>(__range);
-    printf("frames=[%d, %d)=%d elapse=(%.3f, %.3f)=%.3fs fps=%.1f±%.3f=[%.1f, %.1f]\n", lower, upper, upper - lower, f, t, t - f, fps.mean, fps.sd, fps.min, fps.max);
+    else
+    {
+        Statistics<float> fps;
+        for (auto i = 0; i < __frames.size(); i++)
+        {
+            auto &frame = __frames[i];
+            fps.collect(frame.fps);
+        }
+        
+        fps.summarize();
+        
+        auto f = (double)__startTime * 1E-6;
+        auto t = (double)__stopTime * 1E-6;
+        auto lower = std::get<0>(__range);
+        auto upper = std::get<1>(__range);
+        printf("frames=[%d, %d)=%d elapse=(%.3f, %.3f)=%.3fs fps=%.1f±%.1f range=[%.1f, %.1f] reasonable=[%.1f, %.1f]\n", lower, upper, upper - lower, f, t, t - f, fps.mean, 3 * fps.standardDeviation, fps.minimum, fps.maximum, fps.reasonableMinimum, fps.reasonableMaximum);
+    }
 }
 
 void RecordCrawler::findFramesWithFPS(float fps, std::function<bool (float, float)> predicate)
@@ -142,8 +158,8 @@ void RecordCrawler::findFramesWithFPS(float fps, std::function<bool (float, floa
 void RecordCrawler::iterateSamples(std::function<void (int32_t, StackSample &)> callback, bool clearProgress)
 {
     auto &frame = __frames[__lowerFrameIndex - std::get<0>(__range)];
-    
     __fs.seek(frame.offset, seekdir_t::beg);
+    
     auto frameCount = __upperFrameIndex - __lowerFrameIndex;
     
     int32_t iterCount = 0;
@@ -224,7 +240,7 @@ void RecordCrawler::statByFunction(int32_t rank)
     
     char header[8];
     memset(header, 0, sizeof(header));
-    sprintf(header, " %%-%ds", width.opt_max);
+    sprintf(header, " %%-%ds", width.reasonableMaximum);
     
     for (auto i = 0; i < functions.size(); i++)
     {
@@ -308,24 +324,25 @@ void RecordCrawler::statValues(ProfilerArea area, int32_t property)
     stats.summarize();
     
     printf("[%s][%s]", __names[area].c_str(), __metadatas.at(area)[property].c_str());
-    printf(" mean=%.3f±%.3f min=%.0f max=%.0f\n", stats.mean, stats.sd, stats.min, stats.max);
+    printf(" mean=%.3f±%.3f range=[%.0f, %.0f] reasonable=[%.0f, %.0f]\n", stats.mean, stats.standardDeviation, stats.minimum, stats.maximum, stats.reasonableMinimum, stats.reasonableMaximum);
 }
 
-void RecordCrawler::findFramesWithAlloc(int32_t frameIndex, int32_t frameCount)
+void RecordCrawler::findFramesWithAlloc(int32_t frameOffset, int32_t frameCount)
 {
-    auto baseIndex = std::get<0>(__range);
-    if (frameIndex >= __lowerFrameIndex && frameIndex < __upperFrameIndex)
+    if (frameOffset < 0) {frameOffset = 0;}
+    if (frameCount <= 0)
     {
-        __fs.seek(__frames[frameIndex - baseIndex].offset, seekdir_t::beg);
-        frameCount = frameCount > 0 ? std::min(__upperFrameIndex - frameIndex, frameCount) : (__upperFrameIndex - frameIndex);
+        frameCount = __upperFrameIndex - __lowerFrameIndex;
     }
     else
     {
-        __fs.seek(__frames[__lowerFrameIndex - baseIndex].offset, seekdir_t::beg);
-        frameCount = __upperFrameIndex - __lowerFrameIndex;
-        frameIndex = __lowerFrameIndex;
+        frameCount = std::min(frameCount, __upperFrameIndex - __lowerFrameIndex);
     }
     if (frameCount == 0) {return;}
+    
+    auto baseIndex = std::get<0>(__range);
+    auto frameIndex = __lowerFrameIndex + frameOffset;
+    __fs.seek(__frames[frameIndex - baseIndex].offset, seekdir_t::beg);
     
     int32_t iterCount = 0;
     
@@ -373,7 +390,7 @@ void RecordCrawler::findFramesWithAlloc(int32_t frameIndex, int32_t frameCount)
         
         if (iterCount >= frameCount) {break;}
     }
-    printf("\n");
+    printf("\r");
     
     for (auto iter = frames.begin(); iter != frames.end(); iter++)
     {
@@ -475,7 +492,7 @@ void RecordCrawler::readFrameSamples(std::function<void (std::vector<StackSample
     completion(samples, relations);
 }
 
-void RecordCrawler::inspectFrame(int32_t frameIndex)
+void RecordCrawler::inspectFrame(int32_t frameIndex, int32_t depth)
 {
     if (frameIndex <  std::get<0>(__range)) {return;}
     if (frameIndex >= std::get<1>(__range)) {return;}
@@ -496,7 +513,7 @@ void RecordCrawler::inspectFrame(int32_t frameIndex)
                       }
                   }
                   printf("[FRAME] index=%d time=%.3fms fps=%.1f alloc=%d offset=%d\n", frame.index, frame.time, frame.fps, alloc, frame.offset);
-                  dumpFrameStacks(-1, samples, relations, frame.time);
+                  dumpFrameStacks(-1, samples, relations, frame.time, depth);
               });
     auto &statistics = frame.statistics.graphs;
     for (auto i = 0; i < statistics.size(); i++)
@@ -515,7 +532,7 @@ void RecordCrawler::inspectFrame(int32_t frameIndex)
     }
 }
 
-void RecordCrawler::dumpFrameStacks(int32_t entity, std::vector<StackSample> &samples, std::map<int32_t, std::vector<int32_t> > &relations, const float depthTime, const char *indent)
+void RecordCrawler::dumpFrameStacks(int32_t entity, std::vector<StackSample> &samples, std::map<int32_t, std::vector<int32_t> > &relations, const float totalTime, const int32_t depth, const char *indent, const int32_t __depth)
 {
     auto __size = strlen(indent);
     char __indent[__size + 2*3 + 1]; // indent + 2×tabulator + \0
@@ -536,7 +553,7 @@ void RecordCrawler::dumpFrameStacks(int32_t entity, std::vector<StackSample> &sa
             closed ? memcpy(tabular, "└", 3) : memcpy(tabular, "├", 3);
             auto &s = samples[*i];
             auto &name = __strings[s.nameRef];
-            printf("\e[36m%s%s \e[33mtime=%.3f%%/%.3fms \e[32mself=%.3f%%/%.3fms \e[37mcalls=%d", __indent, name.c_str(), s.totalTime * 100 / depthTime, s.totalTime, s.selfTime * 100/s.totalTime, s.selfTime, s.callsCount);
+            printf("\e[36m%s%s \e[33mtime=%.3f%%/%.3fms \e[32mself=%.3f%%/%.3fms \e[37mcalls=%d", __indent, name.c_str(), s.totalTime * 100 / totalTime, s.totalTime, s.selfTime * 100/s.totalTime, s.selfTime, s.callsCount);
             if (s.gcAllocBytes > 0) {printf(" \e[31malloc=%d", s.gcAllocBytes);}
             printf(" \e[90m*%d\e[0m\n", s.nameRef);
             
@@ -548,7 +565,10 @@ void RecordCrawler::dumpFrameStacks(int32_t entity, std::vector<StackSample> &sa
                 memcpy(__nest_indent, indent, __size);
                 memset(__nest_indent + __size, '\x20', 3);
                 memset(__nest_indent + __size + 3, 0, 1);
-                dumpFrameStacks(*i, samples, relations, s.totalTime, __nest_indent);
+                if (depth <= 0 || __depth + 1 < depth)
+                {
+                    dumpFrameStacks(*i, samples, relations, s.totalTime, depth, __nest_indent, __depth + 1);
+                }
             }
             else
             {
@@ -558,7 +578,10 @@ void RecordCrawler::dumpFrameStacks(int32_t entity, std::vector<StackSample> &sa
                 memcpy(iter, "│", 3);
                 memset(iter + 3, '\x20', 2);
                 memset(iter + 5, 0, 1);
-                dumpFrameStacks(*i, samples, relations, s.totalTime, __nest_indent);
+                if (depth <= 0 || __depth + 1 < depth)
+                {
+                    dumpFrameStacks(*i, samples, relations, s.totalTime, depth, __nest_indent, __depth + 1);
+                }
             }
         }
     }
@@ -579,14 +602,14 @@ void RecordCrawler::dumpMetadatas()
     }
 }
 
-void RecordCrawler::inspectFrame()
+void RecordCrawler::inspectFrame(int32_t depth)
 {
     if (__cursor < __lowerFrameIndex || __cursor >= __upperFrameIndex)
     {
         __cursor = __lowerFrameIndex;
     }
     
-    inspectFrame(__cursor);
+    inspectFrame(__cursor, depth);
 }
 
 void RecordCrawler::next(int32_t step)
@@ -599,29 +622,23 @@ void RecordCrawler::prev(int32_t step)
     inspectFrame(__cursor - step);
 }
 
-void RecordCrawler::list(int32_t frameIndex, int32_t frameCount, int32_t sorting)
+void RecordCrawler::list(int32_t frameOffset, int32_t frameCount, int32_t sorting)
 {
-    if (frameCount < 0)
+    if (frameOffset < 0) {frameOffset = 0;}
+    if (frameCount <= 0)
     {
-        frameIndex += frameCount + 1;
-        frameCount = -frameCount;
-    }
-    
-    if (frameIndex >= __lowerFrameIndex && frameIndex < __upperFrameIndex)
-    {
-        frameCount = frameCount > 0 ? std::min(__upperFrameIndex - frameIndex, frameCount) : (__upperFrameIndex - frameIndex);
+        frameCount = __upperFrameIndex - __lowerFrameIndex;
     }
     else
     {
-        frameCount = __upperFrameIndex - __lowerFrameIndex;
-        frameIndex = __lowerFrameIndex;
+        frameCount = std::min(frameCount, __upperFrameIndex - __lowerFrameIndex);
     }
-    
     if (frameCount == 0) {return;}
     
     std::vector<int32_t> slice;
     
     auto baseIndex = std::get<0>(__range);
+    auto frameIndex = __lowerFrameIndex + frameOffset;
     
     Statistics<float> stats;
     for (auto i = 0; i < frameCount; i++)
@@ -655,13 +672,13 @@ void RecordCrawler::list(int32_t frameIndex, int32_t frameCount, int32_t sorting
         printf("[FRAME] index=%d time=%.3fms fps=%.1f offset=%d\n", frame.index, frame.time, frame.fps, frame.offset);
     }
     
-    printf("[SUMMARY] fps=%.3f±%.3f[%.1f, %.1f]", stats.mean, stats.sd, stats.min, stats.max);
+    printf("\e[37m[SUMMARY] fps=%.1f±%.1f range=[%.1f, %.1f] reasonable=[%.1f, %.1f]", stats.mean, 3 * stats.standardDeviation, stats.minimum, stats.maximum, stats.reasonableMinimum, stats.reasonableMaximum);
     std::vector<RenderFrame *> excepts;
     for (auto i = 0; i < frameCount; i++)
     {
         auto index = (frameIndex + i) - baseIndex;
         auto &frame = __frames[index];
-        if (frame.fps < stats.min) { excepts.push_back(&frame); }
+        if (frame.fps < stats.minimum) { excepts.push_back(&frame); }
     }
     if (excepts.size() > 0)
     {

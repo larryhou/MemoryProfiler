@@ -75,14 +75,16 @@ void processRecord(const char *filepath)
                                {
                                    if (options.size() == 1)
                                    {
-                                       crawler.inspectFrame();
+                                       crawler.inspectFrame(0);
                                    }
                                    else
                                    {
-                                       for (auto i = 1; i < options.size(); i++)
+                                       int32_t depth = 0;
+                                       if (options.size() >= 3)
                                        {
-                                           crawler.inspectFrame(atoi(options[i]));
+                                           depth = atoi(options[2]);
                                        }
+                                       crawler.inspectFrame(atoi(options[1]), depth);
                                    }
                                });
         }
@@ -116,7 +118,7 @@ void processRecord(const char *filepath)
         }
         else if (strbeg(command, "info"))
         {
-            crawler.summarize();
+            crawler.summarize(false);
         }
         else if (strbeg(command, "alloc"))
         {
@@ -205,7 +207,7 @@ void processRecord(const char *filepath)
                                {
                                    if (options.size() == 1)
                                    {
-                                       crawler.summarize();
+                                       crawler.summarize(true);
                                    }
                                    else
                                    {

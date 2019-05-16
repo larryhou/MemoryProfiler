@@ -1,0 +1,144 @@
+[
+	{
+		"name": "CPU",
+		"list": [
+			"Rendering",
+			"Scripts",
+			"Physics",
+			"GarbageCollector",
+			"VSync",
+			"Global Illumination",
+			"UI",
+			"Others"
+		]
+	},
+	{
+		"name": "GPU",
+		"list": [
+			"Opaque",
+			"Transparent",
+			"Shadows/Depth",
+			"Deferred PrePass",
+			"Deferred Lighting",
+			"PostProcess",
+			"Other"
+		]
+	},
+	{
+		"name": "Rendering",
+		"list": [
+			"Batches",
+			"SetPass Calls",
+			"Triangles",
+			"Vertices"
+		]
+	},
+	{
+		"name": "Memory",
+		"list": [
+			"Total Allocated",
+			"Texture Memory",
+			"Mesh Memory",
+			"Material Count",
+			"Object Count",
+			"Total GC Allocated",
+			"GC Allocated"
+		]
+	},
+	{
+		"name": "Audio",
+		"list": [
+			"Playing Audio Sources",
+			"Audio Voices",
+			"Total Audio CPU",
+			"Total Audio Memory"
+		]
+	},
+	{
+		"name": "Video",
+		"list": [
+			"Total Video Sources",
+			"Playing Video Sources",
+			"Total Video Memory"
+		]
+	},
+	{
+		"name": "Physics",
+		"list": [
+			"Active Dynamic",
+			"Active Kinematic",
+			"Static Colliders",
+			"Rigidbody",
+			"Trigger Overlaps",
+			"Active Constraints",
+			"Contacts"
+		]
+	},
+	{
+		"name": "PhysicsD",
+		"list": [
+			"Total Bodies",
+			"Active Bodies",
+			"Sleeping Bodies",
+			"Dynamic Bodies",
+			"Kinematic Bodies",
+			"Static Bodies",
+			"Contacts",
+			"Step Time"
+		]
+	},
+	{
+		"name": "NetworkMessages",
+		"list": [
+			"Protocol Packets In",
+			"Buffered Msgs In",
+			"Unbuffered Msgs In",
+			"Protocol Packets Out",
+			"Buffered Msgs Out",
+			"Unbuffered Msgs Out",
+			"Pending Buffers"
+		]
+	},
+	{
+		"name": "NetworkOperations",
+		"list": [
+			"Command",
+			"ClientRPC",
+			"SyncVar",
+			"Sync List",
+			"Sync Event",
+			"User Message",
+			"Object Destroy",
+			"Object Create"
+		]
+	},
+	{
+		"name": "UI",
+		"list": [
+			"Layout",
+			"Render"
+		]
+	},
+	{
+		"name": "UIDetails",
+		"list": [
+			"UI Batches",
+			"UI Vertices"
+		]
+	},
+	{
+		"name": "GlobalIllumination",
+		"list": [
+			"Total CPU",
+			"Light Probe",
+			"Setup",
+			"Environment",
+			"Input Lighting",
+			"Systems",
+			"Solve Tasks",
+			"Dynamic Objects",
+			"Other Commands",
+			"Blocked Command Write"
+		]
+	}
+]
