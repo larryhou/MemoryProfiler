@@ -10,12 +10,15 @@
 
 MemorySnapshotCrawler::MemorySnapshotCrawler(const char *filepath)
 {
-    MemorySnapshotReader(filepath).read(snapshot);
+	auto snapShotReader = new MemorySnapshotReader(filepath);
+	snapShotReader->read(snapshot);
     
     __memoryReader = new HeapMemoryReader(snapshot);
     __staticMemoryReader = new StaticMemoryReader(snapshot);
     __vm = &snapshot.virtualMachineInformation;
     debug();
+
+	delete snapShotReader;
 }
 
 MemorySnapshotCrawler::MemorySnapshotCrawler()

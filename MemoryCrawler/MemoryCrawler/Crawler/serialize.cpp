@@ -12,7 +12,8 @@
 MemorySnapshotReader::MemorySnapshotReader(const char *filepath)
 {
     auto size = strlen(filepath);
-    auto buffer = new char[size];
+    auto buffer = new char[size + 1];
+	buffer[size] = '\0';
     std::strcpy(buffer, filepath);
     __filepath = buffer;
 }
@@ -470,6 +471,9 @@ void MemorySnapshotReader::summarize()
 
 MemorySnapshotReader::~MemorySnapshotReader()
 {
-    delete __fs;
-    delete [] __filepath;
+	if (__fs != nullptr)
+		delete __fs;
+
+	if (__filepath != nullptr)
+		delete [] __filepath;
 }
