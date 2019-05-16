@@ -92,10 +92,10 @@ public:
     
     ~FileStream();
 private:
-    std::istream *__is;
-    char *__bytes;
+    std::istream *__is = nullptr;
+    char *__bytes = nullptr;
     char __buf[64*1024];
-    MemoryBuffer *__memory;
+    MemoryBuffer *__memory = nullptr;
     
     template <typename T>
     T readValue(int size, bool reverseEndian);
