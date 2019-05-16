@@ -130,6 +130,8 @@ private:
     
     map<address_t, int32_t> __managedNativeAddressMap;
     map<address_t, int32_t> __nativeManagedAddressMap;
+    
+    HashCaculator __hash;
 
 public:
     MemorySnapshotCrawler();
@@ -151,6 +153,8 @@ public:
     
     void findMObject(address_t address);
     void findNObject(address_t address);
+    
+    void dumpRedundants(int32_t typeIndex);
     
     void inspectMType(int32_t typeIndex);
     void inspectNType(int32_t typeIndex);

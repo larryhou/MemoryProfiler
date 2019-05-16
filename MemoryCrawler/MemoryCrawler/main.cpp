@@ -495,6 +495,20 @@ void processRecord(const char * filepath)
                                    }
                                });
         }
+        else if (strbeg(command, "dup"))
+        {
+            readCommandOptions(command, [&](std::vector<const char *> options)
+                               {
+                                   if (options.size() == 1)
+                                   {
+                                       mainCrawler.dumpRedundants(mainCrawler.snapshot.managedTypeIndex.system_String);
+                                   }
+                                   else
+                                   {
+                                       mainCrawler.dumpRedundants(atoi(options[1]));
+                                   }
+                               });
+        }
         else if (strbeg(command, "quit"))
         {
             recordable = false;
@@ -526,6 +540,7 @@ void processRecord(const char * filepath)
             help("ufind", "[ADDRESS]*", "查找引擎对象", __indent);
             help("type", "[TYPE_INDEX]*", "查看IL2CPP类型信息", __indent);
             help("utype", "[TYPE_INDEX]*", "查看引擎类型信息", __indent);
+            help("dup", "[TYPE_INDEX]", "按指定类型统计相同对象的信息", __indent);
             help("stat", "[RANK]", "按类型输出IL2CPP对象内存占用前RANK名的简报[支持内存追踪过滤]", __indent);
             help("ustat", "[RANK]", "按类型输出引擎对象内存占用前RANK名的简报[支持内存追踪过滤]", __indent);
             help("bar", "[RANK]", "输出IL2CPP类型内存占用前RANK名图形简报[支持内存追踪过滤]", __indent);

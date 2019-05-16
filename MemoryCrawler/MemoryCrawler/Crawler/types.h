@@ -18,6 +18,19 @@ using seekdir_t = std::ios_base::seekdir;
 using unicode_t = std::u16string;
 using std::string;
 
+#include <CommonCrypto/CommonDigest.h>
+
+class HashCaculator
+{
+private:
+    static const char __hex_map[];
+    unsigned char __digest[16];
+    char __hexdigest[33];
+    std::hash<std::string> __hash;
+public:
+    size_t get(const char *data, const CC_LONG size);
+};
+
 template <typename T>
 struct Array
 {
