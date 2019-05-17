@@ -123,12 +123,12 @@ argv[1]=ProfilerCapture/20190514115025_PERF.pfc
 
 1. 集成*UnityEditor*脚本，生成数据捕获菜单。
 把*Editor*目录放到*Unity*工程里面并刷新，之后在*UnityEditor*菜单里面会出现下图所示的菜单。
-![](figures/editor-menu.png)
+![](docs/figures/editor-menu.png)
 
 2. 按照[官方文档](https://docs.unity3d.com/Manual/ProfilerWindow.html)配置真机调试或在*Editor*环境调试。\
 
 3. 启动游戏，在需要性能调试的逻辑开始前点击菜单*性能/捕获快照*。\
-![](figures/mc-cap.png)
+![](docs/figures/mc-cap.png)
 
 4. 启动MemoryCrawler分析性能数据。\
 在步骤3生成的性能数据保存在工程根目录的*MemoryCapture*文件夹里面，执行如下命令开始性能调试会话。\
