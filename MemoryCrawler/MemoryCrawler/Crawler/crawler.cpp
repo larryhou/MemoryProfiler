@@ -1076,8 +1076,10 @@ void MemorySnapshotCrawler::dumpRedundants(int32_t typeIndex)
               {
                   auto ma = memory.at(a);
                   auto mb = memory.at(b);
-                  if (ma != mb) { return ma > mb; }
-                  return a > b;
+                  if (ma != mb) { return ma < mb; }
+                  auto &ca = stats.at(a);
+                  auto &cb = stats.at(b);
+                  return ca.size() < cb.size();
               });
     auto isString = type.typeIndex == snapshot.managedTypeIndex.system_String;
     for (auto iter = target.begin(); iter != target.end(); iter++)
@@ -1093,7 +1095,6 @@ void MemorySnapshotCrawler::dumpRedundants(int32_t typeIndex)
             auto size = 0;
             if (!extraComplate && isString) {printf(" \e[32m'%s'", getUTFString(mo.address, size, true).c_str());}
             printf(" \e[33m0x%08llx", mo.address);
-            if (type.isArray) {printf(":%d", mo.size);}
             extraComplate = true;
         }
         printf("\n");
