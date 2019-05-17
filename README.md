@@ -119,4 +119,74 @@ argv[1]=ProfilerCapture/20190514115025_PERF.pfc
    └─CleanUp.TextRenderingGarbageCollect time=36.620%/0.000ms self=100.000%/0.000ms calls=1 *23
 ```
 
+## MemoryCralwer
+
+1. 集成*UnityEditor*脚本，生成数据捕获菜单。
+把*Editor*目录放到*Unity*工程里面并刷新，之后在*UnityEditor*菜单里面会出现下图所示的菜单。
+![](figures/editor-menu.png)
+
+2. 按照[官方文档](https://docs.unity3d.com/Manual/ProfilerWindow.html)配置真机调试或在*Editor*环境调试。\
+
+3. 启动游戏，在需要性能调试的逻辑开始前点击菜单*性能/捕获快照*。\
+![](figures/mc-cap.png)
+
+4. 启动MemoryCrawler分析性能数据。\
+在步骤3生成的性能数据保存在工程根目录的*MemoryCapture*文件夹里面，执行如下命令开始性能调试会话。\
+
+```
+$ MemoryCrawler MemoryCapture/20190515123633_snapshot.pms 
+argc=2
+argv[0]=MemoryCrawler
+argv[1]=MemoryCapture/20190515123633_snapshot.pms
+[0] MemorySnapshotReader=180766281
+    [1] open_snapshot=78634
+    [2] read_header=687494
+    [3] readPackedMemorySnapshot=177589621
+        [4] read_native_types=367595
+        [5] read_native_objects=2205864
+        [6] read_gc_handles=120789
+        [7] read_connections=731030
+        [8] read_heap_sections=114988169
+        [9] read_type_descriptions=59152770
+        [10] read_virtual_matchine_information=1170
+            [11] read_object=543
+    [12] postSnapshot=2339963
+        [13] create_sorted_heap=31189
+        [14] create_type_strings=6193
+        [15] read_type_index=1887123
+        [16] set_native_type_index=16258
+        [17] set_gchandle_index=12052
+        [18] set_heap_index=236912
+        [19] set_native_object_index=102807
+        [20] summarize_native_objects=40163
+[0] MemorySnapshotCrawler=71546587
+    [1] prepare=2236615
+        [2] init_managed_types=865149
+        [3] init_native_connections=1366118
+    [4] crawlGCHandles=49670327
+    [5] crawlStatic=17748112
+    [6] summarize_managed_objects=1885572
+/> ubar
+ 47.77  47.77 ████████████████████████████████████████████████ RenderTexture 45541440 #4 *217
+ 24.75  72.52 █████████████████████████ Texture2D 23599923 #2107 *220
+ 14.77  87.29 ███████████████ AssetDatabaseV1 14081231 #1 *2
+  7.16  94.45 ███████ Font 6824990 #7 *175
+  1.26  95.70 █ AudioManager 1197311 #1 *231
+  1.14  96.85 █ Shader 1090227 #33 *199
+  1.01  97.85 █ MonoScript 960105 #745 *209
+  0.90  98.75 █ Mesh 856680 #236 *184
+  0.75  99.51 █ AssetBundle 716878 #1 *131
+  0.28  99.78 █ Cubemap 263912 #3 *221
+  0.05  99.84 █ PluginImporter 51603 #75 *147
+  0.04  99.87 █ Material 36040 #35 *182
+  0.04  99.91 █ MonoManager 35536 #1 *240
+  0.02  99.93 █ MonoBehaviour 21235 #52 *66
+  0.01  99.95 █ PlayerSettings 11361 #1 *246
+  0.01  99.95 █ InputManager 7332 #1 *238
+  0.01  99.96 █ Transform 6760 #13 *119
+  0.00  99.97 █ Camera 4704 #2 *22
+  0.00  99.97 █ GameObject 3944 #13 *124
+  0.00  99.97 █ MonoImporter 3696 #7 *144
+```
+
 [下载帮助文档](docs/README.pdf)
