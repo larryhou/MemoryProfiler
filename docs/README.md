@@ -302,8 +302,6 @@ alloc可以在指定的帧区间内搜索所有调用*GC.Alloc*分配内存的�
 ```
 \normalsize
 
-
-
 如果*frame_offset*和*frame_count*留空，alloc将所有可用帧作为参数进行条件搜索。
 
 ### info
