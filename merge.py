@@ -28,6 +28,7 @@ def merge_revision(src_rep, dst_rep, revision):
     for node in data.xpath('//paths/path'):
         kind = node.get('kind') # type: str
         text = node.text # type: str
+        if text.endswith(project): continue
         relpath = text.split(project + '/')[1]
         assert relpath
         if kind == 'file':
