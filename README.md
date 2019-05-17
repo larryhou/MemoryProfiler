@@ -43,7 +43,7 @@ Unity还提供另外一个内存分析工具MemoryProfiler(图\ref{mp})
 
 ## 源码编译
 
-1. 从*github*[下载源码](https://github.com/larryhou/MemoryProfiler)，并使用*Xcode*打开。
+1. 从*github*[下载源码](https://github.com/larryhou/MemoryProfiler)，并使用*Xcode*打开工程*MemoryCrawler/MemoryCrawler.xcodeproj*。
 2. 从*Scheme*列表选择UnityProfiler，然后按快捷键*Comamnd+B*编译，该操作会生成命令行工具*/usr/local/bin/UnityProfiler*。
 3. 从*Scheme*列表选择MemoryCrawler，然后按快捷键*Command+B*编译，该操作会生成命令行工具*/usr/local/bin/MemoryCrawler*。
 
