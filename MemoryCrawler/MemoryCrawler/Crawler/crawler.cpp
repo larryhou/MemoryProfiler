@@ -1079,7 +1079,7 @@ void MemorySnapshotCrawler::dumpRedundants(int32_t typeIndex)
                   if (ma != mb) { return ma < mb; }
                   auto &ca = stats.at(a);
                   auto &cb = stats.at(b);
-                  return ca.size() < cb.size();
+                  return ca.size() > cb.size();
               });
     auto isString = type.typeIndex == snapshot.managedTypeIndex.system_String;
     for (auto iter = target.begin(); iter != target.end(); iter++)
