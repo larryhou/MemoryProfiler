@@ -28,22 +28,17 @@ Unity还提供另外一个内存分析工具MemoryProfiler(图\ref{mp})
 5. 没有按引擎对象内存和*il2cpp*对象内存分类区别统计，加深使用者对内存使用的误解
 
 *MemoryProfiler*[源码](https://bitbucket.org/Unity-Technologies/memoryprofiler)托管在*Bitbucket*，但是从最后提交记录来看，这个内存工具已经超过**2**年半没有任何更新了，但是这期间*Unity*可是发布了好多个版本，想想就有点后怕。
-\
 ![MemoryProfiler项目代码更新状态\label{cm}](docs/figures/bitbucket-cm.png)\
 
 有热心开发者也忍受不了*Unity*这缓慢的更新节奏，干脆自己动手基于源码在[*github*](https://github.com/GameBuildingBlocks/PerfAssist)上建代码仓库进行二次开发。
-\
 ![PerfAssist新增特性\label{pf}](docs/figures/perf-assist.png)\
 
 *PerfAssist*在*MemoryProfiler*源码的基础上做了比较大的更新，主要是增加检索的便利性以及内存快照对比，使用起来比*MemoryProfiler*初代产品方便了不少，但是由于交互界面的限制，也无法完整展示内存引用关系，内存分析过程依然异常缓慢，甚至会在分析过程中异常崩溃。
-\
 ![内存分析过程中崩溃\label{crash}](docs/figures/crash.png){width=80%}
-\
 
 鉴于*Unity*性能调试工具现实存在问题，我觉得亟待开发面向开发者、提供更多维度、更高效率的性能调试工具，于是我开发了UnityProfiler和MemoryCrawler两款工具，分别替代*Profiler*以及*MemoryProfiler*进行相同领域的性能调试，它们均使用纯*C++*实现，因为经过与*C#*、*Python*语言的测试对比后发现*C++*有绝对的计算优势，可以非常明显提升性能数据分析效率和稳定性。这两款工具的定位是：降低*Unity*游戏性能调试的门槛，让拥有不同开发经验的开发者都可以轻松定位各种性能问题，尽管都没有可视化交互界面，不过并不影响分析结果的查看，它们都内置命令行模式的交互方式，并提供了丰富的命令，可以对性能数据做全方位的分析定位。
 
 
-\pagebreak
 # 快速开始
 
 ## 源码编译
@@ -56,21 +51,16 @@ Unity还提供另外一个内存分析工具MemoryProfiler(图\ref{mp})
 
 1. 集成*UnityEditor*脚本，生成数据捕获菜单。
 把*Editor*目录放到*Unity*工程里面并刷新，之后在*UnityEditor*菜单里面会出现下图所示的菜单。
-\
 ![](docs/figures/editor-menu.png)
-\
 
 2. 按照[官方文档](https://docs.unity3d.com/Manual/ProfilerWindow.html)配置真机调试或在*Editor*环境调试。\
 
 3. 启动游戏，在需要性能调试的逻辑开始前点击菜单*性能/开始采样*，并在逻辑结束后点击菜单*性能/停止采样*。
-\
 ![](docs/figures/up-start.png)\ ![](docs/figures/up-stop.png)
-\
 
 4. 启动UnityProfiler分析性能数据。\
 在步骤3生成的性能数据保存在工程根目录的*ProfilerCapture*文件夹里面，执行如下命令开始性能调试会话。\
 
-\footnotesize
 ```C#
 $ UnityProfiler ProfilerCapture/20190514115025_PERF.pfc 
 argc=2
@@ -128,6 +118,5 @@ argv[1]=ProfilerCapture/20190514115025_PERF.pfc
 └─PlayerCleanupCachedData time=0.020%/0.001ms self=63.380%/0.001ms calls=1 *22
    └─CleanUp.TextRenderingGarbageCollect time=36.620%/0.000ms self=100.000%/0.000ms calls=1 *23
 ```
-\normalsize
 
 [下载帮助文档](docs/README.pdf)
