@@ -1109,6 +1109,39 @@ ulist列举*type_ref*指定*native*引擎类型的所有实例对象信息，该
 ```
 \normalsize
 
+### dup
+
+**dup** *[type_ref]*
+
+|参数|可选|描述|
+|-|-|-|
+|*type_ref*|**否**|*il2cpp*类型引用|
+
+dup可以查找指定类型重复对象的信息，原理是把对象占用的内存算md5，然后根据md5进行归类，该命令就是把md5相同的对象按照重复内存总大小按顺序输出。
+
++ 无参数表示统计字符串重复信息
++ 输入类型引用参数表示查看当前类型的对象重复信息
+
+\footnotesize
+```
+/> dup 3997
+System.Byte[] typeIndex=3997 instanceCount=88 instanceMemory=282706
+      51 #3  0xebb897e0 0xebb899c0 0xebb89420
+      58 #2  0xc82bddc0 0xc82bdda0
+      80 #4  0x9ef3ef78 0x9ef3ef60 0xb779ceb8 0xb779ced0
+      96 #2  0xcfd667e0 0xc82ee7e0
+     105 #5  0xbb5569c0 0xba53fd08 0xb77990d8 0x9ef35630 0xb7a1c5d0
+     120 #3  0x9ef2edb0 0x9ef2ed80 0xb3ce08a0
+     158 #2  0xcf86d140 0xcf84d460
+     224 #2  0xd05aeca8 0xd05aed20
+     816 #3  0xba1bb720 0xb77a3260 0xba551850
+    2080 #2  0xebb5d000 0xd05bbaa0
+/> show 0xebb897e0
+System.Byte[] 0xebb897e0
+└<1>00
+```
+\normalsize
+
 ### bar
 
 **bar** *[rank]*
@@ -1246,7 +1279,222 @@ ulist 列举引擎类型所有活跃对象内存占用简报[支持内存追踪�
 
 ## 使用案例
 ### 追踪内存增长
+
+在这里举个运行时切换语言包的列子，分析切换语言后内存增长的问题。
+
+1. 首先处于日语状态，生成内存快照*20190424164607_lang_jp.pms*。
+2. 切换到英语状态并生成内存快照*20190424164629_lang_en.pms*。
+3. 执行如下命令，保存日语状态的内存分析结果，留作后面内存对比分析。
+
+- 加载内存快照文件*20190424164607_lang_jp.pms*
+- 输入`save`命令保存内存快照分析结果
+- 输入`uuid`查看当前文件标识符，后面内存快照对比会用到
+
+\footnotesize
+```
+$ MemoryCrawler __capture/sd3/20190424164607_lang_jp.pms
+argc=2
+argv[0]=MemoryCrawler
+argv[1]=__capture/sd3/20190424164607_lang_jp.pms
+/> save
+[0] SnapshotCrawlerCache=134872891
+    [1] SnapshotCrawlerCache::save=134847998
+        [2] open=1868536
+        [3] create_native_types=1501514
+        [4] create_native_objects=1132285
+        [5] create_managed_types=1215951
+        [6] create_type_fields=1006192
+        [7] create_objects=904243
+        [8] insert_native_types=1229124
+        [9] insert_native_objects=10873829
+        [10] insert_managed_types=17490756
+        [11] remove_redundants=2482627
+        [12] insert_objects=81184760
+        [13] insert_vm=1594089
+        [14] insert_strings=11075671
+/> uuid
+98a2a889-3b16-be40-b2bb-b351d0a80537
+```
+\normalsize
+
+4. 通过内存快照对比，生成差异内存
+
+- 分析内存快照*20190424164629_lang_en.pms*
+- 通过`read 98a2a889-3b16-be40-b2bb-b351d0a80537`加载步骤3生成的快照分析结果
+- 通过`track alloc`设置当前分析模式为内存追踪模式
+- 通过`bar`在当前增量内存中查看*il2cpp*对象内存按类型分布
+- 通过`list`在当前增量内存中查看某个*il2cpp*类型的对象信息
+- 通过`ref`查看某个*il2cpp*内存对象的引用关系链
+- 通过`ubar`在当前增量内存中查看引擎对象按类型分组的内存分布
+- 通过`ulist`在当前增量内存中查看某个引擎类型的对象信息
+- 通过`uref`在当前增量内存中查看某个引擎对象的引用关系链
+
+\footnotesize
+```C#
+$ MemoryCrawler __capture/sd3/20190424164629_lang_en.pms
+argc=2
+argv[0]=MemoryCrawler
+argv[1]=__capture/sd3/20190424164629_lang_en.pms
+[0] MemorySnapshotReader=27252510
+    [1] open_snapshot=62454
+    [2] read_header=413123
+    [3] readPackedMemorySnapshot=26004408
+        [4] read_native_types=333111
+        [5] read_native_objects=4831880
+        [6] read_gc_handles=183220
+        [7] read_connections=5204759
+        [8] read_heap_sections=9034578
+        [9] read_type_descriptions=6393089
+        [10] read_virtual_matchine_information=1308
+            [11] read_object=627
+    [12] postSnapshot=478256
+        [13] create_sorted_heap=986
+        [14] create_type_strings=6125
+        [15] read_type_index=238416
+        [16] set_native_type_index=6206
+        [17] set_gchandle_index=13519
+        [18] set_heap_index=6448
+        [19] set_native_object_index=118735
+        [20] summarize_native_objects=84793
+[0] MemorySnapshotCrawler=78501466
+    [1] prepare=4985657
+        [2] init_managed_types=63887
+        [3] init_native_connections=4920292
+    [4] crawlGCHandles=52201137
+    [5] crawlStatic=20128661
+    [6] summarize_managed_objects=1181859
+/> read 98a2a889-3b16-be40-b2bb-b351d0a80537
+[0] SnapshotCrawlerCache=43686224
+    [1] SnapshotCrawlerCache::read=43684194
+        [2] open=1595252
+        [3] read_PackedMemorySnapshot=14977083
+            [4] read_native_types=545058
+            [5] read_native_objects=5475426
+            [6] read_managed_types=8904691
+                [7] read_type_fields=1388076
+            [8] read_vm=49016
+        [9] read_MemorySnapshotCrawler=26939400
+            [10] read_managed_objects=26938047
+/> track alloc
+ENTER TRACKING ALLOC MODE
+/> bar 
+ 59.29  59.29 ███████████████████████████████████████████████████████████ System.String 278792 #3338 *23
+ 18.24  77.53 ██████████████████ translation_protocol.LocalizedItem 85764 #3063 *1613
+  8.43  85.96 ████████ UnityEngine.UIVertex[] 39616 #6 *2689
+  3.98  89.94 ████ translation_protocol.LocalizedItem[] 18720 #60 *2775
+  2.12  92.06 ██ System.Collections.Generic.Link[] 9960 #50 *2655
+  1.98  94.04 ██ Reporter.Log[] 9328 #52 *2582
+  1.24  95.28 █ System.Int32[] 5832 #51 *2764
+  1.14  96.42 █ System.String[] 5380 #50 *2872
+  0.54  96.97 █ System.Collections.Generic.Dictionary<System.String,Reporter.Log> 2548 #49 *3540
+  0.48  97.44 █ System.Collections.Generic.Dictionary<System.String,Reporter.Log>[] 2244 #1 *2762
+  0.44  97.88 █ Reporter.Sample[] 2064 #1 *2581
+  0.29  98.17 █ Reporter.Sample 1372 #49 *2311
+  0.29  98.47 █ Reporter.Log 1372 #49 *2312
+  0.26  98.72 █ System.Collections.Generic.List<translation_protocol.LocalizedItem> 1200 #60 *2880
+  0.24  98.96 █ translation_protocol.FieldContainer 1148 #41 *1614
+  0.20  99.17 █ translation_protocol.FieldContainer[] 960 #30 *2776
+  0.19  99.36 █ System.Collections.Generic.HashSet.Link<UnityEngine.UI.Text>[] 888 #1 *2632
+  0.13  99.49 █ translation_protocol.SheetContainer 600 #30 *1615
+  0.13  99.61 █ System.Collections.Generic.List<translation_protocol.FieldContainer> 600 #30 *3374
+  0.10  99.71 █ UnityEngine.UI.Text[] 452 #1 *2821
+
+/> list 2689
+[UnityEngine.UIVertex[]][=] memory=39616
+0xb909c000     2752 UnityEngine.UIVertex[]
+0xb9091000     2752 UnityEngine.UIVertex[]
+0xb90b9000     3056 UnityEngine.UIVertex[]
+0xd055a000     6096 UnityEngine.UIVertex[]
+0xcd966000     6704 UnityEngine.UIVertex[]
+0xb9080000    18256 UnityEngine.UIVertex[]
+[SUMMARY] count=6 memory=39616
+/> ref 0xb909c000
+<GCHandle>::ApplicationTranslator 0xebb97d20
+    .{changeObserver:LanguageChangeObserver} 0xb8fab498
+    .{prev:LanguageChangeObserver} 0xb8fab460
+    .{prev:LanguageChangeObserver} 0xb8fab428
+    .{prev:LanguageChangeObserver} 0xb8fab3f0
+    .{prev:LanguageChangeObserver} 0xb8fab3b8
+    .{prev:LanguageChangeObserver} 0xb8fab380
+    .{prev:LanguageChangeObserver} 0xb8fab348
+    .{prev:LanguageChangeObserver} 0xb8fab310
+    .{prev:LanguageChangeObserver} 0xb8fab2d8
+    .{prev:LanguageChangeObserver} 0xb8fab2a0
+    .{prev:LanguageChangeObserver} 0xb8fab268
+    .{prev:LanguageChangeObserver} 0xb8fab230
+    .{m_target:FontManager} 0xd0537c80
+    .{Dispatcher:TheNext.Moba.Logic.NextEventDispatcher} 0xd0538ea0
+    .{eventHandlerDic:System.Collections.Generic.Dictionary<System.Int16,Morefun.LockStep.LList<System.Delegate>>} 0xd3625af0
+    .{valueSlots:Morefun.LockStep.LList<System.Delegate>}[0] 0xd0538510
+    .{_items:TheNext.Moba.Logic.NextEventHandler}[82] 0xb8fa9658
+    .{m_target:NextText} 0xb9240630
+    .{m_TextCache:UnityEngine.TextGenerator} 0xb8fb9d48
+    .{m_Verts:System.Collections.Generic.List<UnityEngine.UIVertex>} 0xb8fb40a8
+    .{_items:UnityEngine.UIVertex[]} 0xb909c000
+<Static>::dataconfig.DataConfigManager::{dataObserver:dataconfig.DataConfigObserver} 0xd361bf18
+    .{prev:dataconfig.DataConfigObserver} 0xd361bee0
+    .{m_target:ApplicationTranslator} 0xebb97d20
+    .{changeObserver:LanguageChangeObserver} 0xb8fab498
+    .{prev:LanguageChangeObserver} 0xb8fab460
+    .{prev:LanguageChangeObserver} 0xb8fab428
+    .{prev:LanguageChangeObserver} 0xb8fab3f0
+    .{prev:LanguageChangeObserver} 0xb8fab3b8
+    .{prev:LanguageChangeObserver} 0xb8fab380
+    .{prev:LanguageChangeObserver} 0xb8fab348
+    .{prev:LanguageChangeObserver} 0xb8fab310
+    .{prev:LanguageChangeObserver} 0xb8fab2d8
+    .{prev:LanguageChangeObserver} 0xb8fab2a0
+    .{prev:LanguageChangeObserver} 0xb8fab268
+    .{prev:LanguageChangeObserver} 0xb8fab230
+    .{m_target:FontManager} 0xd0537c80
+    .{Dispatcher:TheNext.Moba.Logic.NextEventDispatcher} 0xd0538ea0
+    .{eventHandlerDic:System.Collections.Generic.Dictionary<System.Int16,Morefun.LockStep.LList<System.Delegate>>} 0xd3625af0
+    .{valueSlots:Morefun.LockStep.LList<System.Delegate>}[0] 0xd0538510
+    .{_items:TheNext.Moba.Logic.NextEventHandler}[82] 0xb8fa9658
+    .{m_target:NextText} 0xb9240630
+    .{m_TextCache:UnityEngine.TextGenerator} 0xb8fb9d48
+    .{m_Verts:System.Collections.Generic.List<UnityEngine.UIVertex>} 0xb8fb40a8
+    .{_items:UnityEngine.UIVertex[]} 0xb909c000
+
+/> ubar
+ 65.02  65.02 █████████████████████████████████████████████████████████████████ Texture2D 656545 #5 *168
+ 22.13  87.14 ██████████████████████ Font 223450 #5 *132
+ 12.39  99.54 ████████████ TextAsset 125146 #1 *156
+  0.46 100.00 █ Material 4680 #5 *134
+/> ulist 168
+[Texture2D][=] memory=656545
+0xbb7ac910   131309 'Font Texture'
+0xb9b1f910   131309 'Font Texture'
+0xbba78d10   131309 'Font Texture'
+0xbfa28810   131309 'Font Texture'
+0xbb7ac310   131309 'Font Texture'
+[SUMMARY] count=5 memory=656545
+/> ukref 0xbb7ac910
+<DDO>.{MonoBehaviour:0xc2e1b5b0:'New Game Object'}.{MonoBehaviour:0xb9dc8c50:'UIChatEntry'}.{Font:0xe40fded0:'font_en_us'}.{Font:0xc7647f10:'font_en_us'}.{Font:0xc65faf90:'font_en_us_desc'}.{Font:0xc65fac30:'ZURCHLCI_1'}.{Texture2D:0xbb7ac910:'Font Texture'} 
+<DDO>.{MonoBehaviour:0xc2e1b5b0:'New Game Object'}.{MonoBehaviour:0xb9dc8c50:'UIChatEntry'}.{MonoBehaviour:0xb9dc8b70:'UIChatEntry'}.{MonoBehaviour:0xb9dc8c50:'UIChatEntry'}.{Font:0xe40fded0:'font_en_us'}.{Font:0xc7647f10:'font_en_us'}.{Font:0xc65faf90:'font_en_us_desc'}.{Font:0xc65fac30:'ZURCHLCI_1'}.{Texture2D:0xbb7ac910:'Font Texture'} 
+<DDO>.{MonoBehaviour:0xc2e1b5b0:'New Game Object'}.{MonoBehaviour:0xb9dc8b70:'UIChatEntry'}.{MonoBehaviour:0xb9dc8c50:'UIChatEntry'}.{Font:0xe40fded0:'font_en_us'}.{Font:0xc7647f10:'font_en_us'}.{Font:0xc65faf90:'font_en_us_desc'}.{Font:0xc65fac30:'ZURCHLCI_1'}.{Texture2D:0xbb7ac910:'Font Texture'} 
+<DDO>.{MonoBehaviour:0xbebc8770:'global:ApplicationTranslator'}.{Font:0xc65fa810:'font_en_us_desc'}.{Font:0xc65fac30:'ZURCHLCI_1'}.{Texture2D:0xbb7ac910:'Font Texture'}
+```
+\normalsize
+
 ### 追踪内存泄漏
+
+追踪内存泄漏同追踪内存增长类似，只是需要把分析模式设置为泄漏追踪模式，其他分析方式以及工具都基本相同。
+
+\footnotesize
+```
+/> track leak
+ENTER TRACKING LEAK MODE
+```
+\normalsize
+
 ### 优化Mono内存
 
+1. 使用bar命令查看对象内存按类型分布关系
+2. 使用list查看类型包含的实例对象信息
+3. 通过ref命令集、show命令查看对象引用以及内存布局，分析内存对象引用是否合理
+4. 通过dup命令查看重复对象信息，这个维度可以用来反推游戏设计的合理性
+
 ## 小结
+
+基于Unity接口生成的内存快照，MemoryCrawler使用*C++*语言实现极速的内存分析，250MB运行时内存内存快照分析耗时400毫秒左右，相比*Unity*开发的*MemoryProfiler*工具漫长的分析速度，是一个质的飞跃。同时提供20多种内存分析工具，从不同维度对游戏内存进行剖析，特别是ref命令集，用来查看某个可疑对象的引用关系路径链，并精确定位到对象被保持内存活跃的每一个节点以及节点对应的变量名、索引、类型以及内存地址，可以清晰的看到对象的代码对应关系。所有的命令设计原则是以类型和地址为参数，并且它们输出的结果中尽可能包含类型和地址信息，这样命令之间可以相互形成工具链，互为输出，定位对象内存关系极其简单明了。
