@@ -464,6 +464,10 @@ void processRecord(const char * filepath)
                                    }
                                });
         }
+        else if (strbeg(command, "event"))
+        {
+            mainCrawler.dumpUnbalancedEvents(trackingMode);
+        }
         else if (strbeg(command, "str"))
         {
             readCommandOptions(command, [&](std::vector<const char *> options)
@@ -531,6 +535,7 @@ void processRecord(const char * filepath)
             help("ubar", "[RANK]", "输出引擎类型内存占用前RANK名图形简报[支持内存追踪过滤]", __indent);
             help("list", NULL, "列举IL2CPP类型所有活跃对象内存占用简报[支持内存追踪过滤]", __indent);
             help("ulist", NULL, "列举引擎类型所有活跃对象内存占用简报[支持内存追踪过滤]", __indent);
+            help("event", NULL, "搜索所有未清理的delegate对象");
             help("heap", "[RANK]", "输出动态内存简报", __indent);
             help("save", NULL, "把当前内存快照分析结果以sqlite3格式保存到本机", __indent);
             help("uuid", NULL, "查看内存快照UUID", __indent);

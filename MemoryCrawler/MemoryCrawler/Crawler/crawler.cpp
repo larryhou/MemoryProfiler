@@ -92,7 +92,7 @@ void MemorySnapshotCrawler::prepare()
     for (auto i = 0; i < typeDescriptions.size; i++)
     {
         TypeDescription &type = typeDescriptions[i];
-        type.isUnityEngineObjectType = isSubclassOfMType(type, snapshot.managedTypeIndex.unityengine_Object);
+        type.isUnityEngineObjectType = deriveFromMType(type, snapshot.managedTypeIndex.unityengine_Object);
     }
     __sampler.end();
     __sampler.begin("init_native_connections");
@@ -610,7 +610,7 @@ const string MemorySnapshotCrawler::getUTFString(address_t address, int32_t &siz
     return string();
 }
 
-bool MemorySnapshotCrawler::isSubclassOfMType(TypeDescription &type, int32_t baseTypeIndex)
+bool MemorySnapshotCrawler::deriveFromMType(TypeDescription &type, int32_t baseTypeIndex)
 {
     if (type.typeIndex == baseTypeIndex) { return true; }
     if (type.typeIndex < 0 || baseTypeIndex < 0) { return false; }
@@ -625,7 +625,7 @@ bool MemorySnapshotCrawler::isSubclassOfMType(TypeDescription &type, int32_t bas
     return false;
 }
 
-bool MemorySnapshotCrawler::isSubclassOfNType(PackedNativeType &type, int32_t baseTypeIndex)
+bool MemorySnapshotCrawler::deriveFromNType(PackedNativeType &type, int32_t baseTypeIndex)
 {
     if (type.typeIndex == baseTypeIndex) { return true; }
     if (type.typeIndex < 0 || baseTypeIndex < 0) { return false; }
@@ -1828,6 +1828,64 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
                 dumpMObjectHierarchy(fieldAddress, fieldType, __antiCircular, true, limit, __nest_indent, __iter_depth + 1);
             }
         }
+    }
+}
+
+void MemorySnapshotCrawler::dumpUnbalancedEvents(MemoryState state)
+{
+    auto &delegateType = snapshot.typeDescriptions->items[snapshot.managedTypeIndex.system_Delegate];
+    
+    int32_t fieldOffset = 16;
+    int32_t fieldTypeIndex = -1;
+    for (auto i = 0; i < delegateType.fields->size; i++)
+    {
+        auto &field = delegateType.fields->items[i];
+        if (*field.name == "m_target")
+        {
+            fieldOffset = field.offset;
+            fieldTypeIndex = field.typeIndex;
+            break;
+        }
+    }
+    
+    using std::tuple;
+    vector<tuple<address_t, address_t, int32_t, int32_t>> targets;
+    
+    auto refMemory = 0;
+    for (auto i = 0; i < managedObjects.size(); i++)
+    {
+        auto &mo = managedObjects[i];
+        auto &type = snapshot.typeDescriptions->items[mo.typeIndex];
+        
+        if ((state == MS_none || state == mo.state) && deriveFromMType(type, delegateType.typeIndex))
+        {
+            auto ptr = __memoryReader->readPointer(mo.address + fieldOffset);
+            if (ptr != 0)
+            {
+                auto typeIndex = findTypeOfAddress(ptr);
+                if (typeIndex == -1)
+                {
+                    typeIndex = fieldTypeIndex;
+                }
+                
+                auto __index = findMObjectAtAddress(ptr);
+                assert(__index >= 0);
+                
+                auto &ref = managedObjects[__index];
+                refMemory += ref.size;
+                
+                targets.push_back(std::make_tuple(mo.address, ptr, typeIndex, ref.size));
+            }
+        }
+    }
+    using std::get;
+    printf("[Unbalanced] count=%d ref_memory=%d\n", (int)targets.size(), refMemory);
+    for (auto iter = targets.begin(); iter != targets.end(); iter++)
+    {
+        auto &data = *iter;
+        auto typeIndex = std::get<2>(data);
+        auto &type = snapshot.typeDescriptions->items[typeIndex];
+        printf("0x%08llx target=[0x%08llx type='%s'%d size=%d]", get<0>(data), get<1>(data), type.name->c_str(), type.typeIndex, get<3>(data));
     }
 }
 

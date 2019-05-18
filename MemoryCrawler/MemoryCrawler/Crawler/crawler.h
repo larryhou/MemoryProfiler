@@ -150,6 +150,8 @@ public:
     
     void dumpRedundants(int32_t typeIndex);
     
+    void dumpUnbalancedEvents(MemoryState state);
+    
     void inspectMType(int32_t typeIndex);
     void inspectNType(int32_t typeIndex);
     
@@ -191,8 +193,8 @@ private:
     int32_t findMObjectAtAddress(address_t address);
     int32_t findNObjectAtAddress(address_t address);
     
-    bool isSubclassOfMType(TypeDescription &type, int32_t baseTypeIndex);
-    bool isSubclassOfNType(PackedNativeType &type, int32_t baseTypeIndex);
+    bool deriveFromMType(TypeDescription &type, int32_t baseTypeIndex);
+    bool deriveFromNType(PackedNativeType &type, int32_t baseTypeIndex);
     
     void tryConnectWithNativeObject(ManagedObject &mo);
     
