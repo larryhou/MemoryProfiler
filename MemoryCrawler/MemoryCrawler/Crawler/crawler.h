@@ -153,12 +153,12 @@ public:
     void inspectMType(int32_t typeIndex);
     void inspectNType(int32_t typeIndex);
     
-    void inspectMObject(address_t address);
-    void inspectNObject(address_t address);
+    void inspectMObject(address_t address, int32_t depth = 0);
+    void inspectNObject(address_t address, int32_t depth = 0);
     void dumpMObjectHierarchy(address_t address, TypeDescription *type,
-                              set<int64_t> antiCircular, bool isActualType, const char *indent, int32_t __iter_depth = 0);
+                              set<int64_t> antiCircular, bool isActualType, int32_t limit, const char *indent, int32_t __iter_depth = 0);
     void dumpNObjectHierarchy(PackedNativeUnityEngineObject *no,
-                              set<int64_t> antiCircular, const char *indent, int32_t __iter_depth = 0, int32_t __iter_capacity = 1);
+                              set<int64_t> antiCircular, int32_t limit, const char *indent, int32_t __iter_depth = 0, int32_t __iter_capacity = 1);
     
     void barMMemory(MemoryState state, int32_t rank = 20);
     void barNMemory(MemoryState state, int32_t rank = 20);

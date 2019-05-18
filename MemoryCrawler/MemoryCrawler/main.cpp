@@ -356,9 +356,11 @@ void processRecord(const char * filepath)
         {
             readCommandOptions(command, [&](std::vector<const char *> options)
                                {
-                                   for (auto i = 1; i < options.size(); i++)
+                                   if (options.size() >= 2)
                                    {
-                                       mainCrawler.inspectMObject(castAddress(options[i]));
+                                       int32_t depth = 0;
+                                       if (options.size() >= 3) { depth = atoi(options[2]); }
+                                       mainCrawler.inspectMObject(castAddress(options[1]), depth);
                                    }
                                });
         }
@@ -366,9 +368,11 @@ void processRecord(const char * filepath)
         {
             readCommandOptions(command, [&](std::vector<const char *> options)
                                {
-                                   for (auto i = 1; i < options.size(); i++)
+                                   if (options.size() >= 2)
                                    {
-                                       mainCrawler.inspectNObject(castAddress(options[i]));
+                                       int32_t depth = 0;
+                                       if (options.size() >= 3) { depth = atoi(options[2]); }
+                                       mainCrawler.inspectNObject(castAddress(options[1]), depth);
                                    }
                                });
         }

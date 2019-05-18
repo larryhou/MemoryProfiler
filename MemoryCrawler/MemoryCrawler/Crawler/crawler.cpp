@@ -1420,17 +1420,17 @@ bool MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
     return successCount != 0;
 }
 
-void MemorySnapshotCrawler::inspectMObject(address_t address)
+void MemorySnapshotCrawler::inspectMObject(address_t address, int32_t depth)
 {
-    dumpMObjectHierarchy(address, nullptr, set<int64_t>(), false, "");
+    dumpMObjectHierarchy(address, nullptr, set<int64_t>(), false, depth, "");
 }
 
-void MemorySnapshotCrawler::inspectNObject(address_t address)
+void MemorySnapshotCrawler::inspectNObject(address_t address, int32_t depth)
 {
     auto index = findNObjectAtAddress(address);
     if (index <= 0) {return;}
     
-    dumpNObjectHierarchy(&snapshot.nativeObjects->items[index], set<int64_t>(), "");
+    dumpNObjectHierarchy(&snapshot.nativeObjects->items[index], set<int64_t>(), depth, "");
 }
 
 void MemorySnapshotCrawler::inspectMType(int32_t typeIndex)
@@ -1545,7 +1545,7 @@ void MemorySnapshotCrawler::dumpByteArray(const char *data, int32_t size)
     printf("%s", str);
 }
 
-void MemorySnapshotCrawler::dumpNObjectHierarchy(PackedNativeUnityEngineObject *no, set<int64_t> antiCircular, const char *indent, int32_t __iter_depth, int32_t __iter_capacity)
+void MemorySnapshotCrawler::dumpNObjectHierarchy(PackedNativeUnityEngineObject *no, set<int64_t> antiCircular, int32_t limit, const char *indent, int32_t __iter_depth, int32_t __iter_capacity)
 {
     auto __size = strlen(indent);
     char __indent[__size + 2*3 + 1]; // indent + 2×tabulator + \0
@@ -1582,14 +1582,14 @@ void MemorySnapshotCrawler::dumpNObjectHierarchy(PackedNativeUnityEngineObject *
         {
             decltype(antiCircular) __antiCircular(antiCircular);
             __antiCircular.insert(no.nativeObjectAddress);
-            
+            if (limit > 0 && __iter_depth + 1 >= limit) {continue;}
             if (closed)
             {
                 char __nest_indent[__size + 1 + 2 + 1]; // indent + space + 2×space + \0
                 memcpy(__nest_indent, indent, __size);
                 memset(__nest_indent + __size, '\x20', 3);
                 memset(__nest_indent + __size + 3, 0, 1);
-                dumpNObjectHierarchy(&no, __antiCircular, __nest_indent, __iter_depth + 1, __iter_capacity * toCount);
+                dumpNObjectHierarchy(&no, __antiCircular, limit, __nest_indent, __iter_depth + 1, __iter_capacity * toCount);
             }
             else
             {
@@ -1599,14 +1599,14 @@ void MemorySnapshotCrawler::dumpNObjectHierarchy(PackedNativeUnityEngineObject *
                 memcpy(iter, "│", 3);
                 memset(iter + 3, '\x20', 2);
                 memset(iter + 5, 0, 1);
-                dumpNObjectHierarchy(&no, __antiCircular, __nest_indent, __iter_depth + 1, __iter_capacity * toCount);
+                dumpNObjectHierarchy(&no, __antiCircular, limit, __nest_indent, __iter_depth + 1, __iter_capacity * toCount);
             }
         }
     }
 }
 
 void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescription *type,
-                                                 set<int64_t> antiCircular, bool isActualType, const char *indent, int32_t __iter_depth)
+                                                 set<int64_t> antiCircular, bool isActualType, int32_t limit, const char *indent, int32_t __iter_depth)
 {
     auto __size = strlen(indent);
     char __indent[__size + 2*3 + 1]; // indent + 2×tabulator + \0
@@ -1694,13 +1694,14 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
             
             if (!elementType->isValueType) {printf(" 0x%08llx", elementAddress);}
             printf("\n");
+            if (limit > 0 && __iter_depth + 1 >= limit) {continue;}
             if (closed)
             {
                 char __nest_indent[__size + 1 + 2 + 1]; // indent + space + 2×space + \0
                 memcpy(__nest_indent, indent, __size);
                 memset(__nest_indent + __size, '\x20', 3);
                 memset(__nest_indent + __size + 3, 0, 1);
-                dumpMObjectHierarchy(elementAddress, elementType, __antiCircular, true, __nest_indent, __iter_depth + 1);
+                dumpMObjectHierarchy(elementAddress, elementType, __antiCircular, true, limit, __nest_indent, __iter_depth + 1);
             }
             else
             {
@@ -1710,7 +1711,7 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
                 memcpy(iter, "│", 3);
                 memset(iter + 3, '\x20', 2);
                 memset(iter + 5, 0, 1);
-                dumpMObjectHierarchy(elementAddress, elementType, __antiCircular, true, __nest_indent, __iter_depth + 1);
+                dumpMObjectHierarchy(elementAddress, elementType, __antiCircular, true, limit, __nest_indent, __iter_depth + 1);
             }
         }
         
@@ -1807,14 +1808,14 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
         {
             decltype(antiCircular) __antiCircular(antiCircular);
             __antiCircular.insert(fieldAddress);
-            
+            if (limit > 0 && __iter_depth + 1 >= limit) {continue;}
             if (closed)
             {
                 char __nest_indent[__size + 1 + 2 + 1]; // indent + space + 2×space + \0
                 memcpy(__nest_indent, __indent, __size);
                 memset(__nest_indent + __size, '\x20', 3);
                 memset(__nest_indent + __size + 3, 0, 1);
-                dumpMObjectHierarchy(fieldAddress, fieldType, __antiCircular, true, __nest_indent, __iter_depth + 1);
+                dumpMObjectHierarchy(fieldAddress, fieldType, __antiCircular, true, limit, __nest_indent, __iter_depth + 1);
             }
             else
             {
@@ -1824,7 +1825,7 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
                 memcpy(iter, "│", 3);
                 memset(iter + 3, '\x20', 2);
                 memset(iter + 5, 0, 1);
-                dumpMObjectHierarchy(fieldAddress, fieldType, __antiCircular, true, __nest_indent, __iter_depth + 1);
+                dumpMObjectHierarchy(fieldAddress, fieldType, __antiCircular, true, limit, __nest_indent, __iter_depth + 1);
             }
         }
     }
