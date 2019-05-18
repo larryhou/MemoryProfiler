@@ -518,8 +518,8 @@ void processRecord(const char * filepath)
             help("UKREF", "[ADDRESS]*", "列举保持引擎对象内存活跃的全量引用关系并剔除干扰项", __indent);
             help("link", "[ADDRESS]*", "查看与IL2CPP对象链接的引擎对象", __indent);
             help("ulink", "[ADDRESS]*", "查看与引擎对象链接的IL2CPP对象", __indent);
-            help("show", "[ADDRESS]*", "查看IL2CPP对象内存排布以及变量值", __indent);
-            help("ushow", "[ADDRESS]*", "查看引擎对象内部的引用关系", __indent);
+            help("show", "[ADDRESS]* [DEPTH]", "查看IL2CPP对象内存排布以及变量值", __indent);
+            help("ushow", "[ADDRESS]* [DEPTH]", "查看引擎对象内部的引用关系", __indent);
             help("find", "[ADDRESS]*", "查找IL2CPP对象", __indent);
             help("ufind", "[ADDRESS]*", "查找引擎对象", __indent);
             help("type", "[TYPE_INDEX]*", "查看IL2CPP类型信息", __indent);
