@@ -1467,6 +1467,11 @@ void MemorySnapshotCrawler::inspectMType(int32_t typeIndex)
         auto &field = type.fields->items[i];
         printf("    isStatic=%s name='%s' offset=%d typeIndex=%d\n", field.isStatic ? "true" : "false", field.name->c_str(), field.offset, field.typeIndex);
     }
+    
+    if (type.baseOrElementTypeIndex >= 0)
+    {
+        inspectMType(type.baseOrElementTypeIndex);
+    }
 }
 
 void MemorySnapshotCrawler::inspectNType(int32_t typeIndex)
@@ -1906,7 +1911,7 @@ void MemorySnapshotCrawler::dumpUnbalancedEvents(MemoryState state)
         
         auto &type = snapshot.typeDescriptions->items[get<1>(data)];
         
-        printf("0x%08llx type='%s'%d target=[0x%08llx type='%s'%d size=%d]\n", get<0>(data), type.name->c_str(), type.typeIndex, get<2>(data), targetType.name->c_str(), targetType.typeIndex, get<4>(data));
+        printf("\e[36m0x%08llx type='%s'%d \e[32mtarget=[0x%08llx type='%s'%d size=%d]\n", get<0>(data), type.name->c_str(), type.typeIndex, get<2>(data), targetType.name->c_str(), targetType.typeIndex, get<4>(data));
     }
     
     std::sort(indice.begin(), indice.end(), [&](int32_t a, int32_t b)
@@ -1914,13 +1919,21 @@ void MemorySnapshotCrawler::dumpUnbalancedEvents(MemoryState state)
                   return listeners.at(a).size() > listeners.at(b).size();
               });
     
+    auto digit = indice.size() == 0? 1 : (int)ceil(log10(indice.size()));
+    
+    char format[32];
+    memset(format, 0, sizeof(format));
+    sprintf(format, "\e[36m[%%0%dd/%d]", digit, (int32_t)indice.size());
+    
+    auto counter = 0;
     for (auto i = indice.begin(); i != indice.end(); i++)
     {
         auto iter = listeners.find(*i);
         auto &target = managedObjects[iter->first];
         auto &targetType = snapshot.typeDescriptions->items[target.typeIndex];
-        printf("\e[32m0x%08llx type='%s'%d size=%d\n", target.address, targetType.name->c_str(), targetType.typeIndex, target.size);
         auto &parents = iter->second;
+        printf(format, ++counter);
+        printf(" \e[32m0x%08llx type='%s'%d size=%d count=%d\n", target.address, targetType.name->c_str(), targetType.typeIndex, target.size, (int32_t)parents.size());
         for (auto p = parents.begin(); p != parents.end(); p++)
         {
             auto &parentObject = managedObjects[*p];
