@@ -616,7 +616,7 @@ bool MemorySnapshotCrawler::deriveFromMType(TypeDescription &type, int32_t baseT
     if (type.typeIndex < 0 || baseTypeIndex < 0) { return false; }
     
     TypeDescription *iter = &type;
-    while (iter->baseOrElementTypeIndex != -1)
+    while (iter->baseOrElementTypeIndex != -1 && !iter->isArray)
     {
         iter = &snapshot.typeDescriptions->items[iter->baseOrElementTypeIndex];
         if (iter->typeIndex == baseTypeIndex) { return true; }
@@ -1162,7 +1162,11 @@ int32_t MemorySnapshotCrawler::findMObjectAtAddress(address_t address)
         for (auto i = 0; i < managedObjects.size(); i++)
         {
             auto &mo = managedObjects[i];
-            __managedObjectAddressMap.insert(pair<address_t, int32_t>(mo.address, mo.managedObjectIndex));
+            auto &type = snapshot.typeDescriptions->items[mo.typeIndex];
+            if (!type.isValueType)
+            {
+                __managedObjectAddressMap.insert(pair<address_t, int32_t>(mo.address, mo.managedObjectIndex));
+            }
         }
     }
     
@@ -1252,6 +1256,7 @@ bool MemorySnapshotCrawler::crawlManagedArrayAddress(address_t address, TypeDesc
         {
             auto ptrAddress = address + __vm->arrayHeaderSize + i * __vm->pointerSize;
             elementAddress = memoryReader.readPointer(ptrAddress);
+            if (elementAddress == 0) {continue;}
         }
         
         auto &elementJoint = joints.clone(joint);
@@ -1272,7 +1277,7 @@ bool MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
 {
     auto isStaticCrawling = memoryReader.isStatic();
     if (address < 0 || (!isStaticCrawling && address == 0)){return false;}
-    if (depth >= 512) {return false;}
+    if (depth >= 1024) {return false;}
     
     int32_t typeIndex = -1;
     if (type != nullptr && type->isValueType)
@@ -1376,6 +1381,8 @@ bool MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
                     ptrAddress = address + field.offset;
                 }
                 fieldAddress = memoryReader.readPointer(ptrAddress);
+                if (fieldAddress == 0) {continue;}
+                
                 auto fieldTypeIndex = findTypeOfAddress(fieldAddress);
                 if (fieldTypeIndex != -1)
                 {
@@ -1503,7 +1510,7 @@ void MemorySnapshotCrawler::findMObject(address_t address)
     }
     else
     {
-        printf("not found managed object at address[%08lldx]\n", address);
+        printf("not found managed object at address[0x%08llx]\n", address);
     }
 }
 
@@ -1849,7 +1856,7 @@ void MemorySnapshotCrawler::dumpUnbalancedEvents(MemoryState state)
     }
     
     using std::tuple;
-    vector<tuple<address_t, address_t, int32_t, int32_t>> targets;
+    vector<tuple<address_t, int32_t, address_t, int32_t, int32_t>> targets;
     
     auto refMemory = 0;
     for (auto i = 0; i < managedObjects.size(); i++)
@@ -1874,7 +1881,7 @@ void MemorySnapshotCrawler::dumpUnbalancedEvents(MemoryState state)
                 auto &ref = managedObjects[__index];
                 refMemory += ref.size;
                 
-                targets.push_back(std::make_tuple(mo.address, ptr, typeIndex, ref.size));
+                targets.push_back(std::make_tuple(mo.address, mo.typeIndex, ptr, typeIndex, ref.size));
             }
         }
     }
@@ -1883,9 +1890,12 @@ void MemorySnapshotCrawler::dumpUnbalancedEvents(MemoryState state)
     for (auto iter = targets.begin(); iter != targets.end(); iter++)
     {
         auto &data = *iter;
-        auto typeIndex = std::get<2>(data);
-        auto &type = snapshot.typeDescriptions->items[typeIndex];
-        printf("0x%08llx target=[0x%08llx type='%s'%d size=%d]", get<0>(data), get<1>(data), type.name->c_str(), type.typeIndex, get<3>(data));
+        auto targetTypeIndex = get<3>(data);
+        auto &targetType = snapshot.typeDescriptions->items[targetTypeIndex];
+        
+        auto &type = snapshot.typeDescriptions->items[get<1>(data)];
+        
+        printf("0x%08llx type='%s'%d target=[0x%08llx type='%s'%d size=%d]\n", get<0>(data), type.name->c_str(), type.typeIndex, get<2>(data), targetType.name->c_str(), targetType.typeIndex, get<4>(data));
     }
 }
 
