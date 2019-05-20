@@ -1856,7 +1856,9 @@ void MemorySnapshotCrawler::dumpUnbalancedEvents(MemoryState state)
     }
     
     using std::tuple;
-    vector<tuple<address_t, int32_t, address_t, int32_t, int32_t>> targets;
+    vector<tuple<address_t, int32_t, address_t, int32_t, int32_t>> records;
+    map<int32_t, vector<int32_t>> listeners;
+    vector<int32_t> indice;
     
     auto refMemory = 0;
     for (auto i = 0; i < managedObjects.size(); i++)
@@ -1881,13 +1883,22 @@ void MemorySnapshotCrawler::dumpUnbalancedEvents(MemoryState state)
                 auto &ref = managedObjects[__index];
                 refMemory += ref.size;
                 
-                targets.push_back(std::make_tuple(mo.address, mo.typeIndex, ptr, typeIndex, ref.size));
+                records.push_back(std::make_tuple(mo.address, mo.typeIndex, ptr, typeIndex, ref.size));
+                
+                auto match = listeners.find(__index);
+                if (match == listeners.end())
+                {
+                    match = listeners.insert(pair<int32_t, vector<int32_t>>(__index, vector<int32_t>())).first;
+                    indice.push_back(__index);
+                }
+                match->second.push_back(mo.managedObjectIndex);
             }
         }
     }
+    
     using std::get;
-    printf("[Unbalanced] count=%d ref_memory=%d\n", (int)targets.size(), refMemory);
-    for (auto iter = targets.begin(); iter != targets.end(); iter++)
+    printf("[Unbalanced] count=%d ref_memory=%d\n", (int)records.size(), refMemory);
+    for (auto iter = records.begin(); iter != records.end(); iter++)
     {
         auto &data = *iter;
         auto targetTypeIndex = get<3>(data);
@@ -1896,6 +1907,26 @@ void MemorySnapshotCrawler::dumpUnbalancedEvents(MemoryState state)
         auto &type = snapshot.typeDescriptions->items[get<1>(data)];
         
         printf("0x%08llx type='%s'%d target=[0x%08llx type='%s'%d size=%d]\n", get<0>(data), type.name->c_str(), type.typeIndex, get<2>(data), targetType.name->c_str(), targetType.typeIndex, get<4>(data));
+    }
+    
+    std::sort(indice.begin(), indice.end(), [&](int32_t a, int32_t b)
+              {
+                  return listeners.at(a).size() > listeners.at(b).size();
+              });
+    
+    for (auto i = indice.begin(); i != indice.end(); i++)
+    {
+        auto iter = listeners.find(*i);
+        auto &target = managedObjects[iter->first];
+        auto &targetType = snapshot.typeDescriptions->items[target.typeIndex];
+        printf("\e[32m0x%08llx type='%s'%d size=%d\n", target.address, targetType.name->c_str(), targetType.typeIndex, target.size);
+        auto &parents = iter->second;
+        for (auto p = parents.begin(); p != parents.end(); p++)
+        {
+            auto &parentObject = managedObjects[*p];
+            auto &parentType = snapshot.typeDescriptions->items[parentObject.typeIndex];
+            printf("  \e[33m+ 0x%08llx type='%s'%d\n", parentObject.address, parentType.name->c_str(), parentType.typeIndex);
+        }
     }
 }
 
