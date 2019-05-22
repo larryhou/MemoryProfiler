@@ -792,7 +792,7 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateMRefChain(ManagedObject *m
                 
                 auto *fromObject = &managedObjects[fromIndex];
                 auto depthCapacity = fromObject->fromConnections.size();
-                if ((__iter_capacity * depthCapacity >= REF_ITERATE_CAPACITY && limit <= 0) || __depth >= REF_ITERATE_DEPTH)
+                if ((__iter_capacity * depthCapacity >= REF_ITERATE_CAPACITY && limit <= 0) || (limit > 1 && __depth >= REF_ITERATE_DEPTH))
                 {
                     __chain.push_back(-2); // interruptted signal
                     return {__chain};
@@ -925,7 +925,7 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateNRefChain(PackedNativeUnit
                 
                 auto *fromObject = &snapshot.nativeObjects->items[fromIndex];
                 auto depthCapacity = fromObject->fromConnections.size();
-                if ((__iter_capacity * depthCapacity >= REF_ITERATE_CAPACITY && limit <= 0) || __depth >= REF_ITERATE_DEPTH)
+                if ((__iter_capacity * depthCapacity >= REF_ITERATE_CAPACITY && limit <= 0) || (limit > 1 && __depth >= REF_ITERATE_DEPTH))
                 {
                     __chain.push_back(-2); // interruptted signal
                     result.push_back(__chain);

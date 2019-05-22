@@ -198,10 +198,9 @@ void processRecord(const char * filepath)
         {
             readCommandOptions(command, [&](std::vector<const char *> &options)
                                {
-                                   for (auto i = 1; i < options.size(); i++)
+                                   if (options.size() >= 2)
                                    {
-                                       auto address = castAddress(options[i]);
-                                       mainCrawler.dumpMRefChain(address, false);
+                                       mainCrawler.dumpMRefChain(castAddress(options[1]), false, options.size() >= 3 ? atoi(options[2]) : 2);
                                    }
                                });
         }
@@ -209,10 +208,9 @@ void processRecord(const char * filepath)
         {
             readCommandOptions(command, [&](std::vector<const char *> &options)
                                {
-                                   for (auto i = 1; i < options.size(); i++)
+                                   if (options.size() >= 2)
                                    {
-                                       auto address = castAddress(options[i]);
-                                       mainCrawler.dumpNRefChain(address, false);
+                                       mainCrawler.dumpNRefChain(castAddress(options[1]), false, options.size() >= 3 ? atoi(options[2]) : 2);
                                    }
                                });
         }
@@ -220,10 +218,9 @@ void processRecord(const char * filepath)
         {
             readCommandOptions(command, [&](std::vector<const char *> &options)
                                {
-                                   for (auto i = 1; i < options.size(); i++)
+                                   if (options.size() >= 2)
                                    {
-                                       auto address = castAddress(options[i]);
-                                       mainCrawler.dumpMRefChain(address, true);
+                                       mainCrawler.dumpMRefChain(castAddress(options[1]), true, options.size() >= 3 ? atoi(options[2]) : 2);
                                    }
                                });
         }
@@ -231,10 +228,9 @@ void processRecord(const char * filepath)
         {
             readCommandOptions(command, [&](std::vector<const char *> &options)
                                {
-                                   for (auto i = 1; i < options.size(); i++)
+                                   if (options.size() >= 2)
                                    {
-                                       auto address = castAddress(options[i]);
-                                       mainCrawler.dumpNRefChain(address, true);
+                                       mainCrawler.dumpNRefChain(castAddress(options[1]), true, options.size() >= 3 ? atoi(options[2]) : 2);
                                    }
                                });
         }
