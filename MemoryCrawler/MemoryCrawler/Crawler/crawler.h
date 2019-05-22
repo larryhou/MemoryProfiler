@@ -31,10 +31,13 @@ struct EntityJoint
     int32_t hookTypeIndex = -1;
     address_t hookObjectAddress = 0;
     int32_t hookObjectIndex = -1;
+    
     int32_t fieldTypeIndex = -1;
     int32_t fieldSlotIndex = -1;
     int32_t fieldOffset = 0;
     address_t fieldAddress = 0;
+    
+    int32_t managedArrayIndex = -1;
     int32_t elementArrayIndex = -1;
     int32_t jointArrayIndex = -1;
     int32_t jointEntryIndex = -1;

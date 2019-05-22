@@ -748,13 +748,16 @@ void MemorySnapshotCrawler::dumpMRefChain(address_t address, bool includeCircula
             else
             {
                 auto &hookType = snapshot.typeDescriptions->items[joint.hookTypeIndex];
-                auto &field = hookType.fields->items[joint.fieldSlotIndex];
-                if (joint.elementArrayIndex >= 0)
+                
+                if (joint.fieldSlotIndex < 0)
                 {
-                    printf("    .{%s:%s}[%d] 0x%08llx\n", field.name->c_str(), type.name->c_str(), joint.elementArrayIndex, node.address);
+                    assert(joint.elementArrayIndex >= 0);
+                    auto &elementType = snapshot.typeDescriptions->items[joint.fieldTypeIndex];
+                    printf("    .{[%d]:%s} 0x%08llx\n", joint.elementArrayIndex, elementType.name->c_str(), node.address);
                 }
                 else
                 {
+                    auto &field = hookType.fields->items[joint.fieldSlotIndex];
                     printf("    .{%s:%s} 0x%08llx\n", field.name->c_str(), type.name->c_str(), node.address);
                 }
             }
@@ -1240,33 +1243,48 @@ bool MemorySnapshotCrawler::crawlManagedArrayAddress(address_t address, TypeDesc
     auto isStaticCrawling = memoryReader.isStatic();
     if (address < 0 || (!isStaticCrawling && address == 0)){return false;}
     
-    auto &elementType = snapshot.typeDescriptions->items[type.baseOrElementTypeIndex];
-    if (!isCrawlable(elementType)) {return false;}
+    auto elementType = &snapshot.typeDescriptions->items[type.baseOrElementTypeIndex];
+    if (!isCrawlable(*elementType)) {return false;}
     
     auto successCount = 0;
     address_t elementAddress = 0;
     auto elementCount = memoryReader.readArrayLength(address, type);
     for (auto i = 0; i < elementCount; i++)
     {
-        if (elementType.isValueType)
+        if (elementType->isValueType)
         {
-            elementAddress = address + __vm->arrayHeaderSize + i *elementType.size - __vm->objectHeaderSize;
+            elementAddress = address + __vm->arrayHeaderSize + i *elementType->size - __vm->objectHeaderSize;
         }
         else
         {
             auto ptrAddress = address + __vm->arrayHeaderSize + i * __vm->pointerSize;
             elementAddress = memoryReader.readPointer(ptrAddress);
             if (elementAddress == 0) {continue;}
+            
+            auto typeIndex = findTypeOfAddress(elementAddress);
+            if (typeIndex >= 0)
+            {
+                elementType = &snapshot.typeDescriptions->items[typeIndex];
+            }
         }
         
-        auto &elementJoint = joints.clone(joint);
+        auto &elementJoint = joints.add();
         elementJoint.jointArrayIndex = joints.size() - 1;
         elementJoint.isConnected = false;
+        
+        // set field hook info
+        elementJoint.hookObjectAddress = address;
+        elementJoint.hookObjectIndex = joint.managedArrayIndex;
+        elementJoint.hookTypeIndex = joint.fieldTypeIndex;
+        
+        // set field info
+        elementJoint.fieldAddress = elementAddress;
+        elementJoint.fieldTypeIndex = elementType->typeIndex;
         
         // set element info
         elementJoint.elementArrayIndex = i;
         
-        auto success = crawlManagedEntryAddress(elementAddress, &elementType, memoryReader, elementJoint, false, depth + 1);
+        auto success = crawlManagedEntryAddress(elementAddress, elementType, memoryReader, elementJoint, true, depth + 1);
         if (success) { successCount += 1; }
     }
     
@@ -1337,6 +1355,7 @@ bool MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
     ec.toKind = CK_managed;
     ec.to = mo->managedObjectIndex;
     ec.jointArrayIndex = joint.jointArrayIndex;
+    joint.managedArrayIndex = mo->managedObjectIndex;
     joint.isConnected = true;
     
     tryAcceptConnection(ec);
