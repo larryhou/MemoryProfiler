@@ -726,15 +726,16 @@ void MemorySnapshotCrawler::dumpMRefChain(address_t address, bool includeCircula
             auto &joint = joints[ec.jointArrayIndex];
             auto &type = snapshot.typeDescriptions->items[node.typeIndex];
             
-            if (number == 0)
+            if (ec.fromKind == CK_gcHandle)
             {
-                if (ec.fromKind == CK_gcHandle)
+                printf("<GCHandle>::%s 0x%08llx\n", type.name->c_str(), node.address);
+            }
+            else
+            {
+                auto &hookType = snapshot.typeDescriptions->items[joint.hookTypeIndex];
+                if (number > 0) {printf("    .");}
+                if (joint.fieldSlotIndex >= 0)
                 {
-                    printf("<GCHandle>::%s 0x%08llx\n", type.name->c_str(), node.address);
-                }
-                else
-                {
-                    auto &hookType = snapshot.typeDescriptions->items[joint.hookTypeIndex];
                     auto &field = hookType.fields->items[joint.fieldSlotIndex];
                     if (ec.fromKind == CK_static)
                     {
@@ -744,21 +745,11 @@ void MemorySnapshotCrawler::dumpMRefChain(address_t address, bool includeCircula
                     
                     printf("{%s:%s} 0x%08llx\n", field.name->c_str(), type.name->c_str(), node.address);
                 }
-            }
-            else
-            {
-                auto &hookType = snapshot.typeDescriptions->items[joint.hookTypeIndex];
-                
-                if (joint.fieldSlotIndex < 0)
+                else
                 {
                     assert(joint.elementArrayIndex >= 0);
                     auto &elementType = snapshot.typeDescriptions->items[joint.fieldTypeIndex];
-                    printf("    .{[%d]:%s} 0x%08llx\n", joint.elementArrayIndex, elementType.name->c_str(), node.address);
-                }
-                else
-                {
-                    auto &field = hookType.fields->items[joint.fieldSlotIndex];
-                    printf("    .{%s:%s} 0x%08llx\n", field.name->c_str(), type.name->c_str(), node.address);
+                    printf("{[%d]:%s} 0x%08llx\n", joint.elementArrayIndex, elementType.name->c_str(), node.address);
                 }
             }
             
