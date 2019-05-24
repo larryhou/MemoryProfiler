@@ -99,3 +99,48 @@ void readCommandOptions(const char *command, std::function<void(std::vector<cons
     
     for (auto i = 0; i < options.size(); i++) { delete [] options[i]; }
 }
+
+bool CommandHistory::detect(std::string &command)
+{
+    if (command.size() <= 3) {return false;}
+    
+    if (command[0] == '\x1b' && command[1] == '\x5b')
+    {
+        switch (command[2])
+        {
+            case '\x41': // backward
+                command = backward();
+                return true;
+                
+            case '\x42': // forward
+                command = forward();
+                return true;
+        }
+    }
+    
+    return false;
+}
+
+void CommandHistory::accept(std::string command)
+{
+    __commands.emplace_back(command);
+    __cursor = (int32_t)__commands.size() - 1;
+}
+
+std::string CommandHistory::forward()
+{
+    if (__cursor + 1 >= __commands.size()) {return "";}
+    return __commands[++__cursor];
+}
+
+std::string CommandHistory::backward()
+{
+    if (__cursor - 1 < 0) {return __commands.front();}
+    return __commands[--__cursor];
+}
+
+std::string CommandHistory::get()
+{
+    return __commands[__cursor];
+}
+
