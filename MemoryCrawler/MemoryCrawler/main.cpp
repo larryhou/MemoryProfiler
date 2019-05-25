@@ -332,9 +332,9 @@ void processRecord(const char * filepath)
         {
             readCommandOptions(command, [&](std::vector<const char *> options)
                                {
-                                   for (auto i = 1; i < options.size(); i++)
+                                   if (options.size() >= 2)
                                    {
-                                       mainCrawler.trackMTypeObjects(trackingMode, atoi(options[i]));
+                                       mainCrawler.trackMTypeObjects(trackingMode, atoi(options[1]), options.size() >= 3? atoi(options[2]) : 0);
                                    }
                                });
         }
@@ -342,9 +342,9 @@ void processRecord(const char * filepath)
         {
             readCommandOptions(command, [&](std::vector<const char *> options)
                                {
-                                   for (auto i = 1; i < options.size(); i++)
+                                   if (options.size() >= 2)
                                    {
-                                       mainCrawler.trackNTypeObjects(trackingMode, atoi(options[i]));
+                                       mainCrawler.trackNTypeObjects(trackingMode, atoi(options[1]), options.size() >= 3? atoi(options[2]) : 0);
                                    }
                                });
         }

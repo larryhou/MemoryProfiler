@@ -145,8 +145,8 @@ public:
     void trackMStatistics(MemoryState state, int32_t depth = 5);
     void trackNStatistics(MemoryState state, int32_t depth = 5);
     
-    void trackMTypeObjects(MemoryState state, int32_t typeIndex);
-    void trackNTypeObjects(MemoryState state, int32_t typeIndex);
+    void trackMTypeObjects(MemoryState state, int32_t typeIndex, int32_t rank = 10);
+    void trackNTypeObjects(MemoryState state, int32_t typeIndex, int32_t rank = 10);
     
     void findMObject(address_t address);
     void findNObject(address_t address);

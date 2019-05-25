@@ -313,7 +313,7 @@ void MemorySnapshotCrawler::trackNStatistics(MemoryState state, int32_t depth)
     printf("└%s\n", sep);
 }
 
-void MemorySnapshotCrawler::trackMTypeObjects(MemoryState state, int32_t typeIndex)
+void MemorySnapshotCrawler::trackMTypeObjects(MemoryState state, int32_t typeIndex, int32_t rank)
 {
     TrackStatistics objects;
     for (auto i = 0; i < managedObjects.size(); i++)
@@ -325,27 +325,35 @@ void MemorySnapshotCrawler::trackMTypeObjects(MemoryState state, int32_t typeInd
         }
     }
     
-    objects.summarize(true);
+    objects.summarize(false);
+    
+    vector<int32_t> indice;
     
     int32_t total = 0;
     int32_t count = 0;
     objects.foreach([&](int32_t itemIndex, int32_t typeIndex, int32_t size, uint64_t detail)
                     {
-                        auto &type = snapshot.typeDescriptions->items[typeIndex];
-                        if (itemIndex < 0)
+                        if (itemIndex >= 0)
                         {
-                            if (itemIndex == -1){printf("[%s][=] memory=%d\n", type.name->c_str(), (int32_t)size);}
-                            return;
+                            count++;
+                            total += size;
+                            indice.push_back(itemIndex);
                         }
-                        count++;
-                        total += size;
-                        auto &mo = managedObjects[itemIndex];
-                        printf("0x%08llx %8d %s\n", mo.address, mo.size, type.name->c_str());
                     }, 0);
-    printf("\e[37m[SUMMARY] count=%d memory=%d\n", count, total);
+    auto listCount = 0;
+    for (auto i = indice.begin(); i != indice.end(); i++)
+    {
+        if (rank > 0 && listCount++ >= rank) {break;}
+        
+        auto &mo = managedObjects[*i];
+        auto &type = snapshot.typeDescriptions->items[mo.typeIndex];
+        printf("0x%08llx %8d %s\n", mo.address, mo.size, type.name->c_str());
+    }
+    
+    printf("\e[37m[SUMMARY] total_count=%d memory=%d\n", count, total);
 }
 
-void MemorySnapshotCrawler::trackNTypeObjects(MemoryState state, int32_t typeIndex)
+void MemorySnapshotCrawler::trackNTypeObjects(MemoryState state, int32_t typeIndex, int32_t rank)
 {
     TrackStatistics objects;
     for (auto i = 0; i < snapshot.nativeObjects->size; i++)
@@ -357,24 +365,31 @@ void MemorySnapshotCrawler::trackNTypeObjects(MemoryState state, int32_t typeInd
         }
     }
     
-    objects.summarize(true);
+    objects.summarize(false);
+    
+    vector<int32_t> indice;
     
     int32_t total = 0;
     int32_t count = 0;
     objects.foreach([&](int32_t itemIndex, int32_t typeIndex, int32_t size, uint64_t detail)
                     {
-                        auto &type = snapshot.nativeTypes->items[typeIndex];
-                        if (itemIndex < 0)
+                        if (itemIndex >= 0)
                         {
-                            if (itemIndex == -1){printf("[%s][=] memory=%d\n", type.name->c_str(), (int32_t)size);}
-                            return;
+                            count++;
+                            total += size;
+                            indice.push_back(itemIndex);
                         }
-                        count++;
-                        total += size;
-                        auto &no = snapshot.nativeObjects->items[itemIndex];
-                        printf("0x%08llx %8d '%s'\n", no.nativeObjectAddress, no.size, no.name->c_str());
                     }, 0);
-    printf("\e[37m[SUMMARY] count=%d memory=%d\n", count, total);
+    auto listCount = 0;
+    for (auto i = indice.begin(); i != indice.end(); i++)
+    {
+        if (rank > 0 && listCount++ >= rank) {break;}
+        
+        auto &no = snapshot.nativeObjects->items[*i];
+        auto &type = snapshot.nativeTypes->items[no.nativeTypeArrayIndex];
+        printf("0x%08llx %8d '%s' '%s'\n", no.nativeObjectAddress, no.size, no.name->c_str(), type.name->c_str());
+    }
+    printf("\e[37m[SUMMARY] total_count=%d memory=%d\n", count, total);
 }
 
 void MemorySnapshotCrawler::barMMemory(MemoryState state, int32_t rank)
