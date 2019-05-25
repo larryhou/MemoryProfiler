@@ -485,11 +485,11 @@ void processRecord(const char * filepath)
                                {
                                    if (options.size() == 1)
                                    {
-                                       mainCrawler.dumpRedundants(mainCrawler.snapshot.managedTypeIndex.system_String);
+                                       mainCrawler.dumpRepeatedObjects(mainCrawler.snapshot.managedTypeIndex.system_String);
                                    }
                                    else
                                    {
-                                       mainCrawler.dumpRedundants(atoi(options[1]));
+                                       mainCrawler.dumpRepeatedObjects(atoi(options[1]), options.size() >= 3? atoi(options[2]) : 2);
                                    }
                                });
         }

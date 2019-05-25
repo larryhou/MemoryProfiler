@@ -1029,7 +1029,7 @@ int32_t MemorySnapshotCrawler::findTypeOfAddress(address_t address)
     return findTypeAtTypeAddress(typePtr);
 }
 
-void MemorySnapshotCrawler::dumpRedundants(int32_t typeIndex)
+void MemorySnapshotCrawler::dumpRepeatedObjects(int32_t typeIndex, int32_t condition)
 {
     auto &type = snapshot.typeDescriptions->items[typeIndex];
     
@@ -1068,7 +1068,7 @@ void MemorySnapshotCrawler::dumpRedundants(int32_t typeIndex)
     for (auto iter = stats.begin(); iter != stats.end(); iter++)
     {
         auto &children = iter->second;
-        if (children.size() == 1) {continue;}
+        if ((condition > 0 && children.size() < condition) || children.size() < 2) {continue;}
         
         auto total = 0;
         for (auto n = children.begin(); n != children.end(); n++)

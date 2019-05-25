@@ -151,7 +151,7 @@ public:
     void findMObject(address_t address);
     void findNObject(address_t address);
     
-    void dumpRedundants(int32_t typeIndex);
+    void dumpRepeatedObjects(int32_t typeIndex, int32_t condition = 2);
     
     void dumpUnbalancedEvents(MemoryState state);
     
