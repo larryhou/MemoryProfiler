@@ -387,7 +387,7 @@ void MemorySnapshotCrawler::trackNTypeObjects(MemoryState state, int32_t typeInd
         
         auto &no = snapshot.nativeObjects->items[*i];
         auto &type = snapshot.nativeTypes->items[no.nativeTypeArrayIndex];
-        printf("0x%08llx %8d '%s' '%s'\n", no.nativeObjectAddress, no.size, no.name->c_str(), type.name->c_str());
+        printf("0x%08llx %8d %s '%s'\n", no.nativeObjectAddress, no.size, type.name->c_str(), no.name->c_str());
     }
     printf("\e[37m[SUMMARY] total_count=%d memory=%d\n", count, total);
 }
