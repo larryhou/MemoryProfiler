@@ -124,6 +124,7 @@ private:
     std::unordered_map<address_t, int32_t> __typeAddressMap;
     std::unordered_map<address_t, int32_t> __nativeObjectAddressMap;
     map<address_t, int32_t> __managedObjectAddressMap;
+    map<address_t, vector<int32_t>> __valueAddressMap;
     
     map<address_t, int32_t> __managedNativeAddressMap;
     map<address_t, int32_t> __nativeManagedAddressMap;
@@ -158,8 +159,10 @@ public:
     void inspectMType(int32_t typeIndex);
     void inspectNType(int32_t typeIndex);
     
+    void inspectVObject(address_t address);
     void inspectMObject(address_t address, int32_t depth = 0);
     void inspectNObject(address_t address, int32_t depth = 0);
+    void dumpVObjectHierarchy(address_t address, TypeDescription &type, const char *indent, int32_t __iter_depth = 0);
     void dumpMObjectHierarchy(address_t address, TypeDescription *type,
                               set<int64_t> antiCircular, bool isActualType, int32_t limit, const char *indent, int32_t __iter_depth = 0);
     void dumpNObjectHierarchy(PackedNativeUnityEngineObject *no,
@@ -170,6 +173,7 @@ public:
     
     void statHeap(int32_t rank = 20);
     
+    void dumpVRefChain(address_t address);
     void dumpMRefChain(address_t address, bool includeCircular, int32_t limit = 2);
     void dumpNRefChain(address_t address, bool includeCircular, int32_t limit = 2);
     vector<vector<int32_t>> iterateNRefChain(PackedNativeUnityEngineObject *no,
@@ -193,6 +197,7 @@ private:
     int32_t findTypeOfAddress(address_t address);
     int32_t findTypeAtTypeAddress(address_t address);
     
+    vector<int32_t> *findVObjectAtAddress(address_t address);
     int32_t findMObjectAtAddress(address_t address);
     int32_t findNObjectAtAddress(address_t address);
     

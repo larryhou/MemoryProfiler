@@ -224,6 +224,16 @@ void processRecord(const char * filepath)
                                    }
                                });
         }
+        else if (strbeg(command, "vref")) // partial managed object reference chains
+        {
+            readCommandOptions(command, [&](std::vector<const char *> &options)
+                               {
+                                   for (auto i = 1; i < options.size(); i++)
+                                   {
+                                       mainCrawler.dumpVRefChain(castAddress(options[i]));
+                                   }
+                               });
+        }
         else if (strbeg(command, "uref")) // partial native object reference chains
         {
             readCommandOptions(command, [&](std::vector<const char *> &options)
@@ -372,6 +382,16 @@ void processRecord(const char * filepath)
                                    }
                                });
         }
+        else if (strbeg(command, "vshow"))
+        {
+            readCommandOptions(command, [&](std::vector<const char *> options)
+                               {
+                                   for (auto i = 1; i < options.size(); i++)
+                                   {
+                                       mainCrawler.inspectVObject(castAddress(options[i]));
+                                   }
+                               });
+        }
         else if (strbeg(command, "find"))
         {
             readCommandOptions(command, [&](std::vector<const char *> options)
@@ -508,28 +528,30 @@ void processRecord(const char * filepath)
             help("load", "[PMS_FILE_PATH]*", "加载内存快照文件", __indent);
             help("track", "[alloc|leak]", "追踪内存增长以及泄露问题", __indent);
             help("str", "[ADDRESS]*", "解析地址对应的字符串内容", __indent);
-            help("ref", "[ADDRESS]*", "列举保持IL2CPP对象内存活跃的引用关系", __indent);
+            help("ref", "[ADDRESS]*", "列举保持托管对象内存活跃的引用关系", __indent);
+            help("vref", "[ADDRESS]*", "列举托管内存里面数值类型对象的的引用路径", __indent);
             help("uref", "[ADDRESS]*", "列举保持引擎对象内存活跃的引用关系", __indent);
-            help("REF", "[ADDRESS]*", "列举保持IL2CPP对象内存活跃的全量引用关系", __indent);
+            help("REF", "[ADDRESS]*", "列举保持托管对象内存活跃的全量引用关系", __indent);
             help("UREF", "[ADDRESS]*", "列举保持引擎对象内存活跃的全量引用关系", __indent);
-            help("kref", "[ADDRESS]*", "列举保持IL2CPP对象内存活跃的引用关系并剔除干扰项", __indent);
+            help("kref", "[ADDRESS]*", "列举保持托管对象内存活跃的引用关系并剔除干扰项", __indent);
             help("ukref", "[ADDRESS]*", "列举保持引擎对象内存活跃的引用关系并剔除干扰项", __indent);
-            help("KREF", "[ADDRESS]*", "列举保持IL2CPP对象内存活跃的全量引用关系并剔除干扰项", __indent);
+            help("KREF", "[ADDRESS]*", "列举保持托管对象内存活跃的全量引用关系并剔除干扰项", __indent);
             help("UKREF", "[ADDRESS]*", "列举保持引擎对象内存活跃的全量引用关系并剔除干扰项", __indent);
-            help("link", "[ADDRESS]*", "查看与IL2CPP对象链接的引擎对象", __indent);
-            help("ulink", "[ADDRESS]*", "查看与引擎对象链接的IL2CPP对象", __indent);
-            help("show", "[ADDRESS]* [DEPTH]", "查看IL2CPP对象内存排布以及变量值", __indent);
+            help("link", "[ADDRESS]*", "查看与托管对象链接的引擎对象", __indent);
+            help("ulink", "[ADDRESS]*", "查看与引擎对象链接的托管对象", __indent);
+            help("show", "[ADDRESS]* [DEPTH]", "查看托管对象内存排布以及变量值", __indent);
+            help("vshow", "[ADDRESS]*", "查看托管内存对象的内存数据", __indent);
             help("ushow", "[ADDRESS]* [DEPTH]", "查看引擎对象内部的引用关系", __indent);
-            help("find", "[ADDRESS]*", "查找IL2CPP对象", __indent);
+            help("find", "[ADDRESS]*", "查找托管对象", __indent);
             help("ufind", "[ADDRESS]*", "查找引擎对象", __indent);
-            help("type", "[TYPE_INDEX]*", "查看IL2CPP类型信息", __indent);
+            help("type", "[TYPE_INDEX]*", "查看托管类型信息", __indent);
             help("utype", "[TYPE_INDEX]*", "查看引擎类型信息", __indent);
             help("dup", "[TYPE_INDEX]", "按指定类型统计相同对象的信息", __indent);
-            help("stat", "[RANK]", "按类型输出IL2CPP对象内存占用前RANK名的简报[支持内存追踪过滤]", __indent);
+            help("stat", "[RANK]", "按类型输出托管对象内存占用前RANK名的简报[支持内存追踪过滤]", __indent);
             help("ustat", "[RANK]", "按类型输出引擎对象内存占用前RANK名的简报[支持内存追踪过滤]", __indent);
-            help("bar", "[RANK]", "输出IL2CPP类型内存占用前RANK名图形简报[支持内存追踪过滤]", __indent);
+            help("bar", "[RANK]", "输出托管类型内存占用前RANK名图形简报[支持内存追踪过滤]", __indent);
             help("ubar", "[RANK]", "输出引擎类型内存占用前RANK名图形简报[支持内存追踪过滤]", __indent);
-            help("list", NULL, "列举IL2CPP类型所有活跃对象内存占用简报[支持内存追踪过滤]", __indent);
+            help("list", NULL, "列举托管类型所有活跃对象内存占用简报[支持内存追踪过滤]", __indent);
             help("ulist", NULL, "列举引擎类型所有活跃对象内存占用简报[支持内存追踪过滤]", __indent);
             help("event", NULL, "搜索所有未清理的delegate对象");
             help("heap", "[RANK]", "输出动态内存简报", __indent);
