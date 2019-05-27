@@ -1032,11 +1032,6 @@ int32_t MemorySnapshotCrawler::findTypeOfAddress(address_t address)
 void MemorySnapshotCrawler::dumpRepeatedObjects(int32_t typeIndex, int32_t condition)
 {
     auto &type = snapshot.typeDescriptions->items[typeIndex];
-    if (type.isValueType)
-    {
-        printf("[SKIP] '%s'%d isValueType=true\n", type.name->c_str(), type.typeIndex);
-        return;
-    }
     
     map<size_t, vector<int32_t>> stats;
     for (auto i = 0; i < managedObjects.size(); i++)
@@ -1044,15 +1039,15 @@ void MemorySnapshotCrawler::dumpRepeatedObjects(int32_t typeIndex, int32_t condi
         auto &mo = managedObjects[i];
         if (mo.typeIndex == typeIndex)
         {
-            auto *data = __memoryReader->readMemory(mo.address);
-            
             size_t hash = 0;
             if (type.isValueType)
             {
-                 hash = __hash.get(data + __vm->objectHeaderSize, mo.size);
+                auto *data = __memoryReader->readMemory(mo.address + __vm->objectHeaderSize);
+                 hash = __hash.get(data, mo.size);
             }
             else
             {
+                auto *data = __memoryReader->readMemory(mo.address);
                 hash = __hash.get(data, mo.size);
             }
             
