@@ -497,6 +497,7 @@ void RecordCrawler::inspectFrame(int32_t frameIndex, int32_t depth)
     if (frameIndex <  std::get<0>(__range)) {return;}
     if (frameIndex >= std::get<1>(__range)) {return;}
     __cursor = frameIndex;
+    __cdepth = depth;
     
     auto &frame = __frames[__cursor - std::get<0>(__range)];
     
@@ -602,24 +603,28 @@ void RecordCrawler::dumpMetadatas()
     }
 }
 
-void RecordCrawler::inspectFrame(int32_t depth)
+void RecordCrawler::inspectFrame(int32_t frameIndex)
 {
-    if (__cursor < __lowerFrameIndex || __cursor >= __upperFrameIndex)
+    if (frameIndex < __lowerFrameIndex)
     {
-        __cursor = __lowerFrameIndex;
+        frameIndex = __lowerFrameIndex;
+    }
+    else if (frameIndex >= __upperFrameIndex)
+    {
+        frameIndex = __upperFrameIndex - 1;
     }
     
-    inspectFrame(__cursor, depth);
+    inspectFrame(frameIndex, 0);
 }
 
 void RecordCrawler::next(int32_t step)
 {
-    inspectFrame(__cursor + step);
+    inspectFrame(__cursor + step, __cdepth);
 }
 
 void RecordCrawler::prev(int32_t step)
 {
-    inspectFrame(__cursor - step);
+    inspectFrame(__cursor - step, __cdepth);
 }
 
 void RecordCrawler::list(int32_t frameOffset, int32_t frameCount, int32_t sorting)

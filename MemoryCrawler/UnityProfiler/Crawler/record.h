@@ -87,6 +87,8 @@ private:
     int32_t __statsize;
     
     int32_t __cursor;
+    int32_t __cdepth;
+    
     InstanceManager<RenderFrame> __frames;
     int32_t __lowerFrameIndex;
     int32_t __upperFrameIndex;
@@ -98,7 +100,7 @@ public:
     void load(const char *filepath);
     
     void inspectFrame(int32_t frameIndex, int32_t depth);
-    void inspectFrame(int32_t depth);
+    void inspectFrame(int32_t frameIndex);
     
     void list(int32_t frameOffset = -1, int32_t frameCount = 10, int32_t sorting = 0);
     
