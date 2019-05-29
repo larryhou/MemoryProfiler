@@ -75,7 +75,7 @@ void processRecord(const char *filepath)
                                {
                                    if (options.size() == 1)
                                    {
-                                       crawler.inspectFrame(0);
+                                       crawler.inspectFrame(-1);
                                    }
                                    else
                                    {
@@ -98,7 +98,7 @@ void processRecord(const char *filepath)
                                    }
                                    else
                                    {
-                                       crawler.next(atoi(options[1]));
+                                       crawler.next(atoi(options[1]), options.size() >= 3 ? atoi(options[2]) : -1);
                                    }
                                });
         }
@@ -112,7 +112,7 @@ void processRecord(const char *filepath)
                                    }
                                    else
                                    {
-                                       crawler.prev(atoi(options[1]));
+                                       crawler.prev(atoi(options[1]), options.size() >= 3 ? atoi(options[2]) : -1);
                                    }
                                });
         }
