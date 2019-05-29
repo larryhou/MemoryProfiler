@@ -81,17 +81,18 @@ namespace Moobyte.MemoryProfiler
             stream.Write(profilerAreaCount); // area count
             for (var area = 0; area  < profilerAreaCount; area++)
             {
+                var areaValue = (ProfilerArea) area;
                 stream.Write((byte)area);
-                stream.Write(area.ToString());
+                stream.Write(areaValue.ToString());
                 List<int> children;
                 metadatas.Add((int)area, children = new List<int>());
-                var properties = ProfilerDriver.GetGraphStatisticsPropertiesForArea((ProfilerArea)area);
+                var properties = ProfilerDriver.GetGraphStatisticsPropertiesForArea(areaValue);
                 stream.Write((byte)properties.Length);
                 for (var i = 0; i < properties.Length; i++)
                 {
                     var name = properties[i];
 #if UNITY_2018_1_OR_NEWER
-                    var identifier = ProfilerDriver.GetStatisticsIdentifierForArea((ProfilerArea)area, name);
+                    var identifier = ProfilerDriver.GetStatisticsIdentifierForArea(areaValue, name);
 #else
                     var identifier = ProfilerDriver.GetStatisticsIdentifier(name);
 #endif
