@@ -36,6 +36,7 @@ namespace Moobyte.MemoryProfiler
         }
 
         private static Dictionary<int, List<int>> metadatas;
+        private static byte profilerAreaCount = 0;
         
         public static void StartRecording(bool includeUnityFormat = false)
         {
@@ -68,19 +69,32 @@ namespace Moobyte.MemoryProfiler
             
             var offset = stream.Position;
             metadatas = new Dictionary<int, List<int>>();
-            stream.Write((byte)ProfilerArea.AreaCount); // area count
-            for (var area = ProfilerArea.CPU; area  < ProfilerArea.AreaCount; area++)
+            var paType = typeof(ProfilerArea);
+            var areaNames = Enum.GetNames(paType);
+            
+            profilerAreaCount = (byte)areaNames.Length;
+            if (areaNames[areaNames.Length - 1].Equals("AreaCount"))
+            {
+                --profilerAreaCount;
+            }
+            
+            stream.Write(profilerAreaCount); // area count
+            for (var area = 0; area  < profilerAreaCount; area++)
             {
                 stream.Write((byte)area);
                 stream.Write(area.ToString());
                 List<int> children;
                 metadatas.Add((int)area, children = new List<int>());
-                var properties = ProfilerDriver.GetGraphStatisticsPropertiesForArea(area);
+                var properties = ProfilerDriver.GetGraphStatisticsPropertiesForArea((ProfilerArea)area);
                 stream.Write((byte)properties.Length);
                 for (var i = 0; i < properties.Length; i++)
                 {
                     var name = properties[i];
+#if UNITY_2018_1_OR_NEWER
+                    var identifier = ProfilerDriver.GetStatisticsIdentifierForArea((ProfilerArea)area, name);
+#else
                     var identifier = ProfilerDriver.GetStatisticsIdentifier(name);
+#endif
                     stream.Write(name);
                     
                     children.Add(identifier);
@@ -219,7 +233,7 @@ namespace Moobyte.MemoryProfiler
                 stream.Write(frameFPS);
                 
                 //encode statistics
-                for (ProfilerArea area = 0; area < ProfilerArea.AreaCount; area++)
+                for (var area = 0; area < profilerAreaCount; area++)
                 {
                     var statistics = metadatas[(int)area];
                     stream.Write((byte)area);
