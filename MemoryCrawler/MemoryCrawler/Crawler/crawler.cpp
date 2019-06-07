@@ -1606,13 +1606,13 @@ void MemorySnapshotCrawler::findMObject(address_t address)
         auto &mo = managedObjects[index];
         auto &type = snapshot.typeDescriptions->items[mo.typeIndex];
         printf("0x%08llx type='%s'%d size=%d assembly='%s'", address, type.name->c_str(), type.typeIndex, mo.size, type.assembly->c_str());
-        if (type.nativeTypeArrayIndex >= 0)
+        if (mo.nativeObjectIndex >= 0)
         {
-            auto __address = findNObjectOfMObject(address);
-            auto __index = findNObjectAtAddress(__address);
-            assert(__index >= 0);
+//            auto __address = findNObjectOfMObject(address);
+//            auto __index = findNObjectAtAddress(__address);
+//            assert(__index >= 0);
             
-            auto &no = snapshot.nativeObjects->items[__index];
+            auto &no = snapshot.nativeObjects->items[mo.nativeObjectIndex];
             printf(" NATIVE[0x%08llx size=%d]", no.nativeObjectAddress, no.size);
         }
         std::cout << std::endl;
