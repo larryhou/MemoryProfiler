@@ -7,6 +7,7 @@
 //
 
 #include "crawler.h"
+#include <algorithm>
 
 MemorySnapshotCrawler::MemorySnapshotCrawler(const char *filepath)
 {

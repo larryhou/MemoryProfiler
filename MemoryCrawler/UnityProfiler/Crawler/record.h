@@ -14,6 +14,7 @@
 #include <vector>
 #include <tuple>
 #include <map>
+#include <functional>
 
 #include "stream.h"
 #include "crawler.h"

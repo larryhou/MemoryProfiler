@@ -14,7 +14,7 @@
 
 #include <stdio.h>
 #include <math.h>
-
+#include <functional>
 template <class T>
 class Statistics
 {
@@ -59,37 +59,36 @@ void Statistics<T>::collect(T sample)
 template <class T>
 void Statistics<T>::summarize()
 {
-    T sum = 0;
-    
-    minimum = __samples[0];
-    maximum = 0;
-    for (auto iter = __samples.begin(); iter != __samples.end(); iter++)
-    {
-        auto v = *iter;
-        sum += v;
-        if (v > maximum) {maximum = v;}
-        if (v < minimum) {minimum = v;}
-    }
-    
-    mean = (double)sum / (double)__samples.size();
-    
-    double variance = 0;
-    for (auto iter = __samples.begin(); iter != __samples.end(); iter++)
-    {
-        variance += pow((double)*iter - mean, 2);
-    }
-    
-    standardDeviation = pow(variance / (double)(__samples.size() - 1), 0.5);
-    auto upper = mean + 3 * standardDeviation;
-    auto lower = mean - 3 * standardDeviation;
-    
-    reasonableMaximum = minimum;
-    reasonableMinimum = maximum;
-    for (auto iter = __samples.begin(); iter != __samples.end(); iter++)
-    {
-        auto v = *iter;
-        if (v > reasonableMaximum && v <= upper) {reasonableMaximum = v;}
-        if (v < reasonableMinimum && v >= lower) {reasonableMinimum = v;}
+    if (!__samples.empty()) {
+        T sum = 0;
+        minimum = __samples[0];
+        maximum = 0;
+        for (auto iter = __samples.begin(); iter != __samples.end(); iter++) {
+            auto v = *iter;
+            sum += v;
+            if (v > maximum) { maximum = v; }
+            if (minimum == 0)
+                if (v < minimum) { minimum = v; }
+        }
+
+        mean = (double) sum / (double) __samples.size();
+
+        double variance = 0;
+        for (auto iter = __samples.begin(); iter != __samples.end(); iter++) {
+            variance += pow((double) *iter - mean, 2);
+        }
+
+        standardDeviation = pow(variance / (double) (__samples.size() - 1), 0.5);
+        auto upper = mean + 3 * standardDeviation;
+        auto lower = mean - 3 * standardDeviation;
+
+        reasonableMaximum = minimum;
+        reasonableMinimum = maximum;
+        for (auto iter = __samples.begin(); iter != __samples.end(); iter++) {
+            auto v = *iter;
+            if (v > reasonableMaximum && v <= upper) { reasonableMaximum = v; }
+            if (v < reasonableMinimum && v >= lower) { reasonableMinimum = v; }
+        }
     }
 }
 

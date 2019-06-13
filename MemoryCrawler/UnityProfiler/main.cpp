@@ -217,20 +217,20 @@ void processRecord(const char *filepath)
                                            auto sign = options[2];
                                            if (strbeg(sign, "="))
                                            {
-                                               crawler.findFramesWithFPS(fps, [](auto a, auto b) { return a == b; });
+                                               crawler.findFramesWithFPS(fps, [](float a, float b) { return a == b; });
                                            }
                                            else if (strbeg(sign, "<"))
                                            {
-                                               crawler.findFramesWithFPS(fps, [](auto a, auto b) { return a < b; });
+                                               crawler.findFramesWithFPS(fps, [](float a, float b) { return a < b; });
                                            }
                                            else
                                            {
-                                               crawler.findFramesWithFPS(fps, [](auto a, auto b) { return a > b; });
+                                               crawler.findFramesWithFPS(fps, [](float a, float b) { return a > b; });
                                            }
                                        }
                                        else
                                        {
-                                           crawler.findFramesWithFPS(fps, [](auto a, auto b) { return a < b; });
+                                           crawler.findFramesWithFPS(fps, [](float a, float b) { return a < b; });
                                        }
                                    }
                                });

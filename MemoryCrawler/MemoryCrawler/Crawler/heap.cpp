@@ -8,6 +8,7 @@
 
 #include "heap.h"
 #include <vector>
+#include <cstring>
 
 int32_t HeapMemoryReader::seekOffset(address_t address)
 {

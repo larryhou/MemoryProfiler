@@ -7,6 +7,7 @@
 //
 
 #include "stat.h"
+#include <algorithm>
 using std::pair;
 
 void TrackStatistics::collect(int32_t itemIndex, int32_t typeIndex, int32_t size)
