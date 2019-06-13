@@ -10,6 +10,7 @@
 #define types_h
 #include <ios>
 #include <string>
+#include <cassert>
 
 using byte_t = unsigned char;
 using address_t = int64_t;
@@ -17,7 +18,6 @@ using seekdir_t = std::ios_base::seekdir;
 using unicode_t = std::u16string;
 using std::string;
 
-#include <CommonCrypto/CommonDigest.h>
 
 class HashCaculator
 {
@@ -27,7 +27,7 @@ private:
     char __hexdigest[33];
     std::hash<std::string> __hash;
 public:
-    size_t get(const char *data, const CC_LONG size);
+    size_t get(const char *data, const size_t size);
 };
 
 template <typename T>

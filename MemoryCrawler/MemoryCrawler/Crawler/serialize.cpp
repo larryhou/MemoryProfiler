@@ -8,6 +8,7 @@
 
 #include "serialize.h"
 #include <map>
+#include <algorithm>
 
 MemorySnapshotReader::MemorySnapshotReader(const char *filepath)
 {
@@ -30,7 +31,7 @@ PackedMemorySnapshot &MemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
     }
     else
     {
-        __fs->seek(0, seekdir_t::beg);
+        __fs->seek(0, std::ios_base::beg);
     }
     
     __sampler.begin("read_header");

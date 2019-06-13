@@ -8,6 +8,7 @@
 
 #include "utils.h"
 #include <iostream>
+#include <cstring>
 
 char __help_padding[64];
 

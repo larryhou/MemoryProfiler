@@ -7,6 +7,7 @@
 //
 
 #include "record.h"
+#include <algorithm>
 
 RecordCrawler::RecordCrawler()
 {
@@ -29,7 +30,7 @@ void RecordCrawler::load(const char *filepath)
     
     readStrings();
     
-    __fs.seek(__dataOffset, seekdir_t::beg);
+    __fs.seek(__dataOffset, std::ios_base::beg);
     
     crawl();
     
@@ -158,7 +159,7 @@ void RecordCrawler::findFramesWithFPS(float fps, std::function<bool (float, floa
 void RecordCrawler::iterateSamples(std::function<void (int32_t, StackSample &)> callback, bool clearProgress)
 {
     auto &frame = __frames[__lowerFrameIndex - std::get<0>(__range)];
-    __fs.seek(frame.offset, seekdir_t::beg);
+    __fs.seek(frame.offset, std::ios_base::beg);
     
     auto frameCount = __upperFrameIndex - __lowerFrameIndex;
     
@@ -175,7 +176,7 @@ void RecordCrawler::iterateSamples(std::function<void (int32_t, StackSample &)> 
         
         __fs.ignore(__statsize);
         
-        readFrameSamples([&](auto &samples, auto &relations)
+        readFrameSamples([&](std::vector<StackSample> &samples, std::map<int32_t, std::vector<int32_t> >  &relations)
                     {
                         for (auto i = 0; i < samples.size(); i++)
                         {
@@ -220,7 +221,7 @@ void RecordCrawler::statByFunction(int32_t rank)
                        totalTime += sample.selfTime;
                    });
     
-    std::sort(functions.begin(), functions.end(), [&](auto a, auto b)
+    std::sort(functions.begin(), functions.end(), [&](int32_t a, int32_t b)
               {
                   return timeStat.at(a) > timeStat.at(b);
               });
@@ -342,7 +343,7 @@ void RecordCrawler::findFramesWithAlloc(int32_t frameOffset, int32_t frameCount)
     
     auto baseIndex = std::get<0>(__range);
     auto frameIndex = __lowerFrameIndex + frameOffset;
-    __fs.seek(__frames[frameIndex - baseIndex].offset, seekdir_t::beg);
+    __fs.seek(__frames[frameIndex - baseIndex].offset, std::ios_base::beg);
     
     int32_t iterCount = 0;
     
@@ -363,7 +364,7 @@ void RecordCrawler::findFramesWithAlloc(int32_t frameOffset, int32_t frameCount)
         __fs.ignore(__statsize);
         
         auto alloc = 0;
-        readFrameSamples([&](auto &samples, auto &relations)
+        readFrameSamples([&](std::vector<StackSample> &samples, std::map<int32_t, std::vector<int32_t> > &relations)
                   {
                       for (auto i = 0; i < samples.size(); i++)
                       {
@@ -403,7 +404,7 @@ void RecordCrawler::readStrings()
 {
     __sampler.begin("RecordCrawler::loadStrings");
     __sampler.begin("seek");
-    __fs.seek(__strOffset, seekdir_t::beg);
+    __fs.seek(__strOffset, std::ios_base::beg);
     __sampler.end();
     __sampler.begin("read");
     auto count = __fs.readUInt32();
@@ -501,8 +502,8 @@ void RecordCrawler::inspectFrame(int32_t frameIndex, int32_t depth)
     
     auto &frame = __frames[__cursor - std::get<0>(__range)];
     
-    __fs.seek(frame.offset + 12 + __statsize, seekdir_t::beg);
-    readFrameSamples([&](auto &samples, auto &relations)
+    __fs.seek(frame.offset + 12 + __statsize, std::ios_base::beg);
+    readFrameSamples([&](std::vector<StackSample> &samples, std::map<int32_t, std::vector<int32_t> > & relations)
               {
                   int32_t alloc = 0;
                   for (auto i = samples.begin(); i != samples.end(); i++)

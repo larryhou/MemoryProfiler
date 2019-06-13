@@ -23,7 +23,7 @@ void FileStream::open(const char* filepath, bool memoryCache)
     {
         ifstream fs;
         fs.open(filepath, ifstream::in | ifstream::binary);
-        fs.seekg(0, seekdir_t::end);
+        fs.seekg(0, std::ios_base::end);
         
         auto length = fs.tellg();
         char *bytes = new char[length];

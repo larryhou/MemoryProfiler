@@ -13,7 +13,9 @@
 #include <map>
 #include <vector>
 #include <chrono>
+#include <cstring>
 #include "types.h"
+
 
 using std::vector;
 using std::string;
