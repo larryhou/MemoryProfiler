@@ -39,7 +39,7 @@ PackedMemorySnapshot &MemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
     
     while (__fs->byteAvailable())
     {
-        auto length = __fs->readUInt32(true);
+        auto length = __fs->readUInt32();
         auto type = __fs->readUInt8();
         switch (type)
         {
