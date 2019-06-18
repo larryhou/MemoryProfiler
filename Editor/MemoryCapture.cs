@@ -202,8 +202,9 @@ namespace Moobyte.MemoryProfiler
 			
 			RepackUInt32(stream, offset, (uint)stream.Length);
 			
-			Debug.LogFormat("+ {0}", filepath);
 			stream.Close();
+			Debug.LogFormat("+ {0}", filepath);
+			
 		}
 
 		private static void RepackUInt32(Stream input, long offset, uint size)
