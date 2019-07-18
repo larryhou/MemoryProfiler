@@ -1521,6 +1521,53 @@ bool MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
     return successCount != 0;
 }
 
+void MemorySnapshotCrawler::dumpGCHandles()
+{
+    vector<int32_t> handleTargets;
+    for (auto i = 0; i < snapshot.gcHandles->size; i++)
+    {
+        auto &handle = snapshot.gcHandles->items[i];
+        auto index = findMObjectAtAddress(handle.target);
+        assert(index >= 0);
+        handleTargets.push_back(index);
+    }
+    
+    std::sort(handleTargets.begin(), handleTargets.end(), [&](int32_t a, int32_t b)
+              {
+                  auto &aObject = managedObjects[a];
+                  auto &bObject = managedObjects[b];
+                  if (aObject.typeIndex != bObject.typeIndex)
+                  {
+                      return aObject.typeIndex < bObject.typeIndex;
+                  }
+                  return aObject.address < bObject.address;
+              });
+    
+    auto digit = handleTargets.size() == 0? 1 : (int)ceil(log10(handleTargets.size()));
+    
+    char format[32];
+    memset(format, 0, sizeof(format));
+    sprintf(format, "[%%%dd/%d]", digit, (int32_t)handleTargets.size());
+    
+    auto num = 0;
+    for (auto i = handleTargets.begin(); i != handleTargets.end(); i++)
+    {
+        auto index = *i;
+        auto &mo = managedObjects[index];
+        
+        printf(format, ++num);
+        auto &type = snapshot.typeDescriptions->items[mo.typeIndex];
+        printf("0x%08llx type='%s'%d size=%d assembly='%s'", mo.address, type.name->c_str(), type.typeIndex, mo.size, type.assembly->c_str());
+        if (mo.nativeObjectIndex >= 0)
+        {
+            auto &no = snapshot.nativeObjects->items[mo.nativeObjectIndex];
+            printf(" NATIVE[0x%08llx size=%d]", no.nativeObjectAddress, no.size);
+        }
+        
+        std::cout << std::endl;
+    }
+}
+
 void MemorySnapshotCrawler::inspectVObject(address_t address)
 {
     auto candidates = findVObjectAtAddress(address);

@@ -513,6 +513,10 @@ void processRecord(const char * filepath)
                                    }
                                });
         }
+        else if (strbeg(command, "handle"))
+        {
+            mainCrawler.dumpGCHandles();
+        }
         else if (strbeg(command, "quit"))
         {
             recordable = false;
@@ -557,6 +561,7 @@ void processRecord(const char * filepath)
             help("heap", "[RANK]", "输出动态内存简报", __indent);
             help("save", NULL, "把当前内存快照分析结果以sqlite3格式保存到本机", __indent);
             help("uuid", NULL, "查看内存快照UUID", __indent);
+            help("handle", NULL, "查看GCHandle对象", __indent);
             help("help", NULL, "帮助", __indent);
             help("quit", NULL, "退出", __indent);
             cout << std::flush;
