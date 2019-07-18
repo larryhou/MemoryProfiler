@@ -116,6 +116,8 @@ public:
     void findFramesWithAlloc(int32_t frameOffset = -1, int32_t frameCount = -1);
     void findFramesWithFunction(int32_t functionNameRef);
     
+    void inspectFunction(int32_t functionNameRef);
+    
     void findFramesMatchValue(ProfilerArea area, int32_t property, float value, std::function<bool(float a, float b)> predicate);
     void statValues(ProfilerArea area, int32_t property);
     

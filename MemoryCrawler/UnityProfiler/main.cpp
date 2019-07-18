@@ -157,6 +157,16 @@ void processRecord(const char *filepath)
                                    }
                                });
         }
+        else if (strbeg(command, "sumf"))
+        {
+            readCommandOptions(command, [&](std::vector<const char *> &options)
+                               {
+                                   for (auto i = 1; i < options.size(); i++)
+                                   {
+                                       crawler.inspectFunction(atoi(options[i]));
+                                   }
+                               });
+        }
         else if (strbeg(command, "find"))
         {
             readCommandOptions(command, [&](std::vector<const char *> &options)
@@ -272,7 +282,6 @@ void processRecord(const char *filepath)
                                        crawler.statValues((ProfilerArea)area, property);
                                    }
                                });
-            
         }
         else if (strbeg(command, "seek"))
         {
@@ -345,6 +354,7 @@ void processRecord(const char *filepath)
             help("alloc", "[FRAME_OFFSET] [FRAME_COUNT]", "搜索申请动态内存的帧", __indent);
             help("frame","[FRAME_INDEX]", "查看帧时间消耗详情", __indent);
             help("func", NULL, "按照方法名统计时间消耗", __indent);
+            help("sumf", "[FUNCTION_NAME_REF]*", "在当前帧区间统计函数时间开销", __indent);
             help("find", "[FUNCTION_NAME_REF]*", "按照方法名索引查找调用帧", __indent);
             help("list", "[FRAME_OFFSET] [±FRAME_COUNT] [+|-]", "列举帧简报 支持排序(+按fps升序 -按fps降序)输出 默认不排序", __indent);
             help("next", "[STEP]", "查看后STEP[=1]帧时间消耗详情", __indent);

@@ -282,6 +282,36 @@ void RecordCrawler::findFramesWithFunction(int32_t functionNameRef)
     }
 }
 
+void RecordCrawler::inspectFunction(int32_t functionNameRef)
+{
+    std::vector<StackSample> samples;
+    std::vector<int32_t> frames;
+    
+    Statistics<float> stats;
+    iterateSamples([&](int32_t index, StackSample &sample)
+                   {
+                       if (sample.nameRef == functionNameRef)
+                       {
+                           samples.emplace_back(sample);
+                           frames.push_back(index);
+                           
+                           stats.collect(sample.totalTime);
+                       }
+                   }, true);
+    stats.summarize();
+    
+    auto &name = __strings[functionNameRef];
+    printf("[%s] count=%d total=%.3f mean=%.3f±%.3f \n", name.c_str(), stats.size(), stats.sum, stats.mean, stats.standardDeviation);
+    
+    auto baseIndex = std::get<0>(__range);
+    stats.iterateUnusualMaximums([&](int32_t index, float value)
+                                 {
+                                     auto frameIndex = frames[index];
+                                     auto &frame = __frames[frameIndex - baseIndex];
+                                     printf("%7.3f [FRAME] index=%d time=%.3fms fps=%.1f offset=%d\n", value ,frame.index, frame.time, frame.fps, frame.offset);
+                                 });
+}
+
 void RecordCrawler::findFramesMatchValue(ProfilerArea area, int32_t property, float value, std::function<bool (float, float)> predicate)
 {
     auto &check = __frames[0].statistics.graphs;
