@@ -1547,7 +1547,7 @@ void MemorySnapshotCrawler::dumpGCHandles()
     
     char format[32];
     memset(format, 0, sizeof(format));
-    sprintf(format, "[%%%dd/%d]", digit, (int32_t)handleTargets.size());
+    sprintf(format, "[%%%dd/%d] ", digit, (int32_t)handleTargets.size());
     
     auto num = 0;
     for (auto i = handleTargets.begin(); i != handleTargets.end(); i++)
