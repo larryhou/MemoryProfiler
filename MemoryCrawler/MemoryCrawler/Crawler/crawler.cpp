@@ -1561,7 +1561,7 @@ void MemorySnapshotCrawler::dumpGCHandles()
         if (mo.nativeObjectIndex >= 0)
         {
             auto &no = snapshot.nativeObjects->items[mo.nativeObjectIndex];
-            printf(" NATIVE[0x%08llx size=%d]", no.nativeObjectAddress, no.size);
+            printf(" N[0x%08llx size=%d]", no.nativeObjectAddress, no.size);
         }
         
         std::cout << std::endl;
@@ -1613,7 +1613,7 @@ void MemorySnapshotCrawler::inspectMType(int32_t typeIndex)
     if (type.nativeTypeArrayIndex >= 0)
     {
         auto &nt = snapshot.nativeTypes->items[type.nativeTypeArrayIndex];
-        printf(" NATIVE[instanceMemory=%d instanceCount=%d]", nt.instanceMemory, nt.instanceCount);
+        printf(" N[instanceMemory=%d instanceCount=%d]", nt.instanceMemory, nt.instanceCount);
     }
     printf("\n");
     
@@ -1644,7 +1644,7 @@ void MemorySnapshotCrawler::inspectNType(int32_t typeIndex)
     if (type.managedTypeArrayIndex >= 0)
     {
         auto &mt = snapshot.typeDescriptions->items[type.managedTypeArrayIndex];
-        printf(" MANAGED[0x%08llx typeIndex=%d instanceMemory=%d instanceCount=%d]", mt.typeInfoAddress, mt.typeIndex, mt.instanceMemory, mt.instanceCount);
+        printf(" M[0x%08llx typeIndex=%d instanceMemory=%d instanceCount=%d]", mt.typeInfoAddress, mt.typeIndex, mt.instanceMemory, mt.instanceCount);
     }
     printf("\n");
 }
@@ -1664,7 +1664,7 @@ void MemorySnapshotCrawler::findMObject(address_t address)
 //            assert(__index >= 0);
             
             auto &no = snapshot.nativeObjects->items[mo.nativeObjectIndex];
-            printf(" NATIVE[0x%08llx size=%d]", no.nativeObjectAddress, no.size);
+            printf(" N[0x%08llx size=%d]", no.nativeObjectAddress, no.size);
         }
         std::cout << std::endl;
     }
@@ -1686,7 +1686,7 @@ void MemorySnapshotCrawler::findNObject(address_t address)
         {
             auto &mo = managedObjects[no.managedObjectArrayIndex];
             auto &mt = snapshot.typeDescriptions->items[mo.typeIndex];
-            printf(" MANAGED[0x%08llx type='%s'%d size=%d]", mo.address, mt.name->c_str(), mt.typeIndex, mo.size);
+            printf(" M[0x%08llx type='%s'%d size=%d]", mo.address, mt.name->c_str(), mt.typeIndex, mo.size);
         }
         printf("\n");
     }
