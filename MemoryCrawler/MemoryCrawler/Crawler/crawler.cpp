@@ -763,7 +763,7 @@ void MemorySnapshotCrawler::dumpMRefChain(address_t address, bool includeCircula
                 switch (index)
                 {
                     case -1:
-                        if (!includeCircular) { interupted = true; } else { printf("∞"); } // circular
+                        if (!includeCircular) { interupted = true; } else { printf("∞"); continue; } // circular
                         break;
                     case -2:
                         printf("*"); // more and interrupted
@@ -895,7 +895,7 @@ void MemorySnapshotCrawler::dumpNRefChain(address_t address, bool includeCircula
                 switch (index)
                 {
                     case -1:
-                        if (!includeCircular) { interupted = true; } else { printf("∞"); } // circular
+                        if (!includeCircular) { interupted = true; } else { printf("∞"); continue; } // circular
                         break;
                     case -2:
                         printf("*"); // more and interrupted
