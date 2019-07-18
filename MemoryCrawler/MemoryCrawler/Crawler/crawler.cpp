@@ -757,14 +757,14 @@ void MemorySnapshotCrawler::dumpMRefChain(address_t address, bool includeCircula
         for (auto n = chain.rbegin(); n != chain.rend(); n++)
         {
             auto index = *n;
+            bool interupted = false;
             if (index < 0)
             {
-                if (!includeCircular) {break;}
                 switch (index)
                 {
                     case -1:
-                        printf("∞"); // circular
-                        continue;
+                        if (!includeCircular) { interupted = true; } else { printf("∞"); } // circular
+                        break;
                     case -2:
                         printf("*"); // more and interrupted
                         continue;
@@ -773,6 +773,8 @@ void MemorySnapshotCrawler::dumpMRefChain(address_t address, bool includeCircula
                         continue;
                 }
             }
+            
+            if (interupted) {break;}
             
             auto &ec = connections[index];
             auto &node = managedObjects[ec.to];
@@ -887,14 +889,14 @@ void MemorySnapshotCrawler::dumpNRefChain(address_t address, bool includeCircula
         for (auto n = chain.rbegin(); n != chain.rend(); n++)
         {
             auto index = *n;
+            bool interupted = false;
             if (index < 0)
             {
-                if (!includeCircular) {break;}
                 switch (index)
                 {
                     case -1:
-                        printf("∞"); // circular
-                        continue;
+                        if (!includeCircular) { interupted = true; } else { printf("∞"); } // circular
+                        break;
                     case -2:
                         printf("*"); // more and interrupted
                         continue;
@@ -903,6 +905,8 @@ void MemorySnapshotCrawler::dumpNRefChain(address_t address, bool includeCircula
                         continue;
                 }
             }
+            
+            if (interupted) {break;}
             
             auto &nc = nativeConnections[index];
             if (number == 0)
