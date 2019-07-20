@@ -7,6 +7,8 @@
 //
 
 #include "crawler.h"
+#include <algorithm>    // std::random_shuffle
+#include <random>
 
 MemorySnapshotCrawler::MemorySnapshotCrawler(const char *filepath)
 {
@@ -743,13 +745,23 @@ void MemorySnapshotCrawler::dumpVRefChain(address_t address)
     }
 }
 
-void MemorySnapshotCrawler::dumpMRefChain(address_t address, bool includeCircular, int32_t limit)
+void MemorySnapshotCrawler::dumpMRefChain(address_t address, bool includeCircular, bool stochastic, int32_t limit)
 {
     auto objectIndex = findMObjectAtAddress(address);
     if (objectIndex == -1) {return;}
     
     auto *mo = &managedObjects[objectIndex];
-    auto fullChains = iterateMRefChain(mo, vector<int32_t>(), set<int64_t>(), limit);
+    vector<vector<int32_t>> fullChains;
+
+    ReachRootStatus reachRootStatus = ReachRootStatus::Init;
+    if(stochastic)
+    {
+        auto reachedRoot = set<int64_t>();
+        fullChains = iterateMStochasticRefChain(mo, vector<int32_t>(), set<int64_t>(), reachedRoot, reachRootStatus, limit);
+    }
+    else
+        fullChains = iterateMRefChain(mo, vector<int32_t>(), set<int64_t>(), limit);
+
     for (auto c = fullChains.begin(); c != fullChains.end(); c++)
     {
         auto &chain = *c;
@@ -865,6 +877,103 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateMRefChain(ManagedObject *m
                 result.push_back(__chain); // circular reference situation
             }
         }
+    }
+    else
+    {
+        if (chain.size() != 0){result.push_back(chain);}
+    }
+    
+    return result;
+}
+
+
+vector<vector<int32_t>> MemorySnapshotCrawler::iterateMStochasticRefChain(ManagedObject *mo,
+                                                                vector<int32_t> chain, set<int64_t> antiCircular, set<int64_t>& reachedRoot, ReachRootStatus& reachRootStatus, int32_t limit, int64_t __iter_capacity, int32_t __depth)
+{
+    vector<vector<int32_t>> result;
+    if (mo->fromConnections.size() > 0)
+    {
+        set<int64_t> unique;
+
+        int connectionCount = mo->fromConnections.size();
+        for(auto currentStaochasticCount = 0; currentStaochasticCount < connectionCount; ++currentStaochasticCount)
+        {
+            if(reachRootStatus == ReachRootStatus::DuplicateReach || reachRootStatus == ReachRootStatus::FirstReach)
+            {
+                if(__depth == 0)
+                {
+                    reachRootStatus = ReachRootStatus::Init;
+                    antiCircular.clear();
+                    unique.clear();
+                }
+                else
+                    break;
+            }
+
+            vector<int> stocasticFromConnections(mo->fromConnections);
+
+            auto seed = std::chrono::system_clock::now().time_since_epoch().count();
+            std::shuffle (stocasticFromConnections.begin(), stocasticFromConnections.end(), std::default_random_engine(seed));
+            for (auto i = 0; i < stocasticFromConnections.size(); i++)
+            {
+                if (limit > 0 && unique.size() >= limit) {break;}
+                auto ci = stocasticFromConnections[i];
+                auto &ec = connections[ci];
+                auto fromIndex = ec.from;
+                
+                vector<int32_t> __chain(chain);
+                __chain.push_back(ci);
+                
+                if (ec.fromKind == CK_static || ec.fromKind == CK_gcHandle || fromIndex < 0)
+                {
+                    if(reachedRoot.find(fromIndex) == reachedRoot.end())
+                    {
+                        reachedRoot.insert(fromIndex);
+                        result.push_back(__chain);
+                        reachRootStatus = ReachRootStatus::FirstReach;
+                    }
+                    else
+                    {
+                        reachRootStatus = ReachRootStatus::DuplicateReach;
+                    }
+                    break;
+                }
+                
+                int64_t uuid = ((int64_t)ec.fromKind << 30 | (int64_t)ec.from) << 32 | ((int64_t)ec.toKind << 30 | ec.to);
+                if (unique.find(uuid) != unique.end()) {continue;}
+                unique.insert(uuid);
+                
+                if (antiCircular.find(uuid) == antiCircular.end())
+                {
+                    set<int64_t> __antiCircular(antiCircular);
+                    __antiCircular.insert(uuid);
+                    
+                    auto *fromObject = &managedObjects[fromIndex];
+                    auto depthCapacity = fromObject->fromConnections.size();
+                    if ((__iter_capacity * depthCapacity >= REF_ITERATE_CAPACITY && limit <= 0) || (limit > 1 && __depth >= REF_ITERATE_DEPTH))
+                    {
+                        __chain.push_back(-2); // interruptted signal
+                        return {__chain};
+                    }
+                    
+                    auto branches = iterateMStochasticRefChain(fromObject, __chain, __antiCircular, reachedRoot, reachRootStatus, limit, __iter_capacity * depthCapacity, __depth + 1);
+                    if (reachRootStatus == ReachRootStatus::FirstReach)
+                    {
+                        if(branches.size() != 0)
+                            result.insert(result.end(), branches.begin(), branches.end());
+                    }
+                    
+                    if(reachRootStatus == ReachRootStatus::FirstReach || reachRootStatus == ReachRootStatus::DuplicateReach)
+                        break;
+                }
+                else
+                {
+                    __chain.push_back(-1); // circular signal
+                    result.push_back(__chain); // circular reference situation
+                }
+            }
+        }
+        
     }
     else
     {

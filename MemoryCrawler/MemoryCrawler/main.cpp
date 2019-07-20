@@ -157,7 +157,18 @@ void processRecord(const char * filepath)
                                    for (auto i = 1; i < options.size(); i++)
                                    {
                                        auto address = castAddress(options[i]);
-                                       mainCrawler.dumpMRefChain(address, false, -1);
+                                       mainCrawler.dumpMRefChain(address, false, false, -1);
+                                   }
+                               });
+        }
+        else if (strbeg(command, "KSREF")) // complete managed object reference chains except circular ones
+        {
+            readCommandOptions(command, [&](std::vector<const char *> &options)
+                               {
+                                   for (auto i = 1; i < options.size(); i++)
+                                   {
+                                       auto address = castAddress(options[i]);
+                                       mainCrawler.dumpMRefChain(address, false, true, -1);
                                    }
                                });
         }
@@ -179,7 +190,18 @@ void processRecord(const char * filepath)
                                    for (auto i = 1; i < options.size(); i++)
                                    {
                                        auto address = castAddress(options[i]);
-                                       mainCrawler.dumpMRefChain(address, true, -1);
+                                       mainCrawler.dumpMRefChain(address, true, false, -1);
+                                   }
+                               });
+        }
+        else if (strbeg(command, "SREF")) // complete managed object reference chains
+        {
+            readCommandOptions(command, [&](std::vector<const char *> &options)
+                               {
+                                   for (auto i = 1; i < options.size(); i++)
+                                   {
+                                       auto address = castAddress(options[i]);
+                                       mainCrawler.dumpMRefChain(address, true, true, -1);
                                    }
                                });
         }
@@ -200,7 +222,17 @@ void processRecord(const char * filepath)
                                {
                                    if (options.size() >= 2)
                                    {
-                                       mainCrawler.dumpMRefChain(castAddress(options[1]), false, options.size() >= 3 ? atoi(options[2]) : 2);
+                                       mainCrawler.dumpMRefChain(castAddress(options[1]), false, false, options.size() >= 3 ? atoi(options[2]) : 2);
+                                   }
+                               });
+        }
+        else if (strbeg(command, "ksref")) // partial managed object reference chains except circular ones
+        {
+            readCommandOptions(command, [&](std::vector<const char *> &options)
+                               {
+                                   if (options.size() >= 2)
+                                   {
+                                       mainCrawler.dumpMRefChain(castAddress(options[1]), false, true, options.size() >= 3 ? atoi(options[2]) : 2);
                                    }
                                });
         }
@@ -220,7 +252,17 @@ void processRecord(const char * filepath)
                                {
                                    if (options.size() >= 2)
                                    {
-                                       mainCrawler.dumpMRefChain(castAddress(options[1]), true, options.size() >= 3 ? atoi(options[2]) : 2);
+                                       mainCrawler.dumpMRefChain(castAddress(options[1]), true, false, options.size() >= 3 ? atoi(options[2]) : 2);
+                                   }
+                               });
+        }
+        else if (strbeg(command, "sref")) // partial managed object reference chains
+        {
+            readCommandOptions(command, [&](std::vector<const char *> &options)
+                               {
+                                   if (options.size() >= 2)
+                                   {
+                                       mainCrawler.dumpMRefChain(castAddress(options[1]), true, true, options.size() >= 3 ? atoi(options[2]) : 2);
                                    }
                                });
         }

@@ -103,6 +103,8 @@ public:
     
     PackedMemorySnapshot snapshot;
     
+    enum ReachRootStatus { Init = 0, FirstReach, DuplicateReach };
+
 private:
     static constexpr int64_t REF_ITERATE_CAPACITY = 1 << 20;
     static constexpr int32_t REF_ITERATE_DEPTH = 32;
@@ -174,12 +176,15 @@ public:
     void statHeap(int32_t rank = 20);
     
     void dumpVRefChain(address_t address);
-    void dumpMRefChain(address_t address, bool includeCircular, int32_t limit = 2);
+    void dumpMRefChain(address_t address, bool includeCircular, bool stochastic, int32_t limit = 2);
     void dumpNRefChain(address_t address, bool includeCircular, int32_t limit = 2);
     vector<vector<int32_t>> iterateNRefChain(PackedNativeUnityEngineObject *no,
                                              vector<int32_t> chain, set<int64_t> antiCircular, int32_t limit = 2, int64_t __iter_capacity = 1, int32_t __depth = 0);
     vector<vector<int32_t>> iterateMRefChain(ManagedObject *mo,
                                              vector<int32_t> chain, set<int64_t> antiCircular, int32_t limit = 2, int64_t __iter_capacity = 1, int32_t __depth = 0);
+    vector<vector<int32_t>> iterateMStochasticRefChain(ManagedObject *mo,
+                                             vector<int32_t> chain, set<int64_t> antiCircular, set<int64_t>& reachedRoot, ReachRootStatus& reachRootStatus, int32_t limit = 2, int64_t __iter_capacity = 1, int32_t __depth = 0);
+    
     
     address_t findMObjectOfNObject(address_t address);
     address_t findNObjectOfMObject(address_t address);
