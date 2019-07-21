@@ -895,8 +895,11 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateMStochasticRefChain(Manage
     {
         set<int64_t> unique;
 
-        int connectionCount = mo->fromConnections.size();
-        for(auto currentStaochasticCount = 0; currentStaochasticCount < connectionCount; ++currentStaochasticCount)
+        int stochasticTryCount = mo->fromConnections.size();
+        if(__depth == 0 && limit > 0) 
+            stochasticTryCount *= limit;
+            
+        for(auto currentStaochasticCount = 0; currentStaochasticCount < stochasticTryCount; ++currentStaochasticCount)
         {
             if(reachRootStatus == ReachRootStatus::DuplicateReach || reachRootStatus == ReachRootStatus::FirstReach)
             {
