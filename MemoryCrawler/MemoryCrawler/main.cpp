@@ -66,6 +66,8 @@ void processRecord(const char * filepath)
         auto recordable = true;
         
         std::cout << "\e[93m/> ";
+        
+        READ_LINE:
         std::string input;
         while (!getline(*stream, input))
         {
@@ -77,6 +79,11 @@ void processRecord(const char * filepath)
             }
             stream->clear();
             replaying ? usleep(500000) : usleep(100000);
+        }
+        
+        if (input.size() == 0 || input[0] == '#')
+        {
+            goto READ_LINE;
         }
         
         if (replaying)
