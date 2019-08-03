@@ -420,7 +420,7 @@ void MemorySnapshotCrawler::barMMemory(MemoryState state, int32_t rank)
         }
     }
     
-    printf("[S] total=%.0f\n", totalMemory);
+    printf("### total=%.0f\n", totalMemory);
     
     std::sort(indice.begin(), indice.end(), [&](int32_t a, int32_t b)
               {
@@ -493,7 +493,7 @@ void MemorySnapshotCrawler::barNMemory(MemoryState state, int32_t rank)
         }
     }
     
-    printf("[S] total=%.0f\n", totalMemory);
+    printf("### total=%.0f\n", totalMemory);
     
     std::sort(indice.begin(), indice.end(), [&](int32_t a, int32_t b)
               {
@@ -583,7 +583,7 @@ void MemorySnapshotCrawler::statHeap(int32_t rank)
     
     char percentage[300+1];
     char fence[] = "█";
-    printf("[S] blocks=%d memory=%d\n", (int32_t)sortedHeapSections.size(), totalMemory);
+    printf("### blocks=%d memory=%d\n", (int32_t)sortedHeapSections.size(), totalMemory);
     for (auto i = 0; i < stats.size(); i++)
     {
         if (rank > 0 && i >= rank){break;}
