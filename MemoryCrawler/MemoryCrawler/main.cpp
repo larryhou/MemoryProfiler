@@ -351,7 +351,9 @@ void processRecord(const char * filepath)
                                {
                                    if (options.size() >= 2)
                                    {
-                                       mainCrawler.trackMTypeObjects(trackingMode, atoi(options[1]), options.size() >= 3? atoi(options[2]) : 0);
+                                       mainCrawler.trackMTypeObjects(trackingMode, atoi(options[1]),
+                                                                     options.size() >= 3? atoi(options[2]) : 0,
+                                                                     options.size() >= 4? atoi(options[3]) : 1);
                                    }
                                });
         }

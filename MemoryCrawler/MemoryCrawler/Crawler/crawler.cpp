@@ -313,7 +313,7 @@ void MemorySnapshotCrawler::trackNStatistics(MemoryState state, int32_t depth)
     printf("└%s\n", sep);
 }
 
-void MemorySnapshotCrawler::trackMTypeObjects(MemoryState state, int32_t typeIndex, int32_t rank)
+void MemorySnapshotCrawler::trackMTypeObjects(MemoryState state, int32_t typeIndex, int32_t rank, int32_t depth)
 {
     TrackStatistics objects;
     for (auto i = 0; i < managedObjects.size(); i++)
@@ -346,8 +346,14 @@ void MemorySnapshotCrawler::trackMTypeObjects(MemoryState state, int32_t typeInd
         if (rank > 0 && listCount++ >= rank) {break;}
         
         auto &mo = managedObjects[*i];
-        auto &type = snapshot.typeDescriptions->items[mo.typeIndex];
-        printf("0x%08llx %8d %s\n", mo.address, mo.size, type.name->c_str());
+        auto tag = getMRefNode(&mo, depth);
+        printf("0x%08llx %8d", mo.address, mo.size);
+        if (tag != nullptr)
+        {
+            auto &type = snapshot.typeDescriptions->items[tag->typeIndex];
+            printf(" *[0x%08llx type='%s']", tag->address, type.name->c_str());
+        }
+        printf("\n");
     }
     
     printf("\e[37m[SUMMARY] total_count=%d memory=%d\n", count, total);
@@ -745,6 +751,21 @@ void MemorySnapshotCrawler::dumpVRefChain(address_t address)
         }
         printf("\n");
     }
+}
+
+ManagedObject* MemorySnapshotCrawler::getMRefNode(ManagedObject *mo, int32_t depth)
+{
+    auto target = mo;
+    while (target != nullptr && depth-- > 0)
+    {
+        auto &fromConnections = target->fromConnections;
+        if (fromConnections.size() == 0) {return nullptr;}
+        auto cindex = fromConnections[0];
+        auto mindex = connections[cindex].from;
+        if (mindex <= -1 || mindex >= managedObjects.size()) {return nullptr;}
+        target = &managedObjects[mindex];
+    }
+    return target;
 }
 
 void MemorySnapshotCrawler::dumpMRefChain(address_t address, bool includeCircular, int32_t limit)

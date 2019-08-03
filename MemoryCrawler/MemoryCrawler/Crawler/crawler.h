@@ -146,7 +146,7 @@ public:
     void trackMStatistics(MemoryState state, int32_t depth = 5);
     void trackNStatistics(MemoryState state, int32_t depth = 5);
     
-    void trackMTypeObjects(MemoryState state, int32_t typeIndex, int32_t rank = 10);
+    void trackMTypeObjects(MemoryState state, int32_t typeIndex, int32_t rank = 10, int32_t depth = 1);
     void trackNTypeObjects(MemoryState state, int32_t typeIndex, int32_t rank = 10);
     
     void findMObject(address_t address);
@@ -172,6 +172,8 @@ public:
     void barNMemory(MemoryState state, int32_t rank = 20);
     
     void statHeap(int32_t rank = 20);
+    
+    ManagedObject* getMRefNode(ManagedObject *mo, int32_t depth = 1);
     
     void dumpVRefChain(address_t address);
     void dumpMRefChain(address_t address, bool includeCircular, int32_t limit = 2);
