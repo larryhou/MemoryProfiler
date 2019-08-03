@@ -759,10 +759,10 @@ ManagedObject* MemorySnapshotCrawler::getMRefNode(ManagedObject *mo, int32_t dep
     while (target != nullptr && depth-- > 0)
     {
         auto &fromConnections = target->fromConnections;
-        if (fromConnections.size() == 0) {return nullptr;}
+        if (fromConnections.size() == 0) {break;}
         auto cindex = fromConnections[0];
         auto mindex = connections[cindex].from;
-        if (mindex <= -1 || mindex >= managedObjects.size()) {return nullptr;}
+        if (mindex <= -1 || mindex >= managedObjects.size()) {break;}
         target = &managedObjects[mindex];
     }
     return target;
