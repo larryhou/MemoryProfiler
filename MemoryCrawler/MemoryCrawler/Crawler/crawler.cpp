@@ -394,7 +394,7 @@ void MemorySnapshotCrawler::trackNTypeObjects(MemoryState state, int32_t typeInd
     printf("\e[37m[SUMMARY] total_count=%d memory=%d\n", count, total);
 }
 
-void MemorySnapshotCrawler::barMMemory(MemoryState state, int32_t rank)
+void MemorySnapshotCrawler::barMMemory(MemoryState state, bool sortByCount, int32_t rank)
 {
     double totalMemory = 0;
     vector<int32_t> indice;
@@ -426,8 +426,18 @@ void MemorySnapshotCrawler::barMMemory(MemoryState state, int32_t rank)
               {
                   auto ma = typeMemory[a];
                   auto mb = typeMemory[b];
-                  if (ma != mb) {return ma > mb;}
-                  return typeCount.at(a) < typeCount.at(b);
+                  auto ca = typeCount.at(a);
+                  auto cb = typeCount.at(b);
+                  if(!sortByCount)
+                  {
+                    if (ma != mb) {return ma > mb;}
+                    return ca < cb;
+                  }
+                  else
+                  {
+                    if (ca != cb) {return ca > cb;}
+                    return ma < mb;
+                  }
               });
     
     vector<std::tuple<int32_t, double, double>> stats;
@@ -464,7 +474,7 @@ void MemorySnapshotCrawler::barMMemory(MemoryState state, int32_t rank)
     }
 }
 
-void MemorySnapshotCrawler::barNMemory(MemoryState state, int32_t rank)
+void MemorySnapshotCrawler::barNMemory(MemoryState state, bool sortByCount, int32_t rank)
 {
     double totalMemory = 0;
     vector<int32_t> indice;
@@ -497,8 +507,18 @@ void MemorySnapshotCrawler::barNMemory(MemoryState state, int32_t rank)
               {
                   auto ma = typeMemory[a];
                   auto mb = typeMemory[b];
-                  if (ma != mb) {return ma > mb;}
-                  return typeCount.at(a) < typeCount.at(b);
+                  auto ca = typeCount.at(a);
+                  auto cb = typeCount.at(b);
+                  if(!sortByCount)
+                  {
+                    if (ma != mb) {return ma > mb;}
+                    return ca < cb;
+                  }
+                  else
+                  {
+                    if (ca != cb) {return ca > cb;}
+                    return ma < mb;
+                  }
               });
     
     vector<std::tuple<int32_t, double, double>> stats;

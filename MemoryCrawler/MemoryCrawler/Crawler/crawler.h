@@ -170,9 +170,10 @@ public:
     void dumpNObjectHierarchy(PackedNativeUnityEngineObject *no,
                               set<int64_t> antiCircular, int32_t limit, const char *indent, int32_t __iter_depth = 0, int32_t __iter_capacity = 1);
     
-    void barMMemory(MemoryState state, int32_t rank = 20);
-    void barNMemory(MemoryState state, int32_t rank = 20);
+    void barMMemory(MemoryState state, bool sortByCount = false, int32_t rank = 20);
+    void barNMemory(MemoryState state, bool sortByCount = false, int32_t rank = 20);
     
+
     void statHeap(int32_t rank = 20);
     
     void dumpVRefChain(address_t address);

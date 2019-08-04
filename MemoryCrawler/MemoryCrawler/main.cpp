@@ -480,13 +480,13 @@ void processRecord(const char * filepath)
                                {
                                    if (options.size() == 1)
                                    {
-                                       mainCrawler.barMMemory(trackingMode, 20);
+                                       mainCrawler.barMMemory(trackingMode, false, 20);
                                    }
                                    else
                                    {
                                        for (auto i = 1; i < options.size(); i++)
                                        {
-                                           mainCrawler.barMMemory(trackingMode, atoi(options[i]));
+                                           mainCrawler.barMMemory(trackingMode, false, atoi(options[i]));
                                        }
                                    }
                                });
@@ -497,13 +497,47 @@ void processRecord(const char * filepath)
                                {
                                    if (options.size() == 1)
                                    {
-                                       mainCrawler.barNMemory(trackingMode, 20);
+                                       mainCrawler.barNMemory(trackingMode, false, 20);
                                    }
                                    else
                                    {
                                        for (auto i = 1; i < options.size(); i++)
                                        {
-                                           mainCrawler.barNMemory(trackingMode, atoi(options[i]));
+                                           mainCrawler.barNMemory(trackingMode, false, atoi(options[i]));
+                                       }
+                                   }
+                               });
+        }
+        else if (strbeg(command, "barcount"))
+        {
+            readCommandOptions(command, [&](std::vector<const char *> options)
+                               {
+                                   if (options.size() == 1)
+                                   {
+                                       mainCrawler.barMMemory(trackingMode, true, 20);
+                                   }
+                                   else
+                                   {
+                                       for (auto i = 1; i < options.size(); i++)
+                                       {
+                                           mainCrawler.barMMemory(trackingMode, true, atoi(options[i]));
+                                       }
+                                   }
+                               });
+        }
+        else if (strbeg(command, "ubarcount"))
+        {
+            readCommandOptions(command, [&](std::vector<const char *> options)
+                               {
+                                   if (options.size() == 1)
+                                   {
+                                       mainCrawler.barNMemory(trackingMode, true, 20);
+                                   }
+                                   else
+                                   {
+                                       for (auto i = 1; i < options.size(); i++)
+                                       {
+                                           mainCrawler.barNMemory(trackingMode, true, atoi(options[i]));
                                        }
                                    }
                                });
