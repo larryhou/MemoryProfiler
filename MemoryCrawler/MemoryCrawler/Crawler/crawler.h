@@ -176,12 +176,12 @@ public:
     ManagedObject* getMRefNode(ManagedObject *mo, int32_t depth = 1);
     
     void dumpVRefChain(address_t address);
-    void dumpMRefChain(address_t address, bool includeCircular, int32_t limit = 2);
-    void dumpNRefChain(address_t address, bool includeCircular, int32_t limit = 2);
-    vector<vector<int32_t>> iterateNRefChain(PackedNativeUnityEngineObject *no,
-                                             vector<int32_t> chain, set<int64_t> antiCircular, int32_t limit = 2, int64_t __iter_capacity = 1, int32_t __depth = 0);
-    vector<vector<int32_t>> iterateMRefChain(ManagedObject *mo,
-                                             vector<int32_t> chain, set<int64_t> antiCircular, int32_t limit = 2, int64_t __iter_capacity = 1, int32_t __depth = 0);
+    void dumpMRefChain(address_t address, bool includeCircular, int32_t route = 2, int32_t depth = -1);
+    void dumpNRefChain(address_t address, bool includeCircular, int32_t route = 2, int32_t depth = -1);
+    vector<vector<int32_t>> iterateNRefChain(PackedNativeUnityEngineObject *no, int32_t routeMaximum, int32_t depthMaximum,
+                                             vector<int32_t> chain, set<int64_t> antiCircular, int64_t __iter_capacity = 1, int32_t __iter_depth = 0);
+    vector<vector<int32_t>> iterateMRefChain(ManagedObject *mo, int32_t routeMaximum, int32_t depthMaximum,
+                                             vector<int32_t> chain, set<int64_t> antiCircular, int64_t __iter_capacity = 1, int32_t __iter_depth = 0);
     
     address_t findMObjectOfNObject(address_t address);
     address_t findNObjectOfMObject(address_t address);
