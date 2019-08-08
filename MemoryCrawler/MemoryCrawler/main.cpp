@@ -501,6 +501,34 @@ void processRecord(const char * filepath)
         {
             mainCrawler.dumpUnbalancedEvents(trackingMode);
         }
+        else if (strbeg(command, "class"))
+        {
+            readCommandOptions(command, [&](std::vector<const char *> options)
+                               {
+                                   if (options.size() == 1)
+                                   {
+                                       // list all class types
+                                   }
+                                   else
+                                   {
+                                       // find class by name
+                                   }
+                               });
+        }
+        else if (strbeg(command, "static"))
+        {
+            readCommandOptions(command, [&](std::vector<const char *> options)
+                               {
+                                   if (options.size() == 1)
+                                   {
+                                       // list static bytes size descending
+                                   }
+                                   else
+                                   {
+                                       // show static field values
+                                   }
+                               });
+        }
         else if (strbeg(command, "str"))
         {
             readCommandOptions(command, [&](std::vector<const char *> options)
