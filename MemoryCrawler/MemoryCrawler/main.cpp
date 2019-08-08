@@ -508,10 +508,15 @@ void processRecord(const char * filepath)
                                    if (options.size() == 1)
                                    {
                                        // list all class types
+                                       mainCrawler.dumpAllClasses();
                                    }
                                    else
                                    {
                                        // find class by name
+                                       for (auto i = 1; i < options.size(); i++)
+                                       {
+                                           mainCrawler.findClass(options[i]);
+                                       }
                                    }
                                });
         }
