@@ -186,6 +186,9 @@ public:
     address_t findMObjectOfNObject(address_t address);
     address_t findNObjectOfMObject(address_t address);
     
+    void dumpAllClasses();
+    void findClass(string name);
+    
     void dumpGCHandles();
     
     void compare(MemorySnapshotCrawler &crawler);

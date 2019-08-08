@@ -501,6 +501,39 @@ void processRecord(const char * filepath)
         {
             mainCrawler.dumpUnbalancedEvents(trackingMode);
         }
+        else if (strbeg(command, "class"))
+        {
+            readCommandOptions(command, [&](std::vector<const char *> options)
+                               {
+                                   if (options.size() == 1)
+                                   {
+                                       // list all class types
+                                       mainCrawler.dumpAllClasses();
+                                   }
+                                   else
+                                   {
+                                       // find class by name
+                                       for (auto i = 1; i < options.size(); i++)
+                                       {
+                                           mainCrawler.findClass(options[i]);
+                                       }
+                                   }
+                               });
+        }
+        else if (strbeg(command, "static"))
+        {
+            readCommandOptions(command, [&](std::vector<const char *> options)
+                               {
+                                   if (options.size() == 1)
+                                   {
+                                       // list static bytes size descending
+                                   }
+                                   else
+                                   {
+                                       // show static field values
+                                   }
+                               });
+        }
         else if (strbeg(command, "str"))
         {
             readCommandOptions(command, [&](std::vector<const char *> options)
