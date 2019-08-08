@@ -410,6 +410,9 @@ void MemorySnapshotCrawler::barMMemory(MemoryState state, int32_t rank)
         auto &mo = managedObjects[i];
         if (state == MS_none || mo.state == state)
         {
+            assert(mo.typeIndex >= 0);
+            auto &type = snapshot.typeDescriptions->items[mo.typeIndex];
+            if (type.isValueType) {continue;}
             totalMemory += mo.size;
             auto typeIndex = mo.typeIndex;
             auto iter = typeMemory.find(typeIndex);
