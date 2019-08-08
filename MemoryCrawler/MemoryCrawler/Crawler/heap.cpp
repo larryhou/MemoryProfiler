@@ -111,7 +111,7 @@ uint32_t HeapMemoryReader::readObjectSize(address_t address, TypeDescription &ty
     }
     
     if ((type.typeIndex >= 0 && type.typeIndex == __snapshot.managedTypeIndex.system_String)
-        || sSystemString == *type.name)
+        || sSystemString == type.name)
     {
         auto size = __vm->objectHeaderSize;
         size += 4; // string length

@@ -80,7 +80,7 @@ void readPackedNativeUnityEngineObject(PackedNativeUnityEngineObject &item, File
     item.isPersistent = fs.readBoolean();
     item.isDontDestroyOnLoad = fs.readBoolean();
     item.isManager = fs.readBoolean();
-    item.name = new string(fs.readString());
+    item.name = fs.readString();
     item.instanceId = fs.readInt32();
     item.size = fs.readInt32();
     item.classId = fs.readInt32();
@@ -94,7 +94,7 @@ void readPackedNativeType(PackedNativeType &item, FileStream &fs)
     auto fieldCount = fs.readUInt8();
     assert(fieldCount == 3);
     
-    item.name = new string(fs.readString());
+    item.name = fs.readString();
     item.baseClassId = fs.readInt32();
     item.nativeBaseTypeArrayIndex = fs.readInt32();
 }
@@ -132,12 +132,32 @@ void readMemorySection(MemorySection &item, FileStream &fs)
     item.startAddress = fs.readUInt64();
 }
 
+const char *__reverseFieldWrapper = "dleiFgnikcaB__k>";
+string removeFieldWrapper(string name)
+{
+    auto walk = __reverseFieldWrapper;
+    if (*name.begin() == '<' && name.size() >= 18)
+    {
+        auto iter = name.rbegin();
+        while (*walk != '\x00')
+        {
+            if (*iter != *walk) {return name;}
+            ++iter;
+            ++walk;
+        }
+        
+        auto offset = name.size() - 16;
+        return string(name.begin() + 1, name.begin() + offset);
+    }
+    return name;
+}
+
 void readFieldDescription(FieldDescription &item, FileStream &fs)
 {
     auto fieldCount = fs.readUInt8();
     assert(fieldCount == 4);
     
-    item.name = new string(fs.readString());
+    item.name = removeFieldWrapper(fs.readString());
     item.offset = fs.readInt32();
     item.typeIndex = fs.readInt32();
     item.isStatic = fs.readBoolean();
@@ -151,8 +171,8 @@ void readTypeDescription(TypeDescription &item, FileStream &fs)
     item.isValueType = fs.readBoolean();
     item.isArray = fs.readBoolean();
     item.arrayRank = fs.readInt32();
-    item.name = new string(fs.readString());
-    item.assembly = new string(fs.readString());
+    item.name = fs.readString();
+    item.assembly = fs.readString();
     {
         auto size = fs.readUInt32();
         item.fields = new Array<FieldDescription>(size);
@@ -290,7 +310,7 @@ bool strend(const string *s, const string *with)
 
 inline bool readTypeIndex(int32_t &index, const TypeDescription &type, const string *pattern)
 {
-    if (index == -1 && strend(type.name, pattern))
+    if (index == -1 && strend(&type.name, pattern))
     {
         index = type.typeIndex;
         return true;
@@ -373,7 +393,7 @@ void MemorySnapshotReader::postSnapshot()
             for (auto n = 0; n < fieldDescriptions.size; n++)
             {
                 FieldDescription &field = fieldDescriptions[n];
-                if (isUnityEngineObject && strend(field.name, &sCachedPtr))
+                if (isUnityEngineObject && strend(&field.name, &sCachedPtr))
                 {
                     __snapshot->cached_ptr = &field;
                 }
@@ -394,7 +414,7 @@ void MemorySnapshotReader::postSnapshot()
     {
         auto &nt = nativeTypes[i];
         nt.typeIndex = i;
-        if (strend(nt.name, &sFont))
+        if (strend(&nt.name, &sFont))
         {
             __snapshot->nativeTypeIndex.Font = i;
         }

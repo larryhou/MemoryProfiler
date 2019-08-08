@@ -36,7 +36,7 @@ struct FieldDescription
     int32_t offset;
     int32_t typeIndex;
     int32_t hookTypeIndex = -1;
-    string *name;
+    string name;
     
     ~FieldDescription();
 };
@@ -44,9 +44,9 @@ struct FieldDescription
 struct TypeDescription
 {
     address_t typeInfoAddress;
-    string *assembly = nullptr;
+    string assembly;
     Array<FieldDescription>* fields = nullptr; // FieldDescription[]
-    string *name = nullptr;
+    string name;
     Array<byte_t> *staticFieldBytes = nullptr; // byte[]
     int32_t arrayRank;
     int32_t baseOrElementTypeIndex;
@@ -96,7 +96,7 @@ struct PackedNativeUnityEngineObject
     bool isManager;
     bool isPersistent;
     MemoryState state = MS_none;
-    string *name = nullptr;
+    string name;
     address_t nativeObjectAddress;
     int32_t nativeTypeArrayIndex;
     int32_t size;
@@ -110,7 +110,7 @@ struct PackedNativeUnityEngineObject
 
 struct PackedNativeType
 {
-    string *name = nullptr;
+    string name;
     int32_t nativeBaseTypeArrayIndex;
     int32_t baseClassId;
     
