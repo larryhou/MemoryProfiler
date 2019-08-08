@@ -2008,13 +2008,14 @@ void MemorySnapshotCrawler::dumpStatic(int32_t typeIndex)
     auto &type = snapshot.typeDescriptions->items[typeIndex];
     if (type.typeIndex != typeIndex) {return;}
     
-    auto fieldCount = 0;
+    vector<int32_t> indice;
     for (auto i = 0; i < type.fields->size; i++)
     {
         auto &field = type.fields->items[i];
-        if (field.isStatic) {++fieldCount;}
+        if (field.isStatic) {indice.push_back(i);}
     }
     
+    auto fieldCount = (int32_t)indice.size();
     if (type.staticFieldBytes == nullptr)
     {
         printf("%s %d #%d *%d\n", type.name.c_str(), 0, fieldCount, type.typeIndex);
@@ -2023,12 +2024,10 @@ void MemorySnapshotCrawler::dumpStatic(int32_t typeIndex)
     
     printf("%s %d #%d *%d\n", type.name.c_str(), type.staticFieldBytes->size, fieldCount, type.typeIndex);
     
-    auto iterCount = 0;
-    for (auto i = 0; i < type.fields->size; i++)
+    for (auto i = 0; i < fieldCount; i++)
     {
-        auto &field = type.fields->items[i];
-        if (!field.isStatic) {continue;}
-        auto closed = iterCount + 1 == fieldCount;
+        auto &field = type.fields->items[indice[i]];
+        auto closed = i + 1 == fieldCount;
         closed ? memcpy(indent, "└", 3) : memcpy(indent, "├", 3);
         
         StaticMemoryReader reader(snapshot);
@@ -2078,8 +2077,6 @@ void MemorySnapshotCrawler::dumpStatic(int32_t typeIndex)
                 }
             }
         }
-        
-        ++iterCount;
     }
 }
 
@@ -2114,12 +2111,18 @@ void MemorySnapshotCrawler::dumpSObjectHierarchy(address_t address, TypeDescript
     char *tabular = __indent + __size;
     memcpy(tabular + 3, "─", 3);
     
-    auto fieldCount = type.fields->size;
+    vector<int32_t> indice;
+    for (auto i = 0; i < type.fields->size; i++)
+    {
+        auto &field = type.fields->items[i];
+        if (!field.isStatic) {indice.push_back(i);}
+    }
+    
+    auto fieldCount = indice.size();
     for (auto i = 0; i < fieldCount; i++)
     {
         auto closed = i + 1 == fieldCount;
-        auto &field = type.fields->items[i];
-        if (field.isStatic) {continue;}
+        auto &field = type.fields->items[indice[i]];
         auto __is_premitive = isPremitiveType(field.typeIndex);
         
         auto &fieldType = snapshot.typeDescriptions->items[field.typeIndex];
