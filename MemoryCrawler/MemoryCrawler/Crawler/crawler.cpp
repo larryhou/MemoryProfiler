@@ -725,11 +725,11 @@ bool MemorySnapshotCrawler::isPremitiveType(int32_t typeIndex)
     return false;
 }
 
-void MemorySnapshotCrawler::dumpPremitiveValue(address_t address, int32_t typeIndex)
+void MemorySnapshotCrawler::dumpPremitiveValue(address_t address, int32_t typeIndex, HeapMemoryReader *explicitReader)
 {
     address += __vm->objectHeaderSize;
     auto &mtypes = snapshot.managedTypeIndex;
-    auto &memoryReader = *__memoryReader;
+    auto &memoryReader = explicitReader == nullptr ? *__memoryReader : *explicitReader;
     
     if (typeIndex == mtypes.system_IntPtr) {printf("0x%08llx", memoryReader.readPointer(address));}
     
@@ -1953,6 +1953,216 @@ void MemorySnapshotCrawler::dumpVObjectHierarchy(address_t address, TypeDescript
                 memset(iter + 3, '\x20', 2);
                 memset(iter + 5, 0, 1);
                 dumpVObjectHierarchy(fieldAddress, *fieldType, __nest_indent, __iter_depth + 1);
+            }
+        }
+    }
+}
+
+void MemorySnapshotCrawler::listAllStatics()
+{
+    vector<int32_t> indice;
+    auto &typeDescriptions = snapshot.typeDescriptions->items;
+    for (auto i = 0; i < snapshot.typeDescriptions->size; i++)
+    {
+        auto &type = typeDescriptions[i];
+        if (type.staticFieldBytes != nullptr && type.staticFieldBytes->size > 0)
+        {
+            indice.push_back(i);
+        }
+    }
+    
+    std::sort(indice.begin(), indice.end(), [&](int32_t a, int32_t b)
+              {
+                  auto &atype = typeDescriptions[a];
+                  auto &btype = typeDescriptions[b];
+                  if (atype.staticFieldBytes->size != btype.staticFieldBytes->size)
+                  {
+                      return atype.staticFieldBytes->size > btype.staticFieldBytes->size;
+                  }
+                  return a < b;
+              });
+    for (auto i = indice.begin(); i != indice.end(); i++)
+    {
+        auto &type = typeDescriptions[*i];
+        auto staticCount = 0;
+        for (auto n = 0; n < type.fields->size; n++)
+        {
+            auto &field = type.fields->items[n];
+            if (field.isStatic)
+            {
+                ++staticCount;
+            }
+        }
+        
+        if (staticCount == 0) {continue;}
+        printf("\e[36m%5d #%-3d \e[32m%s \e[37m*%d\n", type.staticFieldBytes->size, staticCount, type.name.c_str(), type.typeIndex);
+    }
+}
+
+void MemorySnapshotCrawler::dumpStatic(int32_t typeIndex)
+{
+    char indent[2*3 + 1]; // indent + 2×tabulator + \0
+    memset(indent, 0, sizeof(indent));
+    memcpy(indent + 3, "─", 3);
+    
+    auto &type = snapshot.typeDescriptions->items[typeIndex];
+    if (type.typeIndex != typeIndex) {return;}
+    
+    auto fieldCount = 0;
+    for (auto i = 0; i < type.fields->size; i++)
+    {
+        auto &field = type.fields->items[i];
+        if (field.isStatic) {++fieldCount;}
+    }
+    
+    if (type.staticFieldBytes == nullptr)
+    {
+        printf("%s %d #%d *%d\n", type.name.c_str(), 0, fieldCount, type.typeIndex);
+        return;
+    }
+    
+    printf("%s %d #%d *%d\n", type.name.c_str(), type.staticFieldBytes->size, fieldCount, type.typeIndex);
+    
+    auto iterCount = 0;
+    for (auto i = 0; i < type.fields->size; i++)
+    {
+        auto &field = type.fields->items[i];
+        if (!field.isStatic) {continue;}
+        auto closed = iterCount + 1 == fieldCount;
+        closed ? memcpy(indent, "└", 3) : memcpy(indent, "├", 3);
+        
+        StaticMemoryReader reader(snapshot);
+        reader.load(*type.staticFieldBytes);
+        
+        const char *fieldName = field.name.c_str();
+        auto &fieldType = snapshot.typeDescriptions->items[field.typeIndex];
+        auto __is_premitive = isPremitiveType(field.typeIndex);
+        
+        if (fieldType.isValueType)
+        {
+            if (__is_premitive)
+            {
+                printf("%s%s:%s = ", indent, fieldName, fieldType.name.c_str());
+                dumpPremitiveValue(field.offset, fieldType.typeIndex, &reader);
+                printf("\n");
+            }
+            else
+            {
+                printf("%s%s:%s\n", indent, fieldName, fieldType.name.c_str());
+                dumpSObjectHierarchy(field.offset, fieldType, reader, getNestIndent(indent, 0, closed).c_str());
+            }
+        }
+        else
+        {
+            address_t fieldAddress = reader.readPointer(field.offset);
+            if (fieldAddress == 0)
+            {
+                printf("%s%s:%s = NULL\n", indent, fieldName, fieldType.name.c_str());
+            }
+            else
+            {
+                auto typeIndex = findTypeOfAddress(fieldAddress);
+                if (typeIndex >= 0)
+                {
+                    fieldType = snapshot.typeDescriptions->items[typeIndex];
+                }
+                
+                if (typeIndex == snapshot.managedTypeIndex.system_String)
+                {
+                    auto size = 0;
+                    printf("%s%s:%s 0x%08llx = '%s'\n", indent, fieldName, fieldType.name.c_str(), fieldAddress, getUTFString(fieldAddress, size, true).c_str());
+                }
+                else
+                {
+                    printf("%s%s:%s = 0x%08llx\n", indent, fieldName, fieldType.name.c_str(), fieldAddress);
+                }
+            }
+        }
+        
+        ++iterCount;
+    }
+}
+
+string MemorySnapshotCrawler::getNestIndent(const char *__indent, size_t __preindent_size, bool closed)
+{
+    if (closed)
+    {
+        char __nest_indent[__preindent_size + 1 + 2 + 1]; // indent + space + 2×space + \0
+        if (__preindent_size > 0) {memcpy(__nest_indent, __indent, __preindent_size);}
+        memset(__nest_indent + __preindent_size, '\x20', 3);
+        memset(__nest_indent + __preindent_size + 3, 0, 1);
+        return __nest_indent;
+    }
+    else
+    {
+        char __nest_indent[__preindent_size + 3 + 2 + 1]; // indent + tabulator + 2×space + \0
+        char *iter = __nest_indent + __preindent_size;
+        if (__preindent_size) {memcpy(__nest_indent, __indent, __preindent_size);}
+        memcpy(iter, "│", 3);
+        memset(iter + 3, '\x20', 2);
+        memset(iter + 5, 0, 1);
+        return __nest_indent;
+    }
+}
+
+void MemorySnapshotCrawler::dumpSObjectHierarchy(address_t address, TypeDescription &type, StaticMemoryReader &memoryReader, const char *indent)
+{
+    auto __size = strlen(indent);
+    char __indent[__size + 2*3 + 1]; // indent + 2×tabulator + \0
+    memset(__indent, 0, sizeof(__indent));
+    memcpy(__indent, indent, __size);
+    char *tabular = __indent + __size;
+    memcpy(tabular + 3, "─", 3);
+    
+    auto fieldCount = type.fields->size;
+    for (auto i = 0; i < fieldCount; i++)
+    {
+        auto closed = i + 1 == fieldCount;
+        auto &field = type.fields->items[i];
+        if (field.isStatic) {continue;}
+        auto __is_premitive = isPremitiveType(field.typeIndex);
+        
+        auto &fieldType = snapshot.typeDescriptions->items[field.typeIndex];
+        
+        closed ? memcpy(tabular, "└", 3) : memcpy(tabular, "├", 3);
+        const char *fieldName = field.name.c_str();
+        if (fieldType.isValueType)
+        {
+            if (__is_premitive)
+            {
+                printf("%s%s:%s = ", __indent, fieldName, fieldType.name.c_str());
+                dumpPremitiveValue(address + field.offset, fieldType.typeIndex, &memoryReader);
+                printf("\n");
+            }
+            else
+            {
+                dumpSObjectHierarchy(address + field.offset, fieldType, memoryReader, getNestIndent(__indent, __size, closed).c_str());
+            }
+        }
+        else
+        {
+            address_t fieldAddress = memoryReader.readPointer(address + field.offset);
+            if (fieldAddress == 0)
+            {
+                printf("%s%s:%s = NULL\n", __indent, fieldName, fieldType.name.c_str());
+            }
+            else
+            {
+                auto typeIndex = findTypeOfAddress(fieldAddress);
+                if (typeIndex >= 0)
+                {
+                    fieldType = snapshot.typeDescriptions->items[typeIndex];
+                }
+                
+                if (typeIndex == snapshot.managedTypeIndex.system_String)
+                {
+                    auto size = 0;
+                    printf("%s%s:%s 0x%08llx = '%s'\n", __indent, fieldName, fieldType.name.c_str(), fieldAddress, getUTFString(fieldAddress, size, true).c_str());
+                }
+                else
+                {
+                    printf("%s%s:%s = 0x%08llx\n", __indent, fieldName, fieldType.name.c_str(), fieldAddress);
+                }
             }
         }
     }

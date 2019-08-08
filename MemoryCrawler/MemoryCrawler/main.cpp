@@ -527,10 +527,15 @@ void processRecord(const char * filepath)
                                    if (options.size() == 1)
                                    {
                                        // list static bytes size descending
+                                       mainCrawler.listAllStatics();
                                    }
                                    else
                                    {
                                        // show static field values
+                                       for (auto i = 1; i < options.size(); i++)
+                                       {
+                                           mainCrawler.dumpStatic(atoi(options[i]));
+                                       }
                                    }
                                });
         }
@@ -577,7 +582,7 @@ void processRecord(const char * filepath)
         else if (strbeg(command, "help"))
         {
             recordable = false;
-            const int __indent = 5;
+            const int __indent = 6;
             help("read", "[UUID]*", "读取以sqlite3保存的内存快照缓存", __indent);
             help("load", "[PMS_FILE_PATH]*", "加载内存快照文件", __indent);
             help("track", "[alloc|leak]", "追踪内存增长以及泄露问题", __indent);
@@ -612,6 +617,8 @@ void processRecord(const char * filepath)
             help("save", NULL, "把当前内存快照分析结果以sqlite3格式保存到本机", __indent);
             help("uuid", NULL, "查看内存快照UUID", __indent);
             help("handle", NULL, "查看GCHandle对象", __indent);
+            help("static", "[TYPE_INDEX]", "查看类静态对象数据", __indent);
+            help("class", "[CLASS_NAME]", "查看类信息", __indent);
             help("help", NULL, "帮助", __indent);
             help("quit", NULL, "退出", __indent);
             cout << std::flush;

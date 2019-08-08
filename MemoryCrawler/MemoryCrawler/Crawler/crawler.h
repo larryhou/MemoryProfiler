@@ -167,6 +167,7 @@ public:
                               set<int64_t> antiCircular, bool isActualType, int32_t limit, const char *indent, int32_t __iter_depth = 0);
     void dumpNObjectHierarchy(PackedNativeUnityEngineObject *no,
                               set<int64_t> antiCircular, int32_t limit, const char *indent, int32_t __iter_depth = 0, int32_t __iter_capacity = 1);
+    void dumpSObjectHierarchy(address_t address, TypeDescription &type, StaticMemoryReader &memoryReader, const char *indent);
     
     void barMMemory(MemoryState state, int32_t rank = 20);
     void barNMemory(MemoryState state, int32_t rank = 20);
@@ -188,6 +189,9 @@ public:
     
     void dumpAllClasses();
     void findClass(string name);
+    
+    void listAllStatics();
+    void dumpStatic(int32_t typeIndex);
     
     void dumpGCHandles();
     
@@ -230,9 +234,10 @@ private:
                                   bool isRealType,
                                   int32_t depth);
     bool isPremitiveType(int32_t typeIndex);
-    void dumpPremitiveValue(address_t address, int32_t typeIndex);
+    void dumpPremitiveValue(address_t address, int32_t typeIndex, HeapMemoryReader *explicitReader = nullptr);
     void dumpByteArray(const char *data, int32_t size);
     
+    string getNestIndent(const char *__indent, size_t __preindent_size, bool closed);
     
     void summarize();
 };
