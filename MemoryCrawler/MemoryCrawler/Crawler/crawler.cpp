@@ -186,6 +186,39 @@ void MemorySnapshotCrawler::compare(MemorySnapshotCrawler &crawler)
     }
 }
 
+void MemorySnapshotCrawler::dumpAllClasses()
+{
+    auto &typeDescriptions = snapshot.typeDescriptions->items;
+    for (auto i = 0; i < snapshot.typeDescriptions->size; i++)
+    {
+        auto &type = typeDescriptions[i];
+        printf("\e[36m%d \e[32m%s \e[37m%s\n", type.typeIndex, type.name.c_str(), type.assembly.c_str());
+    }
+}
+
+void MemorySnapshotCrawler::findClass(string name)
+{
+    auto &typeDescriptions = snapshot.typeDescriptions->items;
+    for (auto i = 0; i < snapshot.typeDescriptions->size; i++)
+    {
+        bool completed = true;
+        auto &type = typeDescriptions[i];
+        auto np = name.rbegin();
+        auto tp = type.name.rbegin();
+        while (np != name.rend() && tp != type.name.rend())
+        {
+            if (*np != *tp) { completed = false; break; }
+            ++np;
+            ++tp;
+        }
+        
+        if (completed)
+        {
+            printf("\e[36m%d \e[32m%s \e[37m%s\n", type.typeIndex, type.name.c_str(), type.assembly.c_str());
+        }
+    }
+}
+
 void MemorySnapshotCrawler::trackMStatistics(MemoryState state, int32_t depth)
 {
     TrackStatistics objects;
