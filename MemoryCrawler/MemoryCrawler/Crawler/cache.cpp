@@ -65,7 +65,7 @@ void SnapshotCrawlerCache::insert(Array<PackedNativeType> &nativeTypes)
                              nativeTypes, [](PackedNativeType &nt, sqlite3_stmt *stmt)
                              {
                                  sqlite3_bind_int(stmt, 1, nt.typeIndex);
-                                 sqlite3_bind_text(stmt, 2, nt.name->c_str(), (int)nt.name->size(), SQLITE_STATIC);
+                                 sqlite3_bind_text(stmt, 2, nt.name.c_str(), (int)nt.name.size(), SQLITE_STATIC);
                                  sqlite3_bind_int64(stmt, 3, nt.nativeBaseTypeArrayIndex);
                                  sqlite3_bind_int(stmt, 4, nt.managedTypeArrayIndex);
                                  sqlite3_bind_int(stmt, 5, nt.instanceCount);
@@ -99,7 +99,7 @@ void SnapshotCrawlerCache::insert(Array<PackedNativeUnityEngineObject> &nativeOb
                                               sqlite3_bind_int(stmt, 3, no.isDontDestroyOnLoad);
                                               sqlite3_bind_int(stmt, 4, no.isManager);
                                               sqlite3_bind_int(stmt, 5, no.isPersistent);
-                                              sqlite3_bind_text(stmt, 6, no.name->c_str(), (int)no.name->size(), SQLITE_STATIC);
+                                              sqlite3_bind_text(stmt, 6, no.name.c_str(), (int)no.name.size(), SQLITE_STATIC);
                                               sqlite3_bind_int64(stmt, 7, no.nativeObjectAddress);
                                               sqlite3_bind_int(stmt, 8, no.nativeTypeArrayIndex);
                                               sqlite3_bind_int(stmt, 9, no.size);
@@ -144,11 +144,11 @@ void SnapshotCrawlerCache::insert(Array<TypeDescription> &types)
                             types, [this](TypeDescription &t, sqlite3_stmt *stmt)
                             {
                                 sqlite3_bind_int(stmt, 1, t.arrayRank);
-                                sqlite3_bind_text(stmt, 2, t.assembly->c_str(), (int)t.assembly->size(), SQLITE_STATIC);
+                                sqlite3_bind_text(stmt, 2, t.assembly.c_str(), (int)t.assembly.size(), SQLITE_STATIC);
                                 sqlite3_bind_int(stmt, 3, t.baseOrElementTypeIndex);
                                 sqlite3_bind_int(stmt, 4, t.isArray);
                                 sqlite3_bind_int(stmt, 5, t.isValueType);
-                                sqlite3_bind_text(stmt, 6, t.name->c_str(), (int)t.name->size(), SQLITE_STATIC);
+                                sqlite3_bind_text(stmt, 6, t.name.c_str(), (int)t.name.size(), SQLITE_STATIC);
                                 sqlite3_bind_int(stmt, 7, t.size);
                                 if (t.staticFieldBytes != nullptr)
                                 {
@@ -172,7 +172,7 @@ void SnapshotCrawlerCache::insert(Array<TypeDescription> &types)
                                     auto &f = t.fields->items[n];
                                     sqlite3_bind_int64(stmt, 1, t.typeIndex << 16 | n);
                                     sqlite3_bind_int(stmt, 2, f.isStatic);
-                                    sqlite3_bind_text(stmt, 3, t.name->c_str(), (int)t.name->size(), SQLITE_STATIC);
+                                    sqlite3_bind_text(stmt, 3, f.name.c_str(), (int)f.name.size(), SQLITE_STATIC);
                                     sqlite3_bind_int(stmt, 4, f.offset);
                                     sqlite3_bind_int(stmt, 5, f.typeIndex);
                                 }
@@ -366,7 +366,7 @@ MemorySnapshotCrawler *SnapshotCrawlerCache::read(const char *uuid)
                              [](PackedNativeType &nt, sqlite3_stmt *stmt)
                              {
                                  nt.typeIndex = sqlite3_column_int(stmt, 0);
-                                 nt.name = new string((char *)sqlite3_column_text(stmt, 1));
+                                 nt.name = (char *)sqlite3_column_text(stmt, 1);
                                  nt.nativeBaseTypeArrayIndex = sqlite3_column_int(stmt, 2);
                                  nt.managedTypeArrayIndex = sqlite3_column_int(stmt, 3);
                                  nt.instanceCount = sqlite3_column_int(stmt, 4);
@@ -384,7 +384,7 @@ MemorySnapshotCrawler *SnapshotCrawlerCache::read(const char *uuid)
                                               nt.isDontDestroyOnLoad = (bool)sqlite3_column_int(stmt, 2);
                                               nt.isManager = (bool)sqlite3_column_int(stmt, 3);
                                               nt.isPersistent = (bool)sqlite3_column_int(stmt, 4);
-                                              nt.name = new string((char *)sqlite3_column_text(stmt, 5));
+                                              nt.name = (char *)sqlite3_column_text(stmt, 5);
                                               nt.nativeObjectAddress = sqlite3_column_int64(stmt, 6);
                                               nt.nativeTypeArrayIndex = sqlite3_column_int(stmt, 7);
                                               nt.size = sqlite3_column_int(stmt, 8);
@@ -399,11 +399,11 @@ MemorySnapshotCrawler *SnapshotCrawlerCache::read(const char *uuid)
                             [](TypeDescription &mt, sqlite3_stmt *stmt)
                             {
                                 mt.arrayRank = sqlite3_column_int(stmt, 0);
-                                mt.assembly = new string((char *)sqlite3_column_text(stmt, 1));
+                                mt.assembly = (char *)sqlite3_column_text(stmt, 1);
                                 mt.baseOrElementTypeIndex = sqlite3_column_int(stmt, 2);
                                 mt.isArray = (bool)sqlite3_column_int(stmt, 3);
                                 mt.isValueType = (bool)sqlite3_column_int(stmt, 4);
-                                mt.name = new string((char *)sqlite3_column_text(stmt, 5));
+                                mt.name = (char *)sqlite3_column_text(stmt, 5);
                                 mt.size = sqlite3_column_int(stmt, 6);
                                 {
                                     auto size = sqlite3_column_bytes(stmt, 7);
@@ -444,7 +444,7 @@ MemorySnapshotCrawler *SnapshotCrawlerCache::read(const char *uuid)
                }
                auto &field = hookType->fields->items[fieldSlotIndex];
                field.isStatic = (bool)sqlite3_column_int(stmt, 1);
-               field.name = new string((char *)sqlite3_column_text(stmt, 2));
+               field.name = (char *)sqlite3_column_text(stmt, 2);
                field.offset = sqlite3_column_int(stmt, 3);
                field.typeIndex = sqlite3_column_int(stmt, 4);
            });

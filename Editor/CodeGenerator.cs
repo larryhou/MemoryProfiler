@@ -46,7 +46,7 @@ public static class CodeGenerator
 		{
 			if (property.PropertyType == typeof(string))
 			{
-				stream.Write(string.Format("    item.{0} = new string(fs.readString());\n", property.Name));
+				stream.Write(string.Format("    item.{0} = fs.readString();\n", property.Name));
 			}
 			else if (property.PropertyType == typeof(ulong))
 			{
