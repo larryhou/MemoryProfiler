@@ -2050,6 +2050,10 @@ void MemorySnapshotCrawler::dumpStatic(int32_t typeIndex, bool verbose)
                 printPremitiveValue(field.offset, fieldType->typeIndex, &reader);
                 printf("\n");
             }
+            else if (*fieldType->name.rbegin() == '*' && fieldType->size == 8)
+            {
+                printf("%s%s:%s = 0x%08llx\n", indent, fieldName, fieldType->name.c_str(), reader.readPointer(field.offset));
+            }
             else
             {
                 printf("%s%s:%s\n", indent, fieldName, fieldType->name.c_str());
