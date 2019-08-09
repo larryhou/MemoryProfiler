@@ -727,9 +727,9 @@ bool MemorySnapshotCrawler::isPremitiveType(int32_t typeIndex)
 
 void MemorySnapshotCrawler::dumpPremitiveValue(address_t address, int32_t typeIndex, HeapMemoryReader *explicitReader)
 {
-    address += __vm->objectHeaderSize;
     auto &mtypes = snapshot.managedTypeIndex;
     auto &memoryReader = explicitReader == nullptr ? *__memoryReader : *explicitReader;
+    memoryReader.isStatic() ? address -= __vm->objectHeaderSize : address += __vm->objectHeaderSize;
     
     if (typeIndex == mtypes.system_IntPtr) {printf("0x%08llx", memoryReader.readPointer(address));}
     
@@ -1999,7 +1999,7 @@ void MemorySnapshotCrawler::listAllStatics()
     }
 }
 
-void MemorySnapshotCrawler::dumpStatic(int32_t typeIndex)
+void MemorySnapshotCrawler::dumpStatic(int32_t typeIndex, bool verbose)
 {
     char indent[2*3 + 1]; // indent + 2×tabulator + \0
     memset(indent, 0, sizeof(indent));
@@ -2022,7 +2022,12 @@ void MemorySnapshotCrawler::dumpStatic(int32_t typeIndex)
         return;
     }
     
-    printf("%s %d #%d *%d\n", type.name.c_str(), type.staticFieldBytes->size, fieldCount, type.typeIndex);
+    printf("%s %d #%d *%d ", type.name.c_str(), type.staticFieldBytes->size, fieldCount, type.typeIndex);
+    if (verbose && type.staticFieldBytes->size > 0)
+    {
+        dumpByteArray((const char *)type.staticFieldBytes->items, type.staticFieldBytes->size);
+    }
+    printf("\n");
     
     StaticMemoryReader reader(snapshot);
     reader.load(*type.staticFieldBytes);

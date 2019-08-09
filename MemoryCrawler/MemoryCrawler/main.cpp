@@ -532,10 +532,8 @@ void processRecord(const char * filepath)
                                    else
                                    {
                                        // show static field values
-                                       for (auto i = 1; i < options.size(); i++)
-                                       {
-                                           mainCrawler.dumpStatic(atoi(options[i]));
-                                       }
+                                       mainCrawler.dumpStatic(atoi(options[1]),
+                                                              options.size() > 2 ? (atoi(options[2]) != 0) : false);
                                    }
                                });
         }

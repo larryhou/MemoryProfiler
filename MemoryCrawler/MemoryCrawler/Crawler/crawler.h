@@ -191,7 +191,7 @@ public:
     void findClass(string name);
     
     void listAllStatics();
-    void dumpStatic(int32_t typeIndex);
+    void dumpStatic(int32_t typeIndex, bool verbose = false);
     
     void dumpGCHandles();
     
