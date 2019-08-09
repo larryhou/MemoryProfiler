@@ -234,8 +234,8 @@ private:
                                   bool isRealType,
                                   int32_t depth);
     bool isPremitiveType(int32_t typeIndex);
-    void dumpPremitiveValue(address_t address, int32_t typeIndex, HeapMemoryReader *explicitReader = nullptr);
-    void dumpByteArray(const char *data, int32_t size);
+    void printPremitiveValue(address_t address, int32_t typeIndex, HeapMemoryReader *explicitReader = nullptr);
+    void printByteArray(const char *data, int32_t size);
     
     string getNestIndent(const char *__indent, size_t __preindent_size, bool closed);
     

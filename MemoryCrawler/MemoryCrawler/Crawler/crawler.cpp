@@ -203,9 +203,10 @@ void MemorySnapshotCrawler::findClass(string name)
     {
         bool completed = true;
         auto &type = typeDescriptions[i];
+        if (type.name.size() < name.size()) {continue;}
         auto np = name.rbegin();
         auto tp = type.name.rbegin();
-        while (np != name.rend() && tp != type.name.rend())
+        while (np != name.rend())
         {
             if (*np != *tp) { completed = false; break; }
             ++np;
@@ -725,7 +726,7 @@ bool MemorySnapshotCrawler::isPremitiveType(int32_t typeIndex)
     return false;
 }
 
-void MemorySnapshotCrawler::dumpPremitiveValue(address_t address, int32_t typeIndex, HeapMemoryReader *explicitReader)
+void MemorySnapshotCrawler::printPremitiveValue(address_t address, int32_t typeIndex, HeapMemoryReader *explicitReader)
 {
     auto &mtypes = snapshot.managedTypeIndex;
     auto &memoryReader = explicitReader == nullptr ? *__memoryReader : *explicitReader;
@@ -1772,7 +1773,7 @@ void MemorySnapshotCrawler::findNObject(address_t address)
     }
 }
 
-void MemorySnapshotCrawler::dumpByteArray(const char *data, int32_t size)
+void MemorySnapshotCrawler::printByteArray(const char *data, int32_t size)
 {
     auto iter = data;
     char str[size * 2 + 1];
@@ -1922,7 +1923,7 @@ void MemorySnapshotCrawler::dumpVObjectHierarchy(address_t address, TypeDescript
             }
             case 3: // premitive
                 printf("%s%s:%s = ", __indent, fieldName, fieldTypeName);
-                dumpPremitiveValue(fieldAddress, fieldType->typeIndex);
+                printPremitiveValue(fieldAddress, fieldType->typeIndex);
                 break;
             default:
                 printf("%s%s:%s", __indent, fieldName, fieldTypeName);
@@ -2025,7 +2026,7 @@ void MemorySnapshotCrawler::dumpStatic(int32_t typeIndex, bool verbose)
     printf("%s %d #%d *%d ", type.name.c_str(), type.staticFieldBytes->size, fieldCount, type.typeIndex);
     if (verbose && type.staticFieldBytes->size > 0)
     {
-        dumpByteArray((const char *)type.staticFieldBytes->items, type.staticFieldBytes->size);
+        printByteArray((const char *)type.staticFieldBytes->items, type.staticFieldBytes->size);
     }
     printf("\n");
     
@@ -2046,7 +2047,7 @@ void MemorySnapshotCrawler::dumpStatic(int32_t typeIndex, bool verbose)
             if (__is_premitive)
             {
                 printf("%s%s:%s = ", indent, fieldName, fieldType->name.c_str());
-                dumpPremitiveValue(field.offset, fieldType->typeIndex, &reader);
+                printPremitiveValue(field.offset, fieldType->typeIndex, &reader);
                 printf("\n");
             }
             else
@@ -2138,7 +2139,7 @@ void MemorySnapshotCrawler::dumpSObjectHierarchy(address_t address, TypeDescript
             if (__is_premitive)
             {
                 printf("%s%s:%s = ", __indent, fieldName, fieldType->name.c_str());
-                dumpPremitiveValue(address + field.offset - __vm->objectHeaderSize, fieldType->typeIndex, &memoryReader);
+                printPremitiveValue(address + field.offset - __vm->objectHeaderSize, fieldType->typeIndex, &memoryReader);
                 printf("\n");
             }
             else
@@ -2214,7 +2215,7 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
         {
             printf("%s└<%d>", __indent, elementCount);
             auto ptr = memoryReader.readMemory(address + __vm->arrayHeaderSize);
-            dumpByteArray(ptr, elementCount);
+            printByteArray(ptr, elementCount);
             printf("\n");
             return;
         }
@@ -2245,7 +2246,7 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
             if (__is_premitive)
             {
                 printf(" = ");
-                dumpPremitiveValue(elementAddress, elementType->typeIndex);
+                printPremitiveValue(elementAddress, elementType->typeIndex);
                 printf("\n");
                 continue;
             }
@@ -2363,7 +2364,7 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
             }
             case 3: // premitive
                 printf("%s%s:%s = ", __indent, fieldName, fieldTypeName);
-                dumpPremitiveValue(fieldAddress, fieldType->typeIndex);
+                printPremitiveValue(fieldAddress, fieldType->typeIndex);
                 break;
             default:
                 printf("%s%s:%s", __indent, fieldName, fieldTypeName);
