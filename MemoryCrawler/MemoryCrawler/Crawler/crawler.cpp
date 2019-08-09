@@ -2255,16 +2255,16 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
                 continue;
             }
             
+            if (elementAddress == 0)
+            {
+                printf(" = NULL\n");
+                continue;
+            }
+            
             if (__is_string)
             {
                 auto size = 0;
                 printf(" 0x%08llx = '%s'\n", elementAddress, getUTFString(elementAddress, size, true).c_str());
-                continue;
-            }
-            
-            if (elementAddress == 0)
-            {
-                printf(" = NULL\n");
                 continue;
             }
             
