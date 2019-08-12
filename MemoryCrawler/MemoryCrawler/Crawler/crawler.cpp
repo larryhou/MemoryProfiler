@@ -361,6 +361,10 @@ void MemorySnapshotCrawler::trackMTypeObjects(MemoryState state, int32_t typeInd
     
     objects.summarize(false);
     
+    auto &type = snapshot.typeDescriptions->items[typeIndex];
+    if (type.typeIndex != typeIndex) {return;}
+    printf("\e[32m%s \e[37m%s \e[36m*%d\n", type.name.c_str(), type.assembly.c_str(), type.typeIndex);
+    
     vector<int32_t> indice;
     
     int32_t total = 0;
@@ -384,8 +388,8 @@ void MemorySnapshotCrawler::trackMTypeObjects(MemoryState state, int32_t typeInd
         printf("0x%08llx %8d", mo.address, mo.size);
         if (tag != nullptr)
         {
-            auto &type = snapshot.typeDescriptions->items[tag->typeIndex];
-            printf(" *[0x%08llx type='%s']", tag->address, type.name.c_str());
+            auto &tagType = snapshot.typeDescriptions->items[tag->typeIndex];
+            printf(" <0x%08llx type='%s'%d>", tag->address, tagType.name.c_str(), tagType.typeIndex);
         }
         printf("\n");
     }
@@ -1677,7 +1681,7 @@ void MemorySnapshotCrawler::inspectMType(int32_t typeIndex)
     if (typeIndex < 0 || typeIndex >= snapshot.typeDescriptions->size) {return;}
     
     auto &type = snapshot.typeDescriptions->items[typeIndex];
-    printf("0x%08llx name='%s'%d size=%d", type.typeInfoAddress, type.name.c_str(), type.typeIndex, type.size);
+    printf("\e[1m%s\e[0m\e[36m'%d size=%d", type.name.c_str(), type.typeIndex, type.size);
     if (type.baseOrElementTypeIndex >= 0)
     {
         auto &baseType = snapshot.typeDescriptions->items[type.baseOrElementTypeIndex];
