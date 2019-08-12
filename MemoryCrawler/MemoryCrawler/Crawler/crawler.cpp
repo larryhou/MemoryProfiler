@@ -676,6 +676,73 @@ const string MemorySnapshotCrawler::getUTFString(address_t address, int32_t &siz
     return string();
 }
 
+void MemorySnapshotCrawler::dumpSubclassesOf(int32_t typeIndex)
+{
+    auto &typeDescriptions = snapshot.typeDescriptions->items;
+    for (auto i = 0; i < snapshot.typeDescriptions->size; i++)
+    {
+        auto &type = typeDescriptions[i];
+        if (subclassOf(type, typeIndex))
+        {
+            printf("\e[36m%6d \e[32m%s \e[37m%s\n", type.typeIndex, type.name.c_str(), type.assembly.c_str());
+        }
+    }
+}
+
+void MemorySnapshotCrawler::statSubclasses()
+{
+    vector<int32_t> indice;
+    map<int32_t, int32_t> stats;
+    auto &typeDescriptions = snapshot.typeDescriptions->items;
+    for (auto i = 0; i < snapshot.typeDescriptions->size; i++)
+    {
+        auto type = &typeDescriptions[i];
+        while (type->baseOrElementTypeIndex >= 0)
+        {
+            auto match = stats.find(type->baseOrElementTypeIndex);
+            if (match == stats.end())
+            {
+                stats.insert(pair<int32_t, int32_t>(type->baseOrElementTypeIndex, 1));
+                indice.push_back(type->baseOrElementTypeIndex);
+            }
+            else
+            {
+                match->second++;
+            }
+            
+            type = &snapshot.typeDescriptions->items[type->baseOrElementTypeIndex];
+        }
+    }
+    
+    std::sort(indice.begin(), indice.end(), [&](int32_t a, int32_t b)
+              {
+                  auto na = stats[a];
+                  auto nb = stats[b];
+                  if (na != nb) {return na > nb;}
+                  return a < b;
+              });
+    
+    for (auto i = indice.begin(); i != indice.end(); ++i)
+    {
+        auto &type = snapshot.typeDescriptions->items[*i];
+        printf("\e[36m%6d #%d \e[32m%s \e[37m%s\n", type.typeIndex, stats[*i], type.name.c_str(), type.assembly.c_str());
+    }
+}
+
+bool MemorySnapshotCrawler::subclassOf(TypeDescription &type, int32_t baseTypeIndex)
+{
+    if (baseTypeIndex < 0) {return false;}
+    
+    auto iter = &type;
+    while (iter->baseOrElementTypeIndex >= 0 && !iter->isArray)
+    {
+        if (iter->baseOrElementTypeIndex == baseTypeIndex) {return true;}
+        iter = &snapshot.typeDescriptions->items[iter->baseOrElementTypeIndex];
+    }
+    
+    return false;
+}
+
 bool MemorySnapshotCrawler::deriveFromMType(TypeDescription &type, int32_t baseTypeIndex)
 {
     if (type.typeIndex == baseTypeIndex) { return true; }

@@ -497,6 +497,20 @@ void processRecord(const char * filepath)
                                    }
                                });
         }
+        else if (strbeg(command, "base"))
+        {
+            readCommandOptions(command, [&](std::vector<const char *> options)
+                               {
+                                   if (options.size() == 1)
+                                   {
+                                       mainCrawler.statSubclasses();
+                                   }
+                                   else
+                                   {
+                                       mainCrawler.dumpSubclassesOf(atoi(options[1]));
+                                   }
+                               });
+        }
         else if (strbeg(command, "event"))
         {
             mainCrawler.dumpUnbalancedEvents(trackingMode);

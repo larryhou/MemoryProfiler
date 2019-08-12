@@ -195,6 +195,9 @@ public:
     
     void dumpGCHandles();
     
+    void statSubclasses();
+    void dumpSubclassesOf(int32_t typeIndex);
+    
     void compare(MemorySnapshotCrawler &crawler);
     
     ~MemorySnapshotCrawler();
@@ -214,6 +217,7 @@ private:
     
     bool deriveFromMType(TypeDescription &type, int32_t baseTypeIndex);
     bool deriveFromNType(PackedNativeType &type, int32_t baseTypeIndex);
+    bool subclassOf(TypeDescription &type, int32_t baseTypeIndex);
     
     void tryConnectWithNativeObject(ManagedObject &mo);
     
