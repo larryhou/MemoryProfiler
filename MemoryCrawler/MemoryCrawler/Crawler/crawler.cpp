@@ -1681,11 +1681,11 @@ void MemorySnapshotCrawler::inspectMType(int32_t typeIndex)
     if (typeIndex < 0 || typeIndex >= snapshot.typeDescriptions->size) {return;}
     
     auto &type = snapshot.typeDescriptions->items[typeIndex];
-    printf("\e[1m%s\e[0m\e[36m'%d size=%d", type.name.c_str(), type.typeIndex, type.size);
+    printf("\e[1m%s\e[0m\e[36m typeIndex=%d size=%d", type.name.c_str(), type.typeIndex, type.size);
     if (type.baseOrElementTypeIndex >= 0)
     {
         auto &baseType = snapshot.typeDescriptions->items[type.baseOrElementTypeIndex];
-        printf(" baseOrElementType='%s'%d", baseType.name.c_str(), baseType.typeIndex);
+        printf(" baseOrElementType='%s'", baseType.name.c_str());
     }
     if (type.isValueType) {printf(" isValueType=%s", type.isValueType ? "true" : "false");}
     if (type.isArray) {printf(" isArray=%s arrayRank=%d", type.isArray ? "true" : "false", type.arrayRank);}
