@@ -684,7 +684,7 @@ void MemorySnapshotCrawler::dumpSubclassesOf(int32_t typeIndex)
         auto &type = typeDescriptions[i];
         if (subclassOf(type, typeIndex))
         {
-            printf("\e[36m%6d \e[32m%s \e[37m%s\n", type.typeIndex, type.name.c_str(), type.assembly.c_str());
+            printf("\e[32m%s \e[37m%s \e[33m*%d\n", type.name.c_str(), type.assembly.c_str(), type.typeIndex);
         }
     }
 }
@@ -725,7 +725,7 @@ void MemorySnapshotCrawler::statSubclasses()
     for (auto i = indice.begin(); i != indice.end(); ++i)
     {
         auto &type = snapshot.typeDescriptions->items[*i];
-        printf("\e[36m%6d #%d \e[32m%s \e[37m%s\n", type.typeIndex, stats[*i], type.name.c_str(), type.assembly.c_str());
+        printf("\e[36m#%d \e[32m%s \e[37m%s \e[33m*%d\n", stats[*i], type.name.c_str(), type.assembly.c_str(), type.typeIndex);
     }
 }
 
@@ -2067,7 +2067,7 @@ void MemorySnapshotCrawler::listAllStatics()
         }
         
         if (staticCount == 0) {continue;}
-        printf("\e[36m%5d #%-3d \e[32m%s \e[37m*%d\n", type.staticFieldBytes->size, staticCount, type.name.c_str(), type.typeIndex);
+        printf("\e[36m%5d #%-3d \e[32m%s \e[37m%s \e[33m*%d\n", type.staticFieldBytes->size, staticCount, type.name.c_str(), type.assembly.c_str(), type.typeIndex);
     }
 }
 
