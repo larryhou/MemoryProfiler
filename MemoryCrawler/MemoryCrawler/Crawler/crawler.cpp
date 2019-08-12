@@ -678,6 +678,9 @@ const string MemorySnapshotCrawler::getUTFString(address_t address, int32_t &siz
 
 void MemorySnapshotCrawler::dumpSubclassesOf(int32_t typeIndex)
 {
+    auto &base = snapshot.typeDescriptions->items[typeIndex];
+    if (base.typeIndex != typeIndex) {return;}
+    printf("# %s *%d\n", base.name.c_str(), base.typeIndex);
     auto &typeDescriptions = snapshot.typeDescriptions->items;
     for (auto i = 0; i < snapshot.typeDescriptions->size; i++)
     {
