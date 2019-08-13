@@ -389,7 +389,7 @@ void MemorySnapshotCrawler::trackMTypeObjects(MemoryState state, int32_t typeInd
         if (tag != nullptr)
         {
             auto &tagType = snapshot.typeDescriptions->items[tag->typeIndex];
-            printf(" <0x%08llx type='%s'%d>", tag->address, tagType.name.c_str(), tagType.typeIndex);
+            printf(" ⤽[0x%08llx type='%s'%d]", tag->address, tagType.name.c_str(), tagType.typeIndex);
         }
         printf("\n");
     }
@@ -1760,11 +1760,11 @@ void MemorySnapshotCrawler::inspectMType(int32_t typeIndex)
     if (type.isValueType) {printf(" isValueType=%s", type.isValueType ? "true" : "false");}
     if (type.isArray) {printf(" isArray=%s arrayRank=%d", type.isArray ? "true" : "false", type.arrayRank);}
     if (type.staticFieldBytes != nullptr) {printf(" staticFieldBytes=%d", type.staticFieldBytes->size);}
-    printf(" assembly='%s' instanceMemory=%d instanceCount=%d", type.assembly.c_str(), type.instanceMemory, type.instanceCount);
+    printf(" assembly='%s' %d#%d", type.assembly.c_str(), type.instanceMemory, type.instanceCount);
     if (type.nativeTypeArrayIndex >= 0)
     {
         auto &nt = snapshot.nativeTypes->items[type.nativeTypeArrayIndex];
-        printf(" N[instanceMemory=%d instanceCount=%d]", nt.instanceMemory, nt.instanceCount);
+        printf(" N[%d#%d]", nt.instanceMemory, nt.instanceCount);
     }
     printf("\n");
     
