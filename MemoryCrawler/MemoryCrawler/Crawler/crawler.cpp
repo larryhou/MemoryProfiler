@@ -1752,19 +1752,16 @@ void MemorySnapshotCrawler::inspectMType(int32_t typeIndex)
     
     auto &type = snapshot.typeDescriptions->items[typeIndex];
     printf("\e[1m%s\e[0m\e[36m typeIndex=%d size=%d", type.name.c_str(), type.typeIndex, type.size);
-    if (type.baseOrElementTypeIndex >= 0)
-    {
-        auto &baseType = snapshot.typeDescriptions->items[type.baseOrElementTypeIndex];
-        printf(" baseOrElementType='%s'", baseType.name.c_str());
-    }
+    if (type.baseOrElementTypeIndex >= 0) {printf(" baseOrElementType=%d", type.baseOrElementTypeIndex);}
     if (type.isValueType) {printf(" isValueType=%s", type.isValueType ? "true" : "false");}
     if (type.isArray) {printf(" isArray=%s arrayRank=%d", type.isArray ? "true" : "false", type.arrayRank);}
     if (type.staticFieldBytes != nullptr) {printf(" staticFieldBytes=%d", type.staticFieldBytes->size);}
-    printf(" assembly='%s' %d#%d", type.assembly.c_str(), type.instanceMemory, type.instanceCount);
+    printf(" assembly='%s'", type.assembly.c_str());
+    if (type.instanceCount > 0) {printf(" %d#%d", type.instanceMemory, type.instanceCount);}
     if (type.nativeTypeArrayIndex >= 0)
     {
         auto &nt = snapshot.nativeTypes->items[type.nativeTypeArrayIndex];
-        printf(" N[%d#%d]", nt.instanceMemory, nt.instanceCount);
+        printf(" N[%d#  %d]", nt.instanceMemory, nt.instanceCount);
     }
     printf("\n");
     
