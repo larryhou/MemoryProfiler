@@ -2515,7 +2515,6 @@ void MemorySnapshotCrawler::listMulticastDelegates()
     {
         auto index = findMObjectAtAddress(*i);
         if (index == -1) {continue;}
-        auto &mo = managedObjects[index];
         auto position = *i;
         auto refCount = 0;
         while (true)
