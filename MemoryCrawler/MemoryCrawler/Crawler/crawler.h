@@ -129,6 +129,9 @@ private:
     map<address_t, int32_t> __managedNativeAddressMap;
     map<address_t, int32_t> __nativeManagedAddressMap;
     
+    map<address_t, address_t> __multicastForwardAddressMap;
+    map<address_t, address_t> __multicastReverseAddressMap;
+    
     HashCaculator __hash;
 
 public:
@@ -155,6 +158,8 @@ public:
     void dumpRepeatedObjects(int32_t typeIndex, int32_t condition = 2);
     
     void dumpUnbalancedEvents(MemoryState state);
+    void retrieveMulticastDelegate(address_t address);
+    void dumpMulticastDelegateHierarchy(address_t address, address_t highlight, vector<FieldDescription *> &fields, const char *indent);
     
     void inspectMType(int32_t typeIndex);
     void inspectNType(int32_t typeIndex);

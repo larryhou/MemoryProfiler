@@ -551,6 +551,16 @@ void processRecord(const char * filepath)
                                    }
                                });
         }
+        else if (strbeg(command, "delg"))
+        {
+            readCommandOptions(command, [&](std::vector<const char *> options)
+                               {
+                                   for (auto i = 1; i < options.size(); i++)
+                                   {
+                                       mainCrawler.retrieveMulticastDelegate(castAddress(options[i]));
+                                   }
+                               });
+        }
         else if (strbeg(command, "str"))
         {
             readCommandOptions(command, [&](std::vector<const char *> options)
@@ -625,6 +635,7 @@ void processRecord(const char * filepath)
             help("list", NULL, "列举托管类型所有活跃对象内存占用简报[支持内存追踪过滤]", __indent);
             help("ulist", NULL, "列举引擎类型所有活跃对象内存占用简报[支持内存追踪过滤]", __indent);
             help("event", NULL, "搜索所有未清理的delegate对象");
+            help("delg", "[ADDRESS]*", "查看MulticastDelegate链表");
             help("heap", "[RANK]", "输出动态内存简报", __indent);
             help("base", "[TYPE_INDEX]", "查看当前类型的子类型", __indent);
             help("save", NULL, "把当前内存快照分析结果以sqlite3格式保存到本机", __indent);

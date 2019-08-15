@@ -2478,6 +2478,145 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
     }
 }
 
+void MemorySnapshotCrawler::retrieveMulticastDelegate(address_t address)
+{
+    auto entityObjectIndex = findMObjectAtAddress(address);
+    if (entityObjectIndex == -1) {return;}
+    
+    auto TypeIndexMulticastDelegate = snapshot.managedTypeIndex.system_MulticastDelegate;
+    
+    int32_t targetOffset = -1;
+    int32_t prevOffset = -1;
+    
+    string prevString = "prev";
+    string targetString = "m_target";
+    
+    map<int32_t, FieldDescription *> members;
+    auto &TypeMulticastDelegate = snapshot.typeDescriptions->items[TypeIndexMulticastDelegate];
+    if (TypeMulticastDelegate.typeIndex != TypeIndexMulticastDelegate) {return;}
+    auto type = &TypeMulticastDelegate;
+    while (true)
+    {
+        for (auto i = 0; i < type->fields->size; i++)
+        {
+            auto &field = type->fields->items[i];
+            if (!field.isStatic)
+            {
+                members.insert(pair<int32_t, FieldDescription *>(field.offset, &field));
+                if (field.name == targetString)
+                {
+                    targetOffset = field.offset;
+                }
+                else if (field.name == prevString)
+                {
+                    prevOffset = field.offset;
+                }
+            }
+        }
+        if (type->baseOrElementTypeIndex == -1){break;}
+        type = &snapshot.typeDescriptions->items[type->baseOrElementTypeIndex];
+    }
+    
+    if (prevOffset == -1 || targetOffset == -1) {return;}
+    
+    if (__multicastForwardAddressMap.size() == 0)
+    {
+        for (auto i = 0; i < managedObjects.size(); i++)
+        {
+            auto &mo = managedObjects[i];
+            auto &mt = snapshot.typeDescriptions->items[mo.typeIndex];
+            if (mt.baseOrElementTypeIndex == TypeIndexMulticastDelegate)
+            {
+                auto pointer = __memoryReader->readPointer(mo.address + prevOffset);
+                if (pointer != 0)
+                {
+                    auto match = __multicastForwardAddressMap.find(mo.address);
+                    assert(match == __multicastForwardAddressMap.end());
+                    
+                    __multicastForwardAddressMap.insert(pair<address_t, address_t>(mo.address, pointer));
+                    __multicastReverseAddressMap.insert(pair<address_t, address_t>(pointer, mo.address));
+                }
+            }
+        }
+    }
+    
+    address_t position = address;
+    while (true)
+    {
+        auto iter = __multicastReverseAddressMap.find(position);
+        if (iter == __multicastReverseAddressMap.end()) {break;}
+        position = iter->second;
+    }
+    
+    vector<FieldDescription *> fields{members.at(prevOffset), members.at(targetOffset)};
+    auto sourceIndex = findMObjectAtAddress(position);
+    auto &source = managedObjects[sourceIndex];
+    auto &sourceType = snapshot.typeDescriptions->items[source.typeIndex];
+    auto selected = position == address;
+    if (selected) {printf("\e[1m");}
+    printf("%s 0x%08llx", sourceType.name.c_str(), position);
+    if (selected) {printf("\e[0m\e[36m");}
+    printf("\n");
+    dumpMulticastDelegateHierarchy(position, address, fields, "");
+}
+
+void MemorySnapshotCrawler::dumpMulticastDelegateHierarchy(address_t address, address_t highlight, vector<FieldDescription *> &fields, const char *indent)
+{
+    auto __size = strlen(indent);
+    char __indent[__size + 2*3 + 1]; // indent + 2×tabulator + \0
+    memset(__indent, 0, sizeof(__indent));
+    memcpy(__indent, indent, __size);
+    char *tabular = __indent + __size;
+    memcpy(tabular + 3, "─", 3);
+    
+    auto fieldCount = fields.size();
+    for (auto i = 0; i < fieldCount; i++)
+    {
+        auto closed = i + 1 == fieldCount;
+        closed ? memcpy(tabular, "└", 3) : memcpy(tabular, "├", 3);
+        auto &field = *fields[i];
+        auto *fieldType = &snapshot.typeDescriptions->items[field.typeIndex];
+        auto fieldAddress = address + field.offset;
+        auto isNull = false;
+        if (fieldType->isValueType)
+        {
+            fieldAddress += __vm->objectHeaderSize;
+        }
+        else
+        {
+            fieldAddress = __memoryReader->readPointer(fieldAddress);
+            if (fieldAddress == 0)
+            {
+                isNull = true;
+            }
+            else
+            {
+                auto typeIndex = findTypeOfAddress(fieldAddress);
+                if (typeIndex >= 0)
+                {
+                    fieldType = &snapshot.typeDescriptions->items[typeIndex];
+                }
+            }
+        }
+        
+        auto selected = fieldAddress == highlight;
+        auto isMulticastDelegate = fieldType->baseOrElementTypeIndex == snapshot.managedTypeIndex.system_MulticastDelegate;
+        printf("%s%s:", __indent, field.name.c_str());
+        if (selected) {printf("\e[1m");}
+        printf("%s", fieldType->name.c_str());
+        if (isNull) {printf(" = NULL");}
+        else if (!isMulticastDelegate) {printf(" = 0x%08llx", fieldAddress);}
+        else {printf(" 0x%08llx", fieldAddress);}
+        if (selected) {printf("\e[0m\e[36m");}
+        printf("\n");
+        
+        if (isMulticastDelegate && !isNull)
+        {
+            dumpMulticastDelegateHierarchy(fieldAddress, highlight, fields, getNestIndent(__indent, __size, closed).c_str());
+        }
+    }
+}
+
 void MemorySnapshotCrawler::dumpUnbalancedEvents(MemoryState state)
 {
     auto &delegateType = snapshot.typeDescriptions->items[snapshot.managedTypeIndex.system_Delegate];

@@ -350,6 +350,7 @@ void MemorySnapshotReader::postSnapshot()
     string sSystemIntPtr("System.IntPtr");
     string sSystemBoolean("System.Boolean");
     string sSystemDelegate("System.Delegate");
+    string sSystemMulticastDelegate("System.MulticastDelegate");
     
     // Unity object types
     string sUnityEngineObject("UnityEngine.Object");
@@ -386,6 +387,7 @@ void MemorySnapshotReader::postSnapshot()
         else if (readTypeIndex(managedTypeIndex.system_IntPtr, type, &sSystemIntPtr)) {}
         else if (readTypeIndex(managedTypeIndex.system_Boolean, type, &sSystemBoolean)) {}
         else if (readTypeIndex(managedTypeIndex.system_Delegate, type, &sSystemDelegate)) {}
+        else if (readTypeIndex(managedTypeIndex.system_MulticastDelegate, type, &sSystemMulticastDelegate)) {}
         
         if (type.fields != nullptr)
         {
