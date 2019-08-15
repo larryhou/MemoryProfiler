@@ -555,9 +555,16 @@ void processRecord(const char * filepath)
         {
             readCommandOptions(command, [&](std::vector<const char *> options)
                                {
-                                   for (auto i = 1; i < options.size(); i++)
+                                   if (options.size() == 1)
                                    {
-                                       mainCrawler.retrieveMulticastDelegate(castAddress(options[i]));
+                                       mainCrawler.listMulticastDelegates();
+                                   }
+                                   else
+                                   {
+                                       for (auto i = 1; i < options.size(); i++)
+                                       {
+                                           mainCrawler.retrieveMulticastDelegate(castAddress(options[i]));
+                                       }
                                    }
                                });
         }

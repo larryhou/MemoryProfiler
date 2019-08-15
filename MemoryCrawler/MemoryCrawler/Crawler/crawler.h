@@ -158,6 +158,7 @@ public:
     void dumpRepeatedObjects(int32_t typeIndex, int32_t condition = 2);
     
     void dumpUnbalancedEvents(MemoryState state);
+    void listMulticastDelegates();
     void retrieveMulticastDelegate(address_t address);
     void dumpMulticastDelegateHierarchy(address_t address, address_t highlight, vector<FieldDescription *> &fields, const char *indent);
     

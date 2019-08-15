@@ -2478,11 +2478,74 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
     }
 }
 
+void MemorySnapshotCrawler::listMulticastDelegates()
+{
+    retrieveMulticastDelegate(0);
+    
+    vector<address_t> roots;
+    map<address_t, bool> visit;
+    for (auto i = __multicastForwardAddressMap.begin(); i != __multicastForwardAddressMap.end(); i++)
+    {
+        auto address = i->first;
+        auto match = visit.find(address);
+        if (match == visit.end())
+        {
+            visit.insert(pair<address_t, bool>(address, true));
+            auto position = address;
+            while (true)
+            {
+                auto iter = __multicastReverseAddressMap.find(position);
+                if (iter == __multicastReverseAddressMap.end())
+                {
+                    roots.push_back(position);
+                    break;
+                }
+                else
+                {
+                    position = match->second;
+                }
+            }
+        }
+    }
+    
+    map<int32_t, int32_t> counts;
+    vector<int32_t> indice;
+    
+    for (auto i = roots.begin(); i != roots.end(); i++)
+    {
+        auto index = findMObjectAtAddress(*i);
+        if (index == -1) {continue;}
+        auto &mo = managedObjects[index];
+        auto position = *i;
+        auto refCount = 0;
+        while (true)
+        {
+            refCount++;
+            auto iter = __multicastForwardAddressMap.find(position);
+            if (iter == __multicastForwardAddressMap.end()){break;}
+            position = iter->second;
+        }
+        indice.push_back(index);
+        counts.insert(pair<int32_t, int32_t>(index, refCount));
+    }
+    
+    std::sort(indice.begin(), indice.end(), [&](int32_t a, int32_t b)
+              {
+                  auto ca = counts.at(a);
+                  auto cb = counts.at(b);
+                  if (ca != cb) {return ca > cb;}
+                  return a < b;
+              });
+    for (auto i = indice.begin(); i != indice.end(); i++)
+    {
+        auto &mo = managedObjects[*i];
+        auto &type = snapshot.typeDescriptions->items[mo.typeIndex];
+        printf("\e[36m%3d 0x%08llx \e[32m%s \e[33m%s \e[37m*%d\n", counts.at(*i), mo.address, type.name.c_str(), type.assembly.c_str(), type.typeIndex);
+    }
+}
+
 void MemorySnapshotCrawler::retrieveMulticastDelegate(address_t address)
 {
-    auto entityObjectIndex = findMObjectAtAddress(address);
-    if (entityObjectIndex == -1) {return;}
-    
     auto TypeIndexMulticastDelegate = snapshot.managedTypeIndex.system_MulticastDelegate;
     
     int32_t targetOffset = -1;
@@ -2539,6 +2602,9 @@ void MemorySnapshotCrawler::retrieveMulticastDelegate(address_t address)
             }
         }
     }
+    
+    auto entityObjectIndex = findMObjectAtAddress(address);
+    if (entityObjectIndex == -1) {return;}
     
     address_t position = address;
     while (true)
