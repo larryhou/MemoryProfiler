@@ -1763,7 +1763,7 @@ void MemorySnapshotCrawler::inspectMType(int32_t typeIndex)
     if (type.nativeTypeArrayIndex >= 0)
     {
         auto &nt = snapshot.nativeTypes->items[type.nativeTypeArrayIndex];
-        printf(" N[%d#  %d]", nt.instanceMemory, nt.instanceCount);
+        printf(" N[%d#%d]", nt.instanceMemory, nt.instanceCount);
     }
     printf("\n");
     
