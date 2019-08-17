@@ -677,7 +677,7 @@ void processRecord(const char * filepath)
 
 int main(int argc, const char * argv[])
 {
-#if PERF_DEBUG
+#if DEBUG
     cout << "argc=" << argc << endl;
     for (auto i = 0; i < argc; i++)
     {
