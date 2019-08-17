@@ -34,7 +34,9 @@ MemorySnapshotCrawler &MemorySnapshotCrawler::crawl()
     crawlStatic();
     summarize();
     __sampler.end();
+#if PERF_DEBUG
     __sampler.summarize();
+#endif
     return *this;
 }
 

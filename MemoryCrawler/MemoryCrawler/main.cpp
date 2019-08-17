@@ -677,11 +677,13 @@ void processRecord(const char * filepath)
 
 int main(int argc, const char * argv[])
 {
+#if PERF_DEBUG
     cout << "argc=" << argc << endl;
     for (auto i = 0; i < argc; i++)
     {
         cout << "argv[" << i << "]=" << argv[i] << endl;
     }
+#endif
     
     if (argc > 1)
     {

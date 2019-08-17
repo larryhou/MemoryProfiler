@@ -416,6 +416,7 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
 					"$(inherited)",
+					"PERF_DEBUG=1",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -450,6 +451,7 @@
 				DEPLOYMENT_LOCATION = YES;
 				DEVELOPMENT_TEAM = PRLP6W5S32;
 				DSTROOT = /;
+				GCC_PREPROCESSOR_DEFINITIONS = "PERF_DEBUG=1";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
