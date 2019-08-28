@@ -202,8 +202,8 @@ namespace Moobyte.MemoryProfiler
                     {
                         cursor.Pop();
                     }
-
-                    var drawCalls = root.GetColumnAsSingle(ProfilerColumn.DrawCalls);
+                    
+#if UNITY_2017_1_OR_NEWER
                     samples.Add(sequence, new StackSample
                     {
                         id = sequence,
@@ -213,6 +213,14 @@ namespace Moobyte.MemoryProfiler
                         totalTime = root.GetColumnAsSingle(ProfilerColumn.TotalTime),
                         selfTime = root.GetColumnAsSingle(ProfilerColumn.SelfTime),
                     });
+#else
+                    var ss = new StackSample {id = sequence, name = root.propertyName};
+                    int.TryParse(root.GetColumn(ProfilerColumn.Calls), out ss.callsCount);
+                    int.TryParse(root.GetColumn(ProfilerColumn.GCMemory), out ss.gcAllocBytes);
+                    float.TryParse(root.GetColumn(ProfilerColumn.TotalTime), out ss.totalTime);
+                    float.TryParse(root.GetColumn(ProfilerColumn.SelfTime), out ss.selfTime);
+                    samples.Add(sequence, ss);
+#endif
 
                     if (cursor.Count != 0)
                     {
