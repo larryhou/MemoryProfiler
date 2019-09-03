@@ -9,6 +9,35 @@ using UnityEditorInternal.Profiling;
 using UnityEngine;
 using UnityEngine.Profiling;
 
+#if UNITY_2019_1_OR_NEWER
+public static class ProfilerColumn
+{
+    public static int DontSort = -1;
+    public static int FunctionName = 0;
+    public static int TotalPercent = 1;
+    public static int SelfPercent = 2;
+    public static int Calls = 3;
+    public static int GCMemory = 4;
+    public static int TotalTime = 5;
+    public static int SelfTime = 6;
+    public static int DrawCalls = 7;
+    public static int TotalGPUTime = 8;
+    public static int SelfGPUTime = 9;
+    public static int TotalGPUPercent = 10; // 0x0000000A
+    public static int SelfGPUPercent = 11; // 0x0000000B
+    public static int WarningCount = 12; // 0x0000000C
+    public static int ObjectName = 13; // 0x0000000D
+}
+
+public static class ProfilerViewType
+{
+    public static int Hierarchy = 0;
+    public static int Timeline = 1;
+    public static int RawHierarchy = 2;
+}
+
+#endif
+
 namespace Moobyte.MemoryProfiler
 {
     internal struct StackSample
@@ -124,7 +153,6 @@ namespace Moobyte.MemoryProfiler
         [MenuItem("性能/停止采样", false, 55)]
         public static void StopRecording()
         {
-            Profiler.enabled = false;
             Profiler.logFile = null;
             EditorApplication.update -= Update;
             
