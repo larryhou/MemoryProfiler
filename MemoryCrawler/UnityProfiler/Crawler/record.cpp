@@ -48,6 +48,19 @@ void RecordCrawler::crawl()
         frame.time = __fs.readFloat();
         frame.fps = __fs.readFloat();
         
+        auto extra = __fs.readUInt16();
+        if (extra > 0)
+        {
+            auto pos = __fs.tell();
+            frame.usedHeap = __fs.readUInt64();
+            frame.usedMonoHeap = __fs.readUInt64();
+            frame.reservedMonoHeap = __fs.readUInt64();
+            frame.totalAllocatedMemory = __fs.readUInt64();
+            frame.totalReservedMemory = __fs.readUInt64();
+            frame.totalUnusedReservedMemory = __fs.readUInt64();
+            assert(__fs.tell() - pos == extra);
+        }
+        
         for (auto iter = __metadatas.begin(); iter != __metadatas.end(); iter++)
         {
             auto size = iter->second.size();
@@ -173,7 +186,7 @@ void RecordCrawler::iterateSamples(std::function<void (int32_t, StackSample &)> 
         __fs.readFloat(); // time
         __fs.readFloat(); // fps
         
-        __fs.ignore(__statsize);
+        __fs.ignore(__fs.readUInt16() + __statsize);
         
         readFrameSamples([&](auto &samples, auto &relations)
                     {
@@ -390,7 +403,7 @@ void RecordCrawler::findFramesWithAlloc(int32_t frameOffset, int32_t frameCount)
         auto time = __fs.readFloat();
         auto fps = __fs.readFloat();
         
-        __fs.ignore(__statsize);
+        __fs.ignore(__fs.readUInt16() + __statsize);
         
         auto alloc = 0;
         readFrameSamples([&](auto &samples, auto &relations)
@@ -509,7 +522,11 @@ void RecordCrawler::readFrameSamples(std::function<void (std::vector<StackSample
     
     assert(__fs.readUInt32() == 0x12345678);
     
-    relations.insert(std::pair<int32_t, std::vector<int32_t>>(-1, std::vector<int32_t>()));
+    if (relations.find(-1) == relations.end())
+    {
+       relations.insert(std::pair<int32_t, std::vector<int32_t>>(-1, std::vector<int32_t>()));
+    }
+    
     auto &root = relations.at(-1);
     for (auto iter = relations.begin(); iter != relations.end(); iter++)
     {
@@ -531,7 +548,8 @@ void RecordCrawler::inspectFrame(int32_t frameIndex, int32_t depth)
     
     auto &frame = __frames[__cursor - std::get<0>(__range)];
     
-    __fs.seek(frame.offset + 12 + __statsize, seekdir_t::beg);
+    __fs.seek(frame.offset + 12, seekdir_t::beg);
+    __fs.ignore(__fs.readUInt16() + __statsize);
     readFrameSamples([&](auto &samples, auto &relations)
               {
                   int32_t alloc = 0;
@@ -543,7 +561,10 @@ void RecordCrawler::inspectFrame(int32_t frameIndex, int32_t depth)
                           alloc += s.gcAllocBytes;
                       }
                   }
-                  printf("[FRAME] index=%d time=%.3fms fps=%.1f alloc=%d offset=%d\n", frame.index, frame.time, frame.fps, alloc, frame.offset);
+                  printf("[FRAME] index=%d time=%.3fms fps=%.1f alloc=%d usedHeap=%llu monoHeap=%llu usedMono=%llu totalAllocated=%llu totalReserved=%llu totalUnused=%llu\n",
+                         frame.index, frame.time, frame.fps, alloc,
+                         frame.usedHeap, frame.reservedMonoHeap, frame.usedMonoHeap,
+                         frame.totalAllocatedMemory, frame.totalReservedMemory, frame.totalUnusedReservedMemory);
                   dumpFrameStacks(-1, samples, relations, frame.time, depth);
               });
     auto &statistics = frame.statistics.graphs;

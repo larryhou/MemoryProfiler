@@ -209,8 +209,6 @@ namespace Moobyte.MemoryProfiler
         static void Update()
         {
             var stopFrameIndex = ProfilerDriver.lastFrameIndex;
-            
-            
             var frameIndex = Math.Max(frameCursor + 1, ProfilerDriver.firstFrameIndex);
             while (frameIndex <= stopFrameIndex)
             {
@@ -249,11 +247,8 @@ namespace Moobyte.MemoryProfiler
                     float.TryParse(root.GetColumn(ProfilerColumn.SelfTime), out ss.selfTime);
                     samples.Add(sequence, ss);
 #endif
-
-                    if (cursor.Count != 0)
-                    {
-                        relations[sequence] = cursor.Peek();
-                    }
+                    
+                    relations[sequence] = cursor.Count != 0 ? cursor.Peek() : -1;
 
                     if (root.HasChildren)
                     {
@@ -268,7 +263,21 @@ namespace Moobyte.MemoryProfiler
                 stream.Write(frameIndex);
                 stream.Write(string.IsNullOrEmpty(root.frameTime) ? (1000f / frameFPS) : float.Parse(root.frameTime));
                 stream.Write(frameFPS);
-                
+                if (frameIndex == stopFrameIndex) // encode memory info
+                {
+                    stream.Write((ushort) (8 * 6));
+                    stream.Write(Profiler.usedHeapSizeLong); // 1
+                    stream.Write(Profiler.GetMonoUsedSizeLong()); // 2
+                    stream.Write(Profiler.GetMonoHeapSizeLong()); // 3
+                    stream.Write(Profiler.GetTotalAllocatedMemoryLong()); // 4
+                    stream.Write(Profiler.GetTotalReservedMemoryLong()); // 5
+                    stream.Write(Profiler.GetTotalUnusedReservedMemoryLong()); // 6
+                }
+                else
+                {
+                    stream.Write((ushort) 0);
+                }
+
                 //encode statistics
                 for (var area = 0; area < profilerAreaCount; area++)
                 {

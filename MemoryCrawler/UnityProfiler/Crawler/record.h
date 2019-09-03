@@ -64,6 +64,14 @@ struct RenderFrame
     float time;
     float fps;
     
+    uint64_t usedHeap;
+    uint64_t reservedMonoHeap;
+    uint64_t usedMonoHeap;
+    
+    uint64_t totalAllocatedMemory;
+    uint64_t totalReservedMemory;
+    uint64_t totalUnusedReservedMemory;
+    
     FrameStatistics statistics;
     
     int32_t offset;
