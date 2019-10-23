@@ -8,16 +8,6 @@
 
 #include "crawler.h"
 
-MemorySnapshotCrawler::MemorySnapshotCrawler(const char *filepath)
-{
-    MemorySnapshotReader(filepath).read(snapshot);
-    
-    __memoryReader = new HeapMemoryReader(snapshot);
-    __staticMemoryReader = new StaticMemoryReader(snapshot);
-    __vm = &snapshot.virtualMachineInformation;
-    debug();
-}
-
 MemorySnapshotCrawler::MemorySnapshotCrawler()
 {
     __memoryReader = new HeapMemoryReader(snapshot);

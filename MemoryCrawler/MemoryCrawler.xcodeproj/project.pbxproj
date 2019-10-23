@@ -14,6 +14,7 @@
 		6B5343722255B43F003CDBD0 /* serialize.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6B5343712255B43F003CDBD0 /* serialize.cpp */; };
 		6B74B76F2254748200A69BC0 /* stream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6B74B76D2254748200A69BC0 /* stream.cpp */; };
 		6B74B77222548A0900A69BC0 /* snapshot.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6B74B77122548A0900A69BC0 /* snapshot.cpp */; };
+		6B7E64C2235FFC120054958C /* rserialize.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6B7E64C0235FFC120054958C /* rserialize.cpp */; };
 		6BCA665022575EE100A4C96A /* crawler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6BCA664F22575EE100A4C96A /* crawler.cpp */; };
 		6BCA665322584B6100A4C96A /* heap.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6BCA665222584B6100A4C96A /* heap.cpp */; };
 		6BD1B05D227F15FB00E3CBD7 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6BD1B05C227F15FB00E3CBD7 /* main.cpp */; };
@@ -67,6 +68,8 @@
 		6B74B76E2254748200A69BC0 /* stream.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = stream.h; sourceTree = "<group>"; };
 		6B74B7702254838500A69BC0 /* types.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = types.h; sourceTree = "<group>"; };
 		6B74B77122548A0900A69BC0 /* snapshot.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = snapshot.cpp; sourceTree = "<group>"; };
+		6B7E64C0235FFC120054958C /* rserialize.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = rserialize.cpp; sourceTree = "<group>"; };
+		6B7E64C1235FFC120054958C /* rserialize.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = rserialize.h; sourceTree = "<group>"; };
 		6B87DD0F2265CCC6001B0BE3 /* leak.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = leak.h; sourceTree = "<group>"; };
 		6BCA664E22575EE100A4C96A /* crawler.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = crawler.h; sourceTree = "<group>"; };
 		6BCA664F22575EE100A4C96A /* crawler.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = crawler.cpp; sourceTree = "<group>"; };
@@ -144,6 +147,8 @@
 				6B008E4E228D5CB100F18852 /* types.cpp */,
 				6B5343702255B43E003CDBD0 /* serialize.h */,
 				6B5343712255B43F003CDBD0 /* serialize.cpp */,
+				6B7E64C0235FFC120054958C /* rserialize.cpp */,
+				6B7E64C1235FFC120054958C /* rserialize.h */,
 				6B5343732255B61C003CDBD0 /* perf.h */,
 				6BCA664E22575EE100A4C96A /* crawler.h */,
 				6BCA664F22575EE100A4C96A /* crawler.cpp */,
@@ -267,6 +272,7 @@
 				6B0AC7432252FC5D00B58C69 /* main.cpp in Sources */,
 				6B5343722255B43F003CDBD0 /* serialize.cpp in Sources */,
 				6B3498DB2269643400E7E4EC /* stat.cpp in Sources */,
+				6B7E64C2235FFC120054958C /* rserialize.cpp in Sources */,
 				6BD1B06B227F1DD300E3CBD7 /* utils.cpp in Sources */,
 				6B74B76F2254748200A69BC0 /* stream.cpp in Sources */,
 				6BCA665322584B6100A4C96A /* heap.cpp in Sources */,
@@ -430,6 +436,7 @@
 				DEPLOYMENT_LOCATION = YES;
 				DEVELOPMENT_TEAM = PRLP6W5S32;
 				DSTROOT = /;
+				GCC_PREPROCESSOR_DEFINITIONS = "PERF_DEBUG=1";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;

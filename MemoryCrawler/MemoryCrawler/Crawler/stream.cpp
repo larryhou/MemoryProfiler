@@ -200,6 +200,17 @@ string FileStream::readString(size_t size)
     return s;
 }
 
+string FileStream::readZEString()
+{
+    *__buf = 0;
+    auto ptr = __buf;
+    do
+    {
+        __is->read(ptr, 1);
+    } while (*ptr++ != 0);
+    return __buf;
+}
+
 void FileStream::skipUnicodeString()
 {
     size_t size = readUInt32();

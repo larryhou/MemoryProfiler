@@ -15,35 +15,56 @@
 #include "snapshot.h"
 #include "perf.h"
 
-class MemorySnapshotReader
+class MemorySnapshotDeserializer
 {
-    FileStream *__fs = nullptr;
-    VirtualMachineInformation *__vm = nullptr;
-    FieldDescription *__cachedPtr = nullptr;
-    const char *__filepath = nullptr;
-    PackedMemorySnapshot *__snapshot = nullptr;
+protected:
+    const char *__filepath;
+    FileStream __fs;
     TimeSampler<std::nano> __sampler;
+    PackedMemorySnapshot *__snapshot;
+    VirtualMachineInformation *__vm;
+    FieldDescription *__cachedPtr;
+public:
+    string uuid;
     
+public:
+    MemorySnapshotDeserializer(const char *filepath)
+    {
+        auto buffer = new char[strlen(filepath)];
+        std::strcpy(buffer, filepath);
+        __filepath = buffer;
+    }
+    
+    virtual ~MemorySnapshotDeserializer()
+    {
+        delete [] __filepath;
+        __fs.close();
+    }
+    
+    virtual void read(PackedMemorySnapshot &snapshot);
+protected:
+    void prepareSnapshot();
+    void finishSnapshot();
+};
+
+class MemorySnapshotReader: public MemorySnapshotDeserializer
+{
 public:
     string mime;
     string unityVersion;
     string description;
     string systemVersion;
-    string uuid;
     size_t size;
     int64_t createTime;
     
     MemorySnapshotReader(const char *filepath);
-    PackedMemorySnapshot &read(PackedMemorySnapshot &snapshot);
-    
     ~MemorySnapshotReader();
+    
+    void read(PackedMemorySnapshot &snapshot) override;
     
 private:
     void readHeader(FileStream &fs);
     void readSnapshot(FileStream &fs);
-    void postSnapshot();
-    void summarize();
-    
     void readPackedMemorySnapshot(PackedMemorySnapshot &item, FileStream &fs);
 };
 

@@ -136,7 +136,13 @@ private:
 
 public:
     MemorySnapshotCrawler();
-    MemorySnapshotCrawler(const char *filepath);
+    MemorySnapshotCrawler(PackedMemorySnapshot &snapshot):snapshot(snapshot)
+    {
+        __memoryReader = new HeapMemoryReader(snapshot);
+        __staticMemoryReader = new StaticMemoryReader(snapshot);
+        __vm = &snapshot.virtualMachineInformation;
+        debug();
+    }
     
     MemorySnapshotCrawler &crawl();
     

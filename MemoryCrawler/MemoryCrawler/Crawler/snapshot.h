@@ -90,6 +90,7 @@ struct PackedNativeUnityEngineObject
     std::vector<int32_t> fromConnections;
     std::vector<int32_t> toConnections;
     
+    int32_t flags;
     int32_t hideFlags;
     int32_t instanceId;
     bool isDontDestroyOnLoad;
@@ -139,7 +140,8 @@ struct PackedMemorySnapshot
 {
     Array<Connection> *connections = nullptr; // Connection[]
     Array<PackedGCHandle> *gcHandles = nullptr; // PackedGCHandle[]
-    Array<MemorySection> *managedHeapSections = nullptr; // MemorySection[]
+    Array<MemorySection> *heapSections = nullptr; // MemorySection[]
+    Array<MemorySection> *stacksSections = nullptr; // MemorySection[]
     Array<PackedNativeUnityEngineObject> *nativeObjects = nullptr; // PackedNativeUnityEngineObject[]
     Array<PackedNativeType> *nativeTypes = nullptr; // PackedNativeType[]
     Array<TypeDescription> *typeDescriptions = nullptr; // TypeDescription[]

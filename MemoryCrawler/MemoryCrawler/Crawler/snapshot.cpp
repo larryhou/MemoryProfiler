@@ -54,7 +54,7 @@ PackedMemorySnapshot::~PackedMemorySnapshot()
 {
     delete connections;
     delete gcHandles;
-    delete managedHeapSections;
+    delete heapSections;
     delete nativeObjects;
     delete nativeTypes;
     delete typeDescriptions;

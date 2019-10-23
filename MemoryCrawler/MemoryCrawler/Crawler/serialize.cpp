@@ -9,55 +9,49 @@
 #include "serialize.h"
 #include <map>
 
-MemorySnapshotReader::MemorySnapshotReader(const char *filepath)
+void MemorySnapshotDeserializer::read(PackedMemorySnapshot &snapshot)
 {
-    auto size = strlen(filepath);
-    auto buffer = new char[size];
-    std::strcpy(buffer, filepath);
-    __filepath = buffer;
+    __snapshot = &snapshot;
+    __fs.open(__filepath, false);
 }
 
-PackedMemorySnapshot &MemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
+MemorySnapshotReader::MemorySnapshotReader(const char *filepath): MemorySnapshotDeserializer(filepath) {}
+MemorySnapshotReader::~MemorySnapshotReader()
 {
-    this->__snapshot = &snapshot;
-    __sampler.begin("MemorySnapshotReader");
-    if (__fs == nullptr)
-    {
-        __fs = new FileStream;
-        __sampler.begin("open_snapshot");
-        __fs->open(__filepath, false);
-        __sampler.end();
-    }
-    else
-    {
-        __fs->seek(0, seekdir_t::beg);
-    }
     
-    __sampler.begin("read_header");
-    readHeader(*__fs);
+}
+
+void MemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
+{
+    __sampler.begin("MemorySnapshotReader");
+    __sampler.begin("open_snapshot");
+    MemorySnapshotDeserializer::read(snapshot);
     __sampler.end();
     
-    while (__fs->byteAvailable())
+    __sampler.begin("read_header");
+    readHeader(__fs);
+    __sampler.end();
+    
+    while (__fs.byteAvailable())
     {
-        auto length = __fs->readUInt32();
-        auto type = __fs->readUInt8();
+        auto length = __fs.readUInt32();
+        auto type = __fs.readUInt8();
         switch (type)
         {
             case '0':
-                readSnapshot(*__fs);
+                readSnapshot(__fs);
                 break;
             
             default:
-                __fs->ignore(length - 5);
+                __fs.ignore(length - 5);
                 break;
         }
-        __fs->ignore(8);
+        __fs.ignore(8);
     }
     __sampler.end();
 #if PERF_DEBUG
     __sampler.summarize();
 #endif
-    return snapshot;
 }
 
 void MemorySnapshotReader::readHeader(FileStream &fs)
@@ -260,10 +254,10 @@ void MemorySnapshotReader::readPackedMemorySnapshot(PackedMemorySnapshot &item, 
     {
         __sampler.begin("read_heap_sections");
         auto size = fs.readUInt32();
-        item.managedHeapSections = new Array<MemorySection>(size);
+        item.heapSections = new Array<MemorySection>(size);
         for (auto i = 0; i < size; i++)
         {
-            readMemorySection(item.managedHeapSections->items[i], fs);
+            readMemorySection(item.heapSections->items[i], fs);
         }
         __sampler.end();
     }
@@ -292,7 +286,7 @@ void MemorySnapshotReader::readSnapshot(FileStream &fs)
     readVirtualMachineInformation(*__vm, fs);
     readPackedMemorySnapshot(*__snapshot, fs);
     
-    postSnapshot();
+    prepareSnapshot();
 }
 
 bool strend(const string *s, const string *with)
@@ -321,15 +315,15 @@ inline bool readTypeIndex(int32_t &index, const TypeDescription &type, const str
     return false;
 }
 
-void MemorySnapshotReader::postSnapshot()
+void MemorySnapshotDeserializer::prepareSnapshot()
 {
     __snapshot->uuid = uuid;
     
-    __sampler.begin("postSnapshot");
+    __sampler.begin("prepareSnapshot");
     __sampler.begin("create_sorted_heap");
-    for (auto i = 0; i < __snapshot->managedHeapSections->size; i++)
+    for (auto i = 0; i < __snapshot->heapSections->size; i++)
     {
-        MemorySection &heap = __snapshot->managedHeapSections->items[i];
+        MemorySection &heap = __snapshot->heapSections->items[i];
         heap.size = heap.bytes->size;
     }
     __sampler.end();
@@ -435,7 +429,7 @@ void MemorySnapshotReader::postSnapshot()
     __sampler.end();
     
     __sampler.begin("set_heap_index");
-    Array<MemorySection> &managedHeapSections = *__snapshot->managedHeapSections;
+    Array<MemorySection> &managedHeapSections = *__snapshot->heapSections;
     
     auto sortedHeapSections = new std::vector<MemorySection *>;
     for (auto i = 0; i < managedHeapSections.size; i++)
@@ -461,14 +455,14 @@ void MemorySnapshotReader::postSnapshot()
     }
     __sampler.end(); // set_native_object_index
     
-    summarize();
+    finishSnapshot();
     
     __sampler.end();
 }
 
-void MemorySnapshotReader::summarize()
+void MemorySnapshotDeserializer::finishSnapshot()
 {
-    __sampler.begin("summarize_native_objects");
+    __sampler.begin("finishSnapshot");
     
     auto &nativeTypes = *__snapshot->nativeTypes;
     for (auto i = 0; i < nativeTypes.size; i++)
@@ -488,10 +482,4 @@ void MemorySnapshotReader::summarize()
     }
     
     __sampler.end();
-}
-
-MemorySnapshotReader::~MemorySnapshotReader()
-{
-    delete __fs;
-    delete [] __filepath;
 }

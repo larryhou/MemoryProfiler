@@ -58,6 +58,8 @@ public:
     string readString(bool reverseEndian);
     string readString(size_t size);
     
+    string readZEString();
+    
     void skipUnicodeString();
     void skipUnicodeString(bool reverseEndian);
     

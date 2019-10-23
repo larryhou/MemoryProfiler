@@ -16,6 +16,7 @@
 #include "Crawler/crawler.h"
 #include "Crawler/cache.h"
 #include "Crawler/leak.h"
+#include "Crawler/rserialize.h"
 #include "utils.h"
 
 using std::cout;
@@ -36,12 +37,29 @@ address_t castAddress(const char *v)
     }
 }
 
+PackedMemorySnapshot &deserialize(const char *filepath, PackedMemorySnapshot &snapshot)
+{
+    auto ptr = filepath;
+    while (*ptr++ != 0) {}
+    ptr -= 5;
+    
+    if (strbeg(ptr, ".pms"))
+    {
+        MemorySnapshotReader(filepath).read(snapshot);
+    }
+
+    // fallback format
+    RawMemorySnapshotReader(filepath).read(snapshot);
+    return snapshot;
+}
+
 #include <unistd.h>
 #include <memory>
 using std::ofstream;
-void processRecord(const char * filepath)
+void processMemorySnapshot(const char * filepath)
 {
-    MemorySnapshotCrawler mainCrawler(filepath);
+    PackedMemorySnapshot snapshot;
+    MemorySnapshotCrawler mainCrawler(deserialize(filepath, snapshot));
     mainCrawler.crawl();
     
     auto filename = basename(filepath);
@@ -125,11 +143,12 @@ void processRecord(const char * filepath)
         {
             readCommandOptions(command, [&](std::vector<const char *> &options)
                                {
-                                   if (options.size() == 1) {return;}
-                                   MemorySnapshotCrawler crawler(options[1]);
-                                   crawler.crawl();
-                                   mainCrawler.compare(crawler);
-                               });
+                if (options.size() == 1) {return;}
+                PackedMemorySnapshot __snapshot;
+                MemorySnapshotCrawler crawler(deserialize(options[1], __snapshot));
+                crawler.crawl();
+                mainCrawler.compare(crawler);
+            });
         }
         else if (strbeg(command, "uuid"))
         {
@@ -687,7 +706,7 @@ int main(int argc, const char * argv[])
     
     if (argc > 1)
     {
-        processRecord(argv[1]);
+        processMemorySnapshot(argv[1]);
     }
     
     return 0;
