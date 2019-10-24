@@ -29,11 +29,13 @@ void readMemorySectionR(MemorySection &section, FileStream &fs)
     }
 }
 
+string removeFieldWrapper(string name);
+
 void readFieldDescriptionR(FieldDescription &item, FileStream &fs)
 {
     item.offset = fs.readInt32();
     item.typeIndex = fs.readInt32();
-    item.name = fs.readZEString();
+    item.name = removeFieldWrapper(fs.readZEString());
     item.isStatic = fs.readBoolean();
 }
 
