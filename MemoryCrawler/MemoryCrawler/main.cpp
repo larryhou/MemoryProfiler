@@ -47,9 +47,12 @@ PackedMemorySnapshot &deserialize(const char *filepath, PackedMemorySnapshot &sn
     {
         MemorySnapshotReader(filepath).read(snapshot);
     }
+    else
+    {
+        // fallback format
+        RawMemorySnapshotReader(filepath).read(snapshot);
+    }
 
-    // fallback format
-    RawMemorySnapshotReader(filepath).read(snapshot);
     return snapshot;
 }
 
@@ -59,7 +62,7 @@ using std::ofstream;
 void processMemorySnapshot(const char * filepath)
 {
     PackedMemorySnapshot snapshot;
-    MemorySnapshotCrawler mainCrawler(deserialize(filepath, snapshot));
+    MemorySnapshotCrawler mainCrawler(&deserialize(filepath, snapshot));
     mainCrawler.crawl();
     
     auto filename = basename(filepath);
@@ -74,7 +77,7 @@ void processMemorySnapshot(const char * filepath)
     mlog.open(cmdpath, ofstream::app);
     
     char uuid[40];
-    std::strcpy(uuid, mainCrawler.snapshot.uuid.c_str());
+    std::strcpy(uuid, mainCrawler.snapshot->uuid.c_str());
     MemoryState trackingMode = MS_none;
     
     std::istream *stream = &std::cin;
@@ -145,14 +148,14 @@ void processMemorySnapshot(const char * filepath)
                                {
                 if (options.size() == 1) {return;}
                 PackedMemorySnapshot __snapshot;
-                MemorySnapshotCrawler crawler(deserialize(options[1], __snapshot));
+                MemorySnapshotCrawler crawler(&deserialize(options[1], __snapshot));
                 crawler.crawl();
                 mainCrawler.compare(crawler);
             });
         }
         else if (strbeg(command, "uuid"))
         {
-            printf("%s\n", mainCrawler.snapshot.uuid.c_str());
+            printf("%s\n", mainCrawler.snapshot->uuid.c_str());
         }
         else if (strbeg(command, "link"))
         {
@@ -608,7 +611,7 @@ void processMemorySnapshot(const char * filepath)
                                {
                                    if (options.size() == 1)
                                    {
-                                       mainCrawler.dumpRepeatedObjects(mainCrawler.snapshot.managedTypeIndex.system_String);
+                                       mainCrawler.dumpRepeatedObjects(mainCrawler.snapshot->managedTypeIndex.system_String);
                                    }
                                    else
                                    {

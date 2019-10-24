@@ -100,17 +100,17 @@ uint32_t HeapMemoryReader::readObjectSize(address_t address, TypeDescription &ty
     if (offset == -1) {return 0;}
     if (type.isArray)
     {
-        if (type.baseOrElementTypeIndex < 0 || type.baseOrElementTypeIndex >= __snapshot.typeDescriptions->size)
+        if (type.baseOrElementTypeIndex < 0 || type.baseOrElementTypeIndex >= __snapshot->typeDescriptions->size)
         {
             return 0;
         }
         auto elementCount = readArrayLength(address, type);
-        auto &elementType = __snapshot.typeDescriptions->items[type.baseOrElementTypeIndex];
+        auto &elementType = __snapshot->typeDescriptions->items[type.baseOrElementTypeIndex];
         auto elementSize = elementType.isValueType ? elementType.size : __vm->pointerSize;
         return __vm->arrayHeaderSize + elementSize * elementCount;
     }
     
-    if ((type.typeIndex >= 0 && type.typeIndex == __snapshot.managedTypeIndex.system_String)
+    if ((type.typeIndex >= 0 && type.typeIndex == __snapshot->managedTypeIndex.system_String)
         || sSystemString == type.name)
     {
         auto size = __vm->objectHeaderSize;

@@ -28,7 +28,7 @@ struct HeapSegment
 
 class HeapMemoryReader
 {
-    PackedMemorySnapshot &__snapshot;
+    PackedMemorySnapshot *__snapshot;
     std::vector<MemorySection *> *__sortedHeapSections;
     VirtualMachineInformation *__vm;
     
@@ -41,11 +41,11 @@ protected:
     virtual int32_t seekOffset(address_t address);
     
 public:
-    HeapMemoryReader(PackedMemorySnapshot &snapshot): __snapshot(snapshot)
+    HeapMemoryReader(PackedMemorySnapshot *snapshot): __snapshot(snapshot)
     {
-        __sortedHeapSections = snapshot.sortedHeapSections;
+        __sortedHeapSections = snapshot->sortedHeapSections;
         
-        __vm = &snapshot.virtualMachineInformation;
+        __vm = &snapshot->virtualMachineInformation;
     }
     
     int8_t readInt8(address_t address) { return readScalar<int8_t>(address); }
@@ -101,7 +101,7 @@ protected:
     virtual int32_t seekOffset(address_t address) override;
     
 public:
-    StaticMemoryReader(PackedMemorySnapshot &snapshot): HeapMemoryReader(snapshot) {}
+    StaticMemoryReader(PackedMemorySnapshot *snapshot): HeapMemoryReader(snapshot) {}
     void load(const Array<byte_t> &data);
     virtual bool isStatic() override;
 };

@@ -321,7 +321,7 @@ void SnapshotCrawlerCache::insertStringTable(MemorySnapshotCrawler &crawler)
     sqlite3_prepare_v2(__database, sql, (int)strlen(sql), &stmt, nullptr);
     
     int32_t sequence = 0;
-    int32_t stringTypeIndex = crawler.snapshot.managedTypeIndex.system_String;
+    int32_t stringTypeIndex = crawler.snapshot->managedTypeIndex.system_String;
     auto &managedObjects = crawler.managedObjects;
     for (auto i = 0; i < managedObjects.size(); i++)
     {
@@ -358,7 +358,7 @@ MemorySnapshotCrawler *SnapshotCrawlerCache::read(const char *uuid)
     __sampler.end();
     
     __sampler.begin("read_PackedMemorySnapshot");
-    auto &snapshot = crawler->snapshot;
+    auto &snapshot = *crawler->snapshot;
     
     __sampler.begin("read_native_types");
     snapshot.nativeTypes = new Array<PackedNativeType>(selectCount("nativeTypes"));
@@ -563,13 +563,13 @@ void SnapshotCrawlerCache::insertVMTable(VirtualMachineInformation &vm)
 
 void SnapshotCrawlerCache::save(MemorySnapshotCrawler &crawler)
 {
-    if (crawler.snapshot.uuid == string()) {return;}
+    if (crawler.snapshot->uuid == string()) {return;}
     
     __sampler.begin("SnapshotCrawlerCache::save");
     mkdir(__workspace, 0777);
     
     char filepath[64];
-    sprintf(filepath, "%s/%s.db", __workspace, crawler.snapshot.uuid.c_str());
+    sprintf(filepath, "%s/%s.db", __workspace, crawler.snapshot->uuid.c_str());
     remove(filepath);
     
     __sampler.begin("open");
@@ -607,15 +607,15 @@ void SnapshotCrawlerCache::save(MemorySnapshotCrawler &crawler)
     __sampler.end();
     
     __sampler.begin("insert_native_types");
-    insert(*crawler.snapshot.nativeTypes);
+    insert(*crawler.snapshot->nativeTypes);
     __sampler.end();
     
     __sampler.begin("insert_native_objects");
-    insert(*crawler.snapshot.nativeObjects);
+    insert(*crawler.snapshot->nativeObjects);
     __sampler.end();
     
     __sampler.begin("insert_managed_types");
-    insert(*crawler.snapshot.typeDescriptions);
+    insert(*crawler.snapshot->typeDescriptions);
     __sampler.end();
     
     __sampler.begin("remove_redundants");
@@ -638,7 +638,7 @@ void SnapshotCrawlerCache::save(MemorySnapshotCrawler &crawler)
 
     __sampler.begin("insert_vm");
     createVMTable();
-    insertVMTable(crawler.snapshot.virtualMachineInformation);
+    insertVMTable(crawler.snapshot->virtualMachineInformation);
     __sampler.end();
     
     __sampler.begin("insert_strings");

@@ -10,10 +10,7 @@
 
 MemorySnapshotCrawler::MemorySnapshotCrawler()
 {
-    __memoryReader = new HeapMemoryReader(snapshot);
-    __staticMemoryReader = new StaticMemoryReader(snapshot);
-    __vm = &snapshot.virtualMachineInformation;
-    debug();
+    
 }
 
 MemorySnapshotCrawler &MemorySnapshotCrawler::crawl()
@@ -50,8 +47,8 @@ void MemorySnapshotCrawler::debug()
 void MemorySnapshotCrawler::summarize()
 {
     __sampler.begin("summarize_managed_objects");
-    auto &nativeObjects = *snapshot.nativeObjects;
-    auto &typeDescriptions = *snapshot.typeDescriptions;
+    auto &nativeObjects = *snapshot->nativeObjects;
+    auto &typeDescriptions = *snapshot->typeDescriptions;
     for (auto i = 0; i < typeDescriptions.size; i++)
     {
         auto &type = typeDescriptions[i];
@@ -80,17 +77,17 @@ void MemorySnapshotCrawler::prepare()
 {
     __sampler.begin("prepare");
     __sampler.begin("init_managed_types");
-    Array<TypeDescription> &typeDescriptions = *snapshot.typeDescriptions;
+    Array<TypeDescription> &typeDescriptions = *snapshot->typeDescriptions;
     for (auto i = 0; i < typeDescriptions.size; i++)
     {
         TypeDescription &type = typeDescriptions[i];
-        type.isUnityEngineObjectType = deriveFromMType(type, snapshot.managedTypeIndex.unityengine_Object);
+        type.isUnityEngineObjectType = deriveFromMType(type, snapshot->managedTypeIndex.unityengine_Object);
     }
     __sampler.end();
     __sampler.begin("init_native_connections");
     
-    auto offset = snapshot.gcHandles->size;
-    auto &nativeConnections = *snapshot.connections;
+    auto offset = snapshot->gcHandles->size;
+    auto &nativeConnections = *snapshot->connections;
     for (auto i = 0; i < nativeConnections.size; i++)
     {
         auto &nc = nativeConnections[i];
@@ -132,7 +129,7 @@ void MemorySnapshotCrawler::compare(MemorySnapshotCrawler &crawler)
         auto &mo = crawler.managedObjects[i];
         if (!mo.isValueType)
         {
-            auto &type = crawler.snapshot.typeDescriptions->items[mo.typeIndex];
+            auto &type = crawler.snapshot->typeDescriptions->items[mo.typeIndex];
             container.insert(pair<address_t, int64_t>(mo.address, type.typeInfoAddress));
         }
     }
@@ -142,7 +139,7 @@ void MemorySnapshotCrawler::compare(MemorySnapshotCrawler &crawler)
         auto &mo = managedObjects[i];
         if (!mo.isValueType)
         {
-            auto &type = snapshot.typeDescriptions->items[mo.typeIndex];
+            auto &type = snapshot->typeDescriptions->items[mo.typeIndex];
             auto iter = container.find(mo.address);
             mo.state = (iter == container.end() || iter->second != type.typeInfoAddress)? MS_allocated : MS_persistent;
         }
@@ -154,15 +151,15 @@ void MemorySnapshotCrawler::compare(MemorySnapshotCrawler &crawler)
     
     // Compare native objects
     container.clear();
-    for (auto i = 0; i < crawler.snapshot.nativeObjects->size; i++)
+    for (auto i = 0; i < crawler.snapshot->nativeObjects->size; i++)
     {
-        auto &no = crawler.snapshot.nativeObjects->items[i];
+        auto &no = crawler.snapshot->nativeObjects->items[i];
         container.insert(pair<address_t, int32_t>(no.nativeObjectAddress, no.nativeTypeArrayIndex));
     }
     
-    for (auto i = 0; i < snapshot.nativeObjects->size; i++)
+    for (auto i = 0; i < snapshot->nativeObjects->size; i++)
     {
-        auto &no = snapshot.nativeObjects->items[i];
+        auto &no = snapshot->nativeObjects->items[i];
         auto iter = container.find(no.nativeObjectAddress);
         
         if (iter == container.end())
@@ -171,8 +168,8 @@ void MemorySnapshotCrawler::compare(MemorySnapshotCrawler &crawler)
         }
         else
         {
-            auto &typeA = crawler.snapshot.nativeTypes->items[iter->second];
-            auto &typeB = snapshot.nativeTypes->items[no.nativeTypeArrayIndex];
+            auto &typeA = crawler.snapshot->nativeTypes->items[iter->second];
+            auto &typeB = snapshot->nativeTypes->items[no.nativeTypeArrayIndex];
             no.state = typeA.name == typeB.name ? MS_persistent : MS_allocated;
         }
     }
@@ -180,8 +177,8 @@ void MemorySnapshotCrawler::compare(MemorySnapshotCrawler &crawler)
 
 void MemorySnapshotCrawler::dumpAllClasses()
 {
-    auto &typeDescriptions = snapshot.typeDescriptions->items;
-    for (auto i = 0; i < snapshot.typeDescriptions->size; i++)
+    auto &typeDescriptions = snapshot->typeDescriptions->items;
+    for (auto i = 0; i < snapshot->typeDescriptions->size; i++)
     {
         auto &type = typeDescriptions[i];
         printf("\e[36m%d \e[32m%s \e[37m%s\n", type.typeIndex, type.name.c_str(), type.assembly.c_str());
@@ -190,8 +187,8 @@ void MemorySnapshotCrawler::dumpAllClasses()
 
 void MemorySnapshotCrawler::findClass(string name)
 {
-    auto &typeDescriptions = snapshot.typeDescriptions->items;
-    for (auto i = 0; i < snapshot.typeDescriptions->size; i++)
+    auto &typeDescriptions = snapshot->typeDescriptions->items;
+    for (auto i = 0; i < snapshot->typeDescriptions->size; i++)
     {
         bool completed = true;
         auto &type = typeDescriptions[i];
@@ -240,7 +237,7 @@ void MemorySnapshotCrawler::trackMStatistics(MemoryState state, int32_t depth)
     printf("┌%s\n", sep);
     objects.foreach([&](int32_t itemIndex, int32_t typeIndex, int32_t size, uint64_t detail)
                     {
-                        auto &type = snapshot.typeDescriptions->items[typeIndex];
+                        auto &type = snapshot->typeDescriptions->items[typeIndex];
                         switch (itemIndex)
                         {
                             case -1:
@@ -276,9 +273,9 @@ void MemorySnapshotCrawler::trackNStatistics(MemoryState state, int32_t depth)
 {
     int32_t size = 1;
     TrackStatistics objects;
-    for (auto i = 0; i < snapshot.nativeObjects->size; i++)
+    for (auto i = 0; i < snapshot->nativeObjects->size; i++)
     {
-        auto &no = snapshot.nativeObjects->items[i];
+        auto &no = snapshot->nativeObjects->items[i];
         if (state == MS_none || no.state == state)
         {
             objects.collect(i, no.nativeTypeArrayIndex, no.size);
@@ -307,7 +304,7 @@ void MemorySnapshotCrawler::trackNStatistics(MemoryState state, int32_t depth)
     printf("┌%s\n", sep);
     objects.foreach([&](int32_t itemIndex, int32_t typeIndex, int32_t size, uint64_t detail)
                     {
-                        auto &type = snapshot.nativeTypes->items[typeIndex];
+                        auto &type = snapshot->nativeTypes->items[typeIndex];
                         switch (itemIndex)
                         {
                             case -1:
@@ -329,7 +326,7 @@ void MemorySnapshotCrawler::trackNStatistics(MemoryState state, int32_t depth)
                             {
                                 total += size;
                                 count ++;
-                                auto &no = snapshot.nativeObjects->items[itemIndex];
+                                auto &no = snapshot->nativeObjects->items[itemIndex];
                                 printf(format, no.nativeObjectAddress, no.size, no.name.c_str());
                                 break;
                             }
@@ -353,7 +350,7 @@ void MemorySnapshotCrawler::trackMTypeObjects(MemoryState state, int32_t typeInd
     
     objects.summarize(false);
     
-    auto &type = snapshot.typeDescriptions->items[typeIndex];
+    auto &type = snapshot->typeDescriptions->items[typeIndex];
     if (type.typeIndex != typeIndex) {return;}
     printf("\e[32m%s \e[37m%s \e[36m*%d\n", type.name.c_str(), type.assembly.c_str(), type.typeIndex);
     
@@ -380,7 +377,7 @@ void MemorySnapshotCrawler::trackMTypeObjects(MemoryState state, int32_t typeInd
         printf("0x%08llx %8d", mo.address, mo.size);
         if (tag != nullptr)
         {
-            auto &tagType = snapshot.typeDescriptions->items[tag->typeIndex];
+            auto &tagType = snapshot->typeDescriptions->items[tag->typeIndex];
             printf(" ⤽[0x%08llx type='%s'%d]", tag->address, tagType.name.c_str(), tagType.typeIndex);
         }
         printf("\n");
@@ -392,9 +389,9 @@ void MemorySnapshotCrawler::trackMTypeObjects(MemoryState state, int32_t typeInd
 void MemorySnapshotCrawler::trackNTypeObjects(MemoryState state, int32_t typeIndex, int32_t rank)
 {
     TrackStatistics objects;
-    for (auto i = 0; i < snapshot.nativeObjects->size; i++)
+    for (auto i = 0; i < snapshot->nativeObjects->size; i++)
     {
-        auto &no = snapshot.nativeObjects->items[i];
+        auto &no = snapshot->nativeObjects->items[i];
         if (no.nativeTypeArrayIndex == typeIndex && (state == MS_none || state == no.state))
         {
             objects.collect(i, no.nativeTypeArrayIndex, no.size);
@@ -421,8 +418,8 @@ void MemorySnapshotCrawler::trackNTypeObjects(MemoryState state, int32_t typeInd
     {
         if (rank > 0 && listCount++ >= rank) {break;}
         
-        auto &no = snapshot.nativeObjects->items[*i];
-        auto &type = snapshot.nativeTypes->items[no.nativeTypeArrayIndex];
+        auto &no = snapshot->nativeObjects->items[*i];
+        auto &type = snapshot->nativeTypes->items[no.nativeTypeArrayIndex];
         printf("0x%08llx %8d %s '%s'\n", no.nativeObjectAddress, no.size, type.name.c_str(), no.name.c_str());
     }
     printf("\e[37m[SUMMARY] total_count=%d memory=%d\n", count, total);
@@ -441,7 +438,7 @@ void MemorySnapshotCrawler::barMMemory(MemoryState state, int32_t rank)
         if (state == MS_none || mo.state == state)
         {
             assert(mo.typeIndex >= 0);
-            auto &type = snapshot.typeDescriptions->items[mo.typeIndex];
+            auto &type = snapshot->typeDescriptions->items[mo.typeIndex];
             if (type.isValueType) {continue;}
             totalMemory += mo.size;
             auto typeIndex = mo.typeIndex;
@@ -483,7 +480,7 @@ void MemorySnapshotCrawler::barMMemory(MemoryState state, int32_t rank)
     
     char progress[300+1];
     char fence[] = "█";
-    auto &managedTypes = *snapshot.typeDescriptions;
+    auto &managedTypes = *snapshot->typeDescriptions;
     for (auto i = 0; i < stats.size(); i++)
     {
         if (rank > 0 && i >= rank){break;}
@@ -510,7 +507,7 @@ void MemorySnapshotCrawler::barNMemory(MemoryState state, int32_t rank)
     map<int32_t, int32_t> typeMemory;
     map<int32_t, int32_t> typeCount;
     
-    auto &nativeObjects = *snapshot.nativeObjects;
+    auto &nativeObjects = *snapshot->nativeObjects;
     for (auto i = 0; i < nativeObjects.size; i++)
     {
         auto &no = nativeObjects[i];
@@ -556,7 +553,7 @@ void MemorySnapshotCrawler::barNMemory(MemoryState state, int32_t rank)
     
     char progress[300+1];
     char fence[] = "█";
-    auto &nativeTypes = *snapshot.nativeTypes;
+    auto &nativeTypes = *snapshot->nativeTypes;
     for (auto i = 0; i < stats.size(); i++)
     {
         if (rank > 0 && i >= rank){break;}
@@ -585,7 +582,7 @@ void MemorySnapshotCrawler::statHeap(int32_t rank)
     map<int32_t, int32_t> sizeCount;
     
     vector<int32_t> indice;
-    auto &sortedHeapSections = *snapshot.sortedHeapSections;
+    auto &sortedHeapSections = *snapshot->sortedHeapSections;
     for (auto iter = sortedHeapSections.begin(); iter != sortedHeapSections.end(); iter++)
     {
         auto &heap = **iter;
@@ -670,11 +667,11 @@ const string MemorySnapshotCrawler::getUTFString(address_t address, int32_t &siz
 
 void MemorySnapshotCrawler::dumpSubclassesOf(int32_t typeIndex)
 {
-    auto &base = snapshot.typeDescriptions->items[typeIndex];
+    auto &base = snapshot->typeDescriptions->items[typeIndex];
     if (base.typeIndex != typeIndex) {return;}
     printf("# %s *%d\n", base.name.c_str(), base.typeIndex);
-    auto &typeDescriptions = snapshot.typeDescriptions->items;
-    for (auto i = 0; i < snapshot.typeDescriptions->size; i++)
+    auto &typeDescriptions = snapshot->typeDescriptions->items;
+    for (auto i = 0; i < snapshot->typeDescriptions->size; i++)
     {
         auto &type = typeDescriptions[i];
         if (subclassOf(type, typeIndex))
@@ -688,8 +685,8 @@ void MemorySnapshotCrawler::statSubclasses()
 {
     vector<int32_t> indice;
     map<int32_t, int32_t> stats;
-    auto &typeDescriptions = snapshot.typeDescriptions->items;
-    for (auto i = 0; i < snapshot.typeDescriptions->size; i++)
+    auto &typeDescriptions = snapshot->typeDescriptions->items;
+    for (auto i = 0; i < snapshot->typeDescriptions->size; i++)
     {
         auto type = &typeDescriptions[i];
         while (type->baseOrElementTypeIndex >= 0)
@@ -705,7 +702,7 @@ void MemorySnapshotCrawler::statSubclasses()
                 match->second++;
             }
             
-            type = &snapshot.typeDescriptions->items[type->baseOrElementTypeIndex];
+            type = &snapshot->typeDescriptions->items[type->baseOrElementTypeIndex];
         }
     }
     
@@ -719,7 +716,7 @@ void MemorySnapshotCrawler::statSubclasses()
     
     for (auto i = indice.begin(); i != indice.end(); ++i)
     {
-        auto &type = snapshot.typeDescriptions->items[*i];
+        auto &type = snapshot->typeDescriptions->items[*i];
         printf("\e[36m#%d \e[32m%s \e[33m%s \e[37m*%d\n", stats[*i], type.name.c_str(), type.assembly.c_str(), type.typeIndex);
     }
 }
@@ -732,7 +729,7 @@ bool MemorySnapshotCrawler::subclassOf(TypeDescription &type, int32_t baseTypeIn
     while (iter->baseOrElementTypeIndex >= 0 && !iter->isArray)
     {
         if (iter->baseOrElementTypeIndex == baseTypeIndex) {return true;}
-        iter = &snapshot.typeDescriptions->items[iter->baseOrElementTypeIndex];
+        iter = &snapshot->typeDescriptions->items[iter->baseOrElementTypeIndex];
     }
     
     return false;
@@ -746,7 +743,7 @@ bool MemorySnapshotCrawler::deriveFromMType(TypeDescription &type, int32_t baseT
     TypeDescription *iter = &type;
     while (iter->baseOrElementTypeIndex != -1 && !iter->isArray)
     {
-        iter = &snapshot.typeDescriptions->items[iter->baseOrElementTypeIndex];
+        iter = &snapshot->typeDescriptions->items[iter->baseOrElementTypeIndex];
         if (iter->typeIndex == baseTypeIndex) { return true; }
     }
     
@@ -761,7 +758,7 @@ bool MemorySnapshotCrawler::deriveFromNType(PackedNativeType &type, int32_t base
     PackedNativeType *iter = &type;
     while (iter->nativeBaseTypeArrayIndex != -1)
     {
-        iter = &snapshot.nativeTypes->items[iter->nativeBaseTypeArrayIndex];
+        iter = &snapshot->nativeTypes->items[iter->nativeBaseTypeArrayIndex];
         if (iter->typeIndex == baseTypeIndex) { return true; }
     }
     
@@ -770,7 +767,7 @@ bool MemorySnapshotCrawler::deriveFromNType(PackedNativeType &type, int32_t base
 
 bool MemorySnapshotCrawler::isPremitiveType(int32_t typeIndex)
 {
-    auto &mtypes = snapshot.managedTypeIndex;
+    auto &mtypes = snapshot->managedTypeIndex;
     
     if (typeIndex == mtypes.system_IntPtr) {return true;}
     
@@ -794,7 +791,7 @@ bool MemorySnapshotCrawler::isPremitiveType(int32_t typeIndex)
 
 void MemorySnapshotCrawler::printPremitiveValue(address_t address, int32_t typeIndex, HeapMemoryReader *explicitReader)
 {
-    auto &mtypes = snapshot.managedTypeIndex;
+    auto &mtypes = snapshot->managedTypeIndex;
     auto &memoryReader = explicitReader == nullptr ? *__memoryReader : *explicitReader;
     if (!memoryReader.isStatic()) {address += __vm->objectHeaderSize;}
     
@@ -825,7 +822,7 @@ void MemorySnapshotCrawler::dumpVRefChain(address_t address)
     for (auto index = candidates->begin(); index != candidates->end(); index++)
     {
         auto *mo = &managedObjects[*index];
-        auto *type = &snapshot.typeDescriptions->items[mo->typeIndex];
+        auto *type = &snapshot->typeDescriptions->items[mo->typeIndex];
         printf("0x%08llx:'%s'%d", mo->address, type->name.c_str(), type->typeIndex);
         
         while (type->isValueType)
@@ -838,7 +835,7 @@ void MemorySnapshotCrawler::dumpVRefChain(address_t address)
             auto &ej = joints[ec.jointArrayIndex];
             
             mo = &managedObjects[ec.from];
-            type = &snapshot.typeDescriptions->items[mo->typeIndex];
+            type = &snapshot->typeDescriptions->items[mo->typeIndex];
             
             printf("<-");
             if (ej.fieldSlotIndex >= 0)
@@ -907,7 +904,7 @@ void MemorySnapshotCrawler::dumpMRefChain(address_t address, bool includeCircula
             auto &ec = connections[index];
             auto &node = managedObjects[ec.to];
             auto &joint = joints[ec.jointArrayIndex];
-            auto &type = snapshot.typeDescriptions->items[node.typeIndex];
+            auto &type = snapshot->typeDescriptions->items[node.typeIndex];
             
             if (ec.fromKind == CK_gcHandle)
             {
@@ -915,14 +912,14 @@ void MemorySnapshotCrawler::dumpMRefChain(address_t address, bool includeCircula
             }
             else
             {
-                auto &hookType = snapshot.typeDescriptions->items[joint.hookTypeIndex];
+                auto &hookType = snapshot->typeDescriptions->items[joint.hookTypeIndex];
                 if (number > 0) {printf("    .");}
                 if (joint.fieldSlotIndex >= 0)
                 {
                     auto &field = hookType.fields->items[joint.fieldSlotIndex];
                     if (ec.fromKind == CK_static)
                     {
-                        auto &hookType = snapshot.typeDescriptions->items[joint.hookTypeIndex];
+                        auto &hookType = snapshot->typeDescriptions->items[joint.hookTypeIndex];
                         printf("<Static>::%s::", hookType.name.c_str());
                     }
                     
@@ -931,7 +928,7 @@ void MemorySnapshotCrawler::dumpMRefChain(address_t address, bool includeCircula
                 else
                 {
                     assert(joint.elementArrayIndex >= 0);
-                    auto &elementType = snapshot.typeDescriptions->items[joint.fieldTypeIndex];
+                    auto &elementType = snapshot->typeDescriptions->items[joint.fieldTypeIndex];
                     printf("{[%d]:%s} 0x%08llx\n", joint.elementArrayIndex, elementType.name.c_str(), node.address);
                 }
             }
@@ -1015,8 +1012,8 @@ void MemorySnapshotCrawler::dumpNRefChain(address_t address, bool includeCircula
     auto objectIndex = findNObjectAtAddress(address);
     if (objectIndex == -1) {return;}
     
-    auto *no = &snapshot.nativeObjects->items[objectIndex];
-    auto &nativeConnections = *snapshot.connections;
+    auto *no = &snapshot->nativeObjects->items[objectIndex];
+    auto &nativeConnections = *snapshot->connections;
     auto fullChains = iterateNRefChain(no, route, depth, vector<int32_t>(), set<int64_t>());
     for (auto c = fullChains.begin(); c != fullChains.end(); c++)
     {
@@ -1054,8 +1051,8 @@ void MemorySnapshotCrawler::dumpNRefChain(address_t address, bool includeCircula
                 }
                 else
                 {
-                    auto &node = snapshot.nativeObjects->items[nc.from];
-                    auto &type = snapshot.nativeTypes->items[node.nativeTypeArrayIndex];
+                    auto &node = snapshot->nativeObjects->items[nc.from];
+                    auto &type = snapshot->nativeTypes->items[node.nativeTypeArrayIndex];
                     if (node.isDontDestroyOnLoad)
                     {
                         printf("<DDO>."); // Don't Destroy Object
@@ -1075,8 +1072,8 @@ void MemorySnapshotCrawler::dumpNRefChain(address_t address, bool includeCircula
                     printf("{%s:0x%08llx:'%s'}.", type.name.c_str(), node.nativeObjectAddress, node.name.c_str());
                 }
             }
-            auto &node = snapshot.nativeObjects->items[nc.to];
-            auto &type = snapshot.nativeTypes->items[node.nativeTypeArrayIndex];
+            auto &node = snapshot->nativeObjects->items[nc.to];
+            auto &type = snapshot->nativeTypes->items[node.nativeTypeArrayIndex];
             printf("{%s:0x%08llx:'%s'}.", type.name.c_str(), node.nativeObjectAddress, node.name.c_str());
             ++number;
         }
@@ -1095,7 +1092,7 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateNRefChain(PackedNativeUnit
         {
             if (routeMaximum > 0 && unique.size() >= routeMaximum) {break;}
             auto ci = no->fromConnections[i];
-            auto &nc = snapshot.connections->items[ci];
+            auto &nc = snapshot->connections->items[ci];
             auto fromIndex = nc.from;
             
             vector<int32_t> __chain(chain);
@@ -1116,7 +1113,7 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateNRefChain(PackedNativeUnit
                 set<int64_t> __antiCircular(antiCircular);
                 __antiCircular.insert(uuid);
                 
-                auto *fromObject = &snapshot.nativeObjects->items[fromIndex];
+                auto *fromObject = &snapshot->nativeObjects->items[fromIndex];
                 auto depthCapacity = fromObject->fromConnections.size();
                 if ((__iter_capacity * depthCapacity >= REF_ITERATE_CAPACITY && routeMaximum <= 0) || (routeMaximum > 1 && __iter_depth >= REF_ITERATE_DEPTH))
                 {
@@ -1157,13 +1154,13 @@ void MemorySnapshotCrawler::tryAcceptConnection(Connection &nc)
 {
     if (nc.fromKind == CK_native)
     {
-        auto &no = snapshot.nativeObjects->items[nc.from];
+        auto &no = snapshot->nativeObjects->items[nc.from];
         no.toConnections.push_back(nc.connectionArrayIndex);
     }
     
     if (nc.toKind == CK_native)
     {
-        auto &no = snapshot.nativeObjects->items[nc.to];
+        auto &no = snapshot->nativeObjects->items[nc.to];
         no.fromConnections.push_back(nc.connectionArrayIndex);
     }
 }
@@ -1188,7 +1185,7 @@ int32_t MemorySnapshotCrawler::findTypeAtTypeAddress(address_t address)
     if (address == 0) {return -1;}
     if (__typeAddressMap.size() == 0)
     {
-        Array<TypeDescription> &typeDescriptions = *snapshot.typeDescriptions;
+        Array<TypeDescription> &typeDescriptions = *snapshot->typeDescriptions;
         for (auto i = 0; i < typeDescriptions.size; i++)
         {
             auto &type = typeDescriptions[i];
@@ -1216,7 +1213,7 @@ int32_t MemorySnapshotCrawler::findTypeOfAddress(address_t address)
 
 void MemorySnapshotCrawler::dumpRepeatedObjects(int32_t typeIndex, int32_t condition)
 {
-    auto &type = snapshot.typeDescriptions->items[typeIndex];
+    auto &type = snapshot->typeDescriptions->items[typeIndex];
     
     map<size_t, vector<int32_t>> stats;
     for (auto i = 0; i < managedObjects.size(); i++)
@@ -1275,7 +1272,7 @@ void MemorySnapshotCrawler::dumpRepeatedObjects(int32_t typeIndex, int32_t condi
                   auto &cb = stats.at(b);
                   return ca.size() > cb.size();
               });
-    auto isString = type.typeIndex == snapshot.managedTypeIndex.system_String;
+    auto isString = type.typeIndex == snapshot->managedTypeIndex.system_String;
     for (auto iter = target.begin(); iter != target.end(); iter++)
     {
         auto hash = *iter;
@@ -1305,7 +1302,7 @@ address_t MemorySnapshotCrawler::findMObjectOfNObject(address_t address)
             auto &mo = managedObjects[i];
             if (mo.nativeObjectIndex >= 0)
             {
-                auto &no = snapshot.nativeObjects->items[mo.nativeObjectIndex];
+                auto &no = snapshot->nativeObjects->items[mo.nativeObjectIndex];
                 __managedNativeAddressMap.insert(pair<address_t, int32_t>(no.nativeObjectAddress, mo.managedObjectIndex));
             }
         }
@@ -1344,7 +1341,7 @@ address_t MemorySnapshotCrawler::findNObjectOfMObject(address_t address)
     }
     else
     {
-        return snapshot.nativeObjects->items[iter->second].nativeObjectAddress;
+        return snapshot->nativeObjects->items[iter->second].nativeObjectAddress;
     }
 }
 
@@ -1356,7 +1353,7 @@ vector<int32_t> *MemorySnapshotCrawler::findVObjectAtAddress(address_t address)
         for (auto i = 0; i < managedObjects.size(); i++)
         {
             auto &mo = managedObjects[i];
-            auto &type = snapshot.typeDescriptions->items[mo.typeIndex];
+            auto &type = snapshot->typeDescriptions->items[mo.typeIndex];
             
             if (type.isValueType)
             {
@@ -1383,7 +1380,7 @@ int32_t MemorySnapshotCrawler::findMObjectAtAddress(address_t address)
         for (auto i = 0; i < managedObjects.size(); i++)
         {
             auto &mo = managedObjects[i];
-            auto &type = snapshot.typeDescriptions->items[mo.typeIndex];
+            auto &type = snapshot->typeDescriptions->items[mo.typeIndex];
             if (!type.isValueType)
             {
                 __managedObjectAddressMap.insert(pair<address_t, int32_t>(mo.address, mo.managedObjectIndex));
@@ -1400,7 +1397,7 @@ int32_t MemorySnapshotCrawler::findNObjectAtAddress(address_t address)
     if (address == 0){return -1;}
     if (__nativeObjectAddressMap.size() == 0)
     {
-        auto &nativeObjects = *snapshot.nativeObjects;
+        auto &nativeObjects = *snapshot->nativeObjects;
         for (auto i = 0; i < nativeObjects.size; i++)
         {
             auto &no = nativeObjects[i];
@@ -1416,24 +1413,24 @@ void MemorySnapshotCrawler::tryConnectWithNativeObject(ManagedObject &mo)
 {
     if (mo.nativeObjectIndex >= 0){return;}
     
-    auto &type = snapshot.typeDescriptions->items[mo.typeIndex];
+    auto &type = snapshot->typeDescriptions->items[mo.typeIndex];
     mo.isValueType = type.isValueType;
     if (mo.isValueType || type.isArray || !type.isUnityEngineObjectType) {return;}
     
-    auto nativeAddress = __memoryReader->readPointer(mo.address + snapshot.cached_ptr->offset);
+    auto nativeAddress = __memoryReader->readPointer(mo.address + snapshot->cached_ptr->offset);
     if (nativeAddress == 0){return;}
     
     auto nativeObjectIndex = findNObjectAtAddress(nativeAddress);
     if (nativeObjectIndex == -1){return;}
     
     // connect managed/native objects
-    auto &no = snapshot.nativeObjects->items[nativeObjectIndex];
+    auto &no = snapshot->nativeObjects->items[nativeObjectIndex];
     mo.nativeObjectIndex = nativeObjectIndex;
     mo.nativeSize = no.size;
     no.managedObjectArrayIndex = mo.managedObjectIndex;
     
     // connect managed/native types
-    auto &nativeType = snapshot.nativeTypes->items[no.nativeTypeArrayIndex];
+    auto &nativeType = snapshot->nativeTypes->items[no.nativeTypeArrayIndex];
     type.nativeTypeArrayIndex = nativeType.typeIndex;
     nativeType.managedTypeArrayIndex = type.typeIndex;
 }
@@ -1461,7 +1458,7 @@ bool MemorySnapshotCrawler::crawlManagedArrayAddress(address_t address, TypeDesc
     auto isStaticCrawling = memoryReader.isStatic();
     if (address < 0 || (!isStaticCrawling && address == 0)){return false;}
     
-    auto elementType = &snapshot.typeDescriptions->items[type.baseOrElementTypeIndex];
+    auto elementType = &snapshot->typeDescriptions->items[type.baseOrElementTypeIndex];
     if (!isCrawlable(*elementType)) {return false;}
     
     auto successCount = 0;
@@ -1482,7 +1479,7 @@ bool MemorySnapshotCrawler::crawlManagedArrayAddress(address_t address, TypeDesc
             auto typeIndex = findTypeOfAddress(elementAddress);
             if (typeIndex >= 0)
             {
-                elementType = &snapshot.typeDescriptions->items[typeIndex];
+                elementType = &snapshot->typeDescriptions->items[typeIndex];
             }
         }
         
@@ -1534,7 +1531,7 @@ bool MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
     }
     if (typeIndex == -1){return false;}
     
-    auto &entryType = snapshot.typeDescriptions->items[typeIndex];
+    auto &entryType = snapshot->typeDescriptions->items[typeIndex];
     
     ManagedObject *mo;
     auto iter = __crawlingVisit.find(address);
@@ -1598,7 +1595,7 @@ bool MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
             auto &field = iterType->fields->items[i];
             if (field.isStatic){continue;}
             
-            auto *fieldType = &snapshot.typeDescriptions->items[field.typeIndex];
+            auto *fieldType = &snapshot->typeDescriptions->items[field.typeIndex];
             if (!isCrawlable(*fieldType)){continue;}
             
             address_t fieldAddress = 0;
@@ -1623,7 +1620,7 @@ bool MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
                 auto fieldTypeIndex = findTypeOfAddress(fieldAddress);
                 if (fieldTypeIndex != -1)
                 {
-                    fieldType = &snapshot.typeDescriptions->items[fieldTypeIndex];
+                    fieldType = &snapshot->typeDescriptions->items[fieldTypeIndex];
                 }
             }
             
@@ -1657,7 +1654,7 @@ bool MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
         }
         else
         {
-            iterType = &snapshot.typeDescriptions->items[iterType->baseOrElementTypeIndex];
+            iterType = &snapshot->typeDescriptions->items[iterType->baseOrElementTypeIndex];
         }
     }
     
@@ -1667,9 +1664,9 @@ bool MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
 void MemorySnapshotCrawler::dumpGCHandles()
 {
     vector<int32_t> handleTargets;
-    for (auto i = 0; i < snapshot.gcHandles->size; i++)
+    for (auto i = 0; i < snapshot->gcHandles->size; i++)
     {
-        auto &handle = snapshot.gcHandles->items[i];
+        auto &handle = snapshot->gcHandles->items[i];
         auto index = findMObjectAtAddress(handle.target);
         assert(index >= 0);
         handleTargets.push_back(index);
@@ -1699,11 +1696,11 @@ void MemorySnapshotCrawler::dumpGCHandles()
         auto &mo = managedObjects[index];
         
         printf(format, ++num);
-        auto &type = snapshot.typeDescriptions->items[mo.typeIndex];
+        auto &type = snapshot->typeDescriptions->items[mo.typeIndex];
         printf("0x%08llx type='%s'%d size=%d assembly='%s'", mo.address, type.name.c_str(), type.typeIndex, mo.size, type.assembly.c_str());
         if (mo.nativeObjectIndex >= 0)
         {
-            auto &no = snapshot.nativeObjects->items[mo.nativeObjectIndex];
+            auto &no = snapshot->nativeObjects->items[mo.nativeObjectIndex];
             printf(" N[0x%08llx size=%d]", no.nativeObjectAddress, no.size);
         }
         
@@ -1719,7 +1716,7 @@ void MemorySnapshotCrawler::inspectVObject(address_t address)
     for (auto index = candidates->begin(); index != candidates->end(); index++)
     {
         auto &mo = managedObjects[*index];
-        auto &type = snapshot.typeDescriptions->items[mo.typeIndex];
+        auto &type = snapshot->typeDescriptions->items[mo.typeIndex];
         
         dumpVObjectHierarchy(address, type, "");
     }
@@ -1735,14 +1732,14 @@ void MemorySnapshotCrawler::inspectNObject(address_t address, int32_t depth)
     auto index = findNObjectAtAddress(address);
     if (index <= 0) {return;}
     
-    dumpNObjectHierarchy(&snapshot.nativeObjects->items[index], set<int64_t>(), depth, "");
+    dumpNObjectHierarchy(&snapshot->nativeObjects->items[index], set<int64_t>(), depth, "");
 }
 
 void MemorySnapshotCrawler::inspectMType(int32_t typeIndex)
 {
-    if (typeIndex < 0 || typeIndex >= snapshot.typeDescriptions->size) {return;}
+    if (typeIndex < 0 || typeIndex >= snapshot->typeDescriptions->size) {return;}
     
-    auto &type = snapshot.typeDescriptions->items[typeIndex];
+    auto &type = snapshot->typeDescriptions->items[typeIndex];
     printf("\e[1m%s\e[0m\e[36m typeIndex=%d size=%d", type.name.c_str(), type.typeIndex, type.size);
     if (type.baseOrElementTypeIndex >= 0) {printf(" baseOrElementType=%d", type.baseOrElementTypeIndex);}
     if (type.isValueType) {printf(" isValueType=%s", type.isValueType ? "true" : "false");}
@@ -1752,7 +1749,7 @@ void MemorySnapshotCrawler::inspectMType(int32_t typeIndex)
     if (type.instanceCount > 0) {printf(" %d#%d", type.instanceMemory, type.instanceCount);}
     if (type.nativeTypeArrayIndex >= 0)
     {
-        auto &nt = snapshot.nativeTypes->items[type.nativeTypeArrayIndex];
+        auto &nt = snapshot->nativeTypes->items[type.nativeTypeArrayIndex];
         printf(" N[%d#%d]", nt.instanceMemory, nt.instanceCount);
     }
     printf("\n");
@@ -1771,19 +1768,19 @@ void MemorySnapshotCrawler::inspectMType(int32_t typeIndex)
 
 void MemorySnapshotCrawler::inspectNType(int32_t typeIndex)
 {
-    if (typeIndex < 0 || typeIndex >= snapshot.nativeTypes->size) {return;}
+    if (typeIndex < 0 || typeIndex >= snapshot->nativeTypes->size) {return;}
     
-    auto &type = snapshot.nativeTypes->items[typeIndex];
+    auto &type = snapshot->nativeTypes->items[typeIndex];
     printf("name='%s'%d", type.name.c_str(), type.typeIndex);
     if (type.nativeBaseTypeArrayIndex >= 0)
     {
-        auto &baseType = snapshot.nativeTypes->items[type.nativeBaseTypeArrayIndex];
+        auto &baseType = snapshot->nativeTypes->items[type.nativeBaseTypeArrayIndex];
         printf(" nativeBaseType='%s'%d", baseType.name.c_str(), baseType.typeIndex);
     }
     printf(" instanceMemory=%d instanceCount=%d", type.instanceMemory, type.instanceCount);
     if (type.managedTypeArrayIndex >= 0)
     {
-        auto &mt = snapshot.typeDescriptions->items[type.managedTypeArrayIndex];
+        auto &mt = snapshot->typeDescriptions->items[type.managedTypeArrayIndex];
         printf(" M[0x%08llx typeIndex=%d instanceMemory=%d instanceCount=%d]", mt.typeInfoAddress, mt.typeIndex, mt.instanceMemory, mt.instanceCount);
     }
     printf("\n");
@@ -1795,7 +1792,7 @@ void MemorySnapshotCrawler::findMObject(address_t address)
     if (index >= 0)
     {
         auto &mo = managedObjects[index];
-        auto &type = snapshot.typeDescriptions->items[mo.typeIndex];
+        auto &type = snapshot->typeDescriptions->items[mo.typeIndex];
         printf("0x%08llx type='%s'%d size=%d assembly='%s'", address, type.name.c_str(), type.typeIndex, mo.size, type.assembly.c_str());
         if (mo.nativeObjectIndex >= 0)
         {
@@ -1803,7 +1800,7 @@ void MemorySnapshotCrawler::findMObject(address_t address)
 //            auto __index = findNObjectAtAddress(__address);
 //            assert(__index >= 0);
             
-            auto &no = snapshot.nativeObjects->items[mo.nativeObjectIndex];
+            auto &no = snapshot->nativeObjects->items[mo.nativeObjectIndex];
             printf(" N[0x%08llx size=%d]", no.nativeObjectAddress, no.size);
         }
         std::cout << std::endl;
@@ -1819,13 +1816,13 @@ void MemorySnapshotCrawler::findNObject(address_t address)
     auto index = findNObjectAtAddress(address);
     if (index >= 0)
     {
-        auto &no = snapshot.nativeObjects->items[index];
-        auto &nt = snapshot.nativeTypes->items[no.nativeTypeArrayIndex];
+        auto &no = snapshot->nativeObjects->items[index];
+        auto &nt = snapshot->nativeTypes->items[no.nativeTypeArrayIndex];
         printf("0x%08llx name='%s' type='%s'%d size=%d", no.nativeObjectAddress, no.name.c_str(), nt.name.c_str(), nt.typeIndex, no.size);
         if (no.managedObjectArrayIndex >= 0)
         {
             auto &mo = managedObjects[no.managedObjectArrayIndex];
-            auto &mt = snapshot.typeDescriptions->items[mo.typeIndex];
+            auto &mt = snapshot->typeDescriptions->items[mo.typeIndex];
             printf(" M[0x%08llx type='%s'%d size=%d]", mo.address, mt.name.c_str(), mt.typeIndex, mo.size);
         }
         printf("\n");
@@ -1863,7 +1860,7 @@ void MemorySnapshotCrawler::dumpNObjectHierarchy(PackedNativeUnityEngineObject *
     
     if (__iter_depth == 0)
     {
-        auto &type = snapshot.nativeTypes->items[no->nativeTypeArrayIndex];
+        auto &type = snapshot->nativeTypes->items[no->nativeTypeArrayIndex];
         printf("%s'%s':%s 0x%08llx\n", indent, no->name.c_str(), type.name.c_str(), no->nativeObjectAddress);
     }
     
@@ -1878,9 +1875,9 @@ void MemorySnapshotCrawler::dumpNObjectHierarchy(PackedNativeUnityEngineObject *
     for (auto i = 0; i < toCount; i++)
     {
         auto closed = i + 1 == toCount;
-        auto &nc = snapshot.connections->items[no->toConnections[i]];
-        auto &no = snapshot.nativeObjects->items[nc.to];
-        auto &nt = snapshot.nativeTypes->items[no.nativeTypeArrayIndex];
+        auto &nc = snapshot->connections->items[no->toConnections[i]];
+        auto &no = snapshot->nativeObjects->items[nc.to];
+        auto &nt = snapshot->nativeTypes->items[no.nativeTypeArrayIndex];
         
         closed ? memcpy(tabular, "└", 3) : memcpy(tabular, "├", 3);
         printf("%s'%s':%s 0x%08llx=%d\n", __indent, no.name.c_str(), nt.name.c_str(), no.nativeObjectAddress, no.size);
@@ -1941,11 +1938,11 @@ void MemorySnapshotCrawler::dumpVObjectHierarchy(address_t address, TypeDescript
         auto __is_premitive = isPremitiveType(field.typeIndex);
         
         address_t fieldAddress = 0;
-        auto *fieldType = &snapshot.typeDescriptions->items[field.typeIndex];
+        auto *fieldType = &snapshot->typeDescriptions->items[field.typeIndex];
         if (!fieldType->isValueType)
         {
             fieldAddress = __memoryReader->readPointer(address + field.offset);
-            if (field.typeIndex == snapshot.managedTypeIndex.system_String)
+            if (field.typeIndex == snapshot->managedTypeIndex.system_String)
             {
                 code = 2;
             }
@@ -1958,7 +1955,7 @@ void MemorySnapshotCrawler::dumpVObjectHierarchy(address_t address, TypeDescript
             auto typeIndex = findTypeOfAddress(fieldAddress);
             if (typeIndex >= 0)
             {
-                fieldType = &snapshot.typeDescriptions->items[typeIndex];
+                fieldType = &snapshot->typeDescriptions->items[typeIndex];
             }
         }
         else
@@ -2025,8 +2022,8 @@ void MemorySnapshotCrawler::dumpVObjectHierarchy(address_t address, TypeDescript
 void MemorySnapshotCrawler::listAllStatics()
 {
     vector<int32_t> indice;
-    auto &typeDescriptions = snapshot.typeDescriptions->items;
-    for (auto i = 0; i < snapshot.typeDescriptions->size; i++)
+    auto &typeDescriptions = snapshot->typeDescriptions->items;
+    for (auto i = 0; i < snapshot->typeDescriptions->size; i++)
     {
         auto &type = typeDescriptions[i];
         if (type.staticFieldBytes != nullptr && type.staticFieldBytes->size > 0)
@@ -2069,7 +2066,7 @@ void MemorySnapshotCrawler::dumpStatic(int32_t typeIndex, bool verbose)
     memset(indent, 0, sizeof(indent));
     memcpy(indent + 3, "─", 3);
     
-    auto &type = snapshot.typeDescriptions->items[typeIndex];
+    auto &type = snapshot->typeDescriptions->items[typeIndex];
     if (type.typeIndex != typeIndex) {return;}
     
     vector<int32_t> indice;
@@ -2102,7 +2099,7 @@ void MemorySnapshotCrawler::dumpStatic(int32_t typeIndex, bool verbose)
         closed ? memcpy(indent, "└", 3) : memcpy(indent, "├", 3);
         
         const char *fieldName = field.name.c_str();
-        auto fieldType = &snapshot.typeDescriptions->items[field.typeIndex];
+        auto fieldType = &snapshot->typeDescriptions->items[field.typeIndex];
         auto __is_premitive = isPremitiveType(field.typeIndex);
         
         if (fieldType->isValueType)
@@ -2135,10 +2132,10 @@ void MemorySnapshotCrawler::dumpStatic(int32_t typeIndex, bool verbose)
                 auto typeIndex = findTypeOfAddress(fieldAddress);
                 if (typeIndex >= 0)
                 {
-                    fieldType = &snapshot.typeDescriptions->items[typeIndex];
+                    fieldType = &snapshot->typeDescriptions->items[typeIndex];
                 }
                 
-                if (typeIndex == snapshot.managedTypeIndex.system_String)
+                if (typeIndex == snapshot->managedTypeIndex.system_String)
                 {
                     auto size = 0;
                     printf("%s%s:%s 0x%08llx = '%s'\n", indent, fieldName, fieldType->name.c_str(), fieldAddress, getUTFString(fieldAddress, size, true).c_str());
@@ -2197,7 +2194,7 @@ void MemorySnapshotCrawler::dumpSObjectHierarchy(address_t address, TypeDescript
         auto &field = type.fields->items[indice[i]];
         auto __is_premitive = isPremitiveType(field.typeIndex);
         
-        auto fieldType = &snapshot.typeDescriptions->items[field.typeIndex];
+        auto fieldType = &snapshot->typeDescriptions->items[field.typeIndex];
         
         closed ? memcpy(tabular, "└", 3) : memcpy(tabular, "├", 3);
         const char *fieldName = field.name.c_str();
@@ -2227,10 +2224,10 @@ void MemorySnapshotCrawler::dumpSObjectHierarchy(address_t address, TypeDescript
                 auto typeIndex = findTypeOfAddress(fieldAddress);
                 if (typeIndex >= 0)
                 {
-                    fieldType = &snapshot.typeDescriptions->items[typeIndex];
+                    fieldType = &snapshot->typeDescriptions->items[typeIndex];
                 }
                 
-                if (typeIndex == snapshot.managedTypeIndex.system_String)
+                if (typeIndex == snapshot->managedTypeIndex.system_String)
                 {
                     auto size = 0;
                     printf("%s%s:%s 0x%08llx = '%s'\n", __indent, fieldName, fieldType->name.c_str(), fieldAddress, getUTFString(fieldAddress, size, true).c_str());
@@ -2259,7 +2256,7 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
         auto typeIndex = findTypeOfAddress(address);
         if (typeIndex == -1){return;}
         
-        type = &snapshot.typeDescriptions->items[typeIndex];
+        type = &snapshot->typeDescriptions->items[typeIndex];
     }
     
     auto &memoryReader = *__memoryReader;
@@ -2272,13 +2269,13 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
     
     if (entryType.isArray)
     {
-        auto *elementType = &snapshot.typeDescriptions->items[entryType.baseOrElementTypeIndex];
+        auto *elementType = &snapshot->typeDescriptions->items[entryType.baseOrElementTypeIndex];
         auto __is_premitive = isPremitiveType(elementType->typeIndex);
-        auto __is_string = elementType->typeIndex == snapshot.managedTypeIndex.system_String;
+        auto __is_string = elementType->typeIndex == snapshot->managedTypeIndex.system_String;
         
         address_t elementAddress = 0;
         auto elementCount = memoryReader.readArrayLength(address, entryType);
-        if (elementType->typeIndex == snapshot.managedTypeIndex.system_Byte)
+        if (elementType->typeIndex == snapshot->managedTypeIndex.system_Byte)
         {
             printf("%s└<%d>", __indent, elementCount);
             auto ptr = memoryReader.readMemory(address + __vm->arrayHeaderSize);
@@ -2302,7 +2299,7 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
                 auto typeIndex = findTypeOfAddress(elementAddress);
                 if (typeIndex >= 0)
                 {
-                    elementType = &snapshot.typeDescriptions->items[typeIndex];
+                    elementType = &snapshot->typeDescriptions->items[typeIndex];
                 }
                 
                 __antiCircular.insert(elementAddress);
@@ -2369,7 +2366,7 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
         
         if (iterType->baseOrElementTypeIndex >= 0)
         {
-            iterType = &snapshot.typeDescriptions->items[iterType->baseOrElementTypeIndex];
+            iterType = &snapshot->typeDescriptions->items[iterType->baseOrElementTypeIndex];
         }
         else
         {
@@ -2386,11 +2383,11 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
         auto __is_premitive = isPremitiveType(field.typeIndex);
         
         address_t fieldAddress = 0;
-        auto *fieldType = &snapshot.typeDescriptions->items[field.typeIndex];
+        auto *fieldType = &snapshot->typeDescriptions->items[field.typeIndex];
         if (!fieldType->isValueType)
         {
             fieldAddress = memoryReader.readPointer(address + field.offset);
-            if (field.typeIndex == snapshot.managedTypeIndex.system_String)
+            if (field.typeIndex == snapshot->managedTypeIndex.system_String)
             {
                 code = 2;
             }
@@ -2403,7 +2400,7 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
             auto typeIndex = findTypeOfAddress(fieldAddress);
             if (typeIndex >= 0)
             {
-                fieldType = &snapshot.typeDescriptions->items[typeIndex];
+                fieldType = &snapshot->typeDescriptions->items[typeIndex];
             }
         }
         else
@@ -2530,14 +2527,14 @@ void MemorySnapshotCrawler::listMulticastDelegates()
     for (auto i = indice.begin(); i != indice.end(); i++)
     {
         auto &mo = managedObjects[*i];
-        auto &type = snapshot.typeDescriptions->items[mo.typeIndex];
+        auto &type = snapshot->typeDescriptions->items[mo.typeIndex];
         printf("\e[36m%3d 0x%08llx \e[32m%s \e[33m%s \e[37m*%d\n", counts.at(*i), mo.address, type.name.c_str(), type.assembly.c_str(), type.typeIndex);
     }
 }
 
 void MemorySnapshotCrawler::retrieveMulticastDelegate(address_t address)
 {
-    auto TypeIndexMulticastDelegate = snapshot.managedTypeIndex.system_MulticastDelegate;
+    auto TypeIndexMulticastDelegate = snapshot->managedTypeIndex.system_MulticastDelegate;
     
     int32_t targetOffset = -1;
     int32_t prevOffset = -1;
@@ -2546,7 +2543,7 @@ void MemorySnapshotCrawler::retrieveMulticastDelegate(address_t address)
     string targetString = "m_target";
     
     map<int32_t, FieldDescription *> members;
-    auto &TypeMulticastDelegate = snapshot.typeDescriptions->items[TypeIndexMulticastDelegate];
+    auto &TypeMulticastDelegate = snapshot->typeDescriptions->items[TypeIndexMulticastDelegate];
     if (TypeMulticastDelegate.typeIndex != TypeIndexMulticastDelegate) {return;}
     auto type = &TypeMulticastDelegate;
     while (true)
@@ -2568,7 +2565,7 @@ void MemorySnapshotCrawler::retrieveMulticastDelegate(address_t address)
             }
         }
         if (type->baseOrElementTypeIndex == -1){break;}
-        type = &snapshot.typeDescriptions->items[type->baseOrElementTypeIndex];
+        type = &snapshot->typeDescriptions->items[type->baseOrElementTypeIndex];
     }
     
     if (prevOffset == -1 || targetOffset == -1) {return;}
@@ -2578,7 +2575,7 @@ void MemorySnapshotCrawler::retrieveMulticastDelegate(address_t address)
         for (auto i = 0; i < managedObjects.size(); i++)
         {
             auto &mo = managedObjects[i];
-            auto &mt = snapshot.typeDescriptions->items[mo.typeIndex];
+            auto &mt = snapshot->typeDescriptions->items[mo.typeIndex];
             if (mt.baseOrElementTypeIndex == TypeIndexMulticastDelegate)
             {
                 auto pointer = __memoryReader->readPointer(mo.address + prevOffset);
@@ -2608,7 +2605,7 @@ void MemorySnapshotCrawler::retrieveMulticastDelegate(address_t address)
     vector<FieldDescription *> fields{members.at(prevOffset), members.at(targetOffset)};
     auto sourceIndex = findMObjectAtAddress(position);
     auto &source = managedObjects[sourceIndex];
-    auto &sourceType = snapshot.typeDescriptions->items[source.typeIndex];
+    auto &sourceType = snapshot->typeDescriptions->items[source.typeIndex];
     auto selected = position == address;
     if (selected) {printf("\e[1m");}
     printf("%s 0x%08llx", sourceType.name.c_str(), position);
@@ -2632,7 +2629,7 @@ void MemorySnapshotCrawler::dumpMulticastDelegateHierarchy(address_t address, ad
         auto closed = i + 1 == fieldCount;
         closed ? memcpy(tabular, "└", 3) : memcpy(tabular, "├", 3);
         auto &field = *fields[i];
-        auto *fieldType = &snapshot.typeDescriptions->items[field.typeIndex];
+        auto *fieldType = &snapshot->typeDescriptions->items[field.typeIndex];
         auto fieldAddress = address + field.offset;
         auto isNull = false;
         if (fieldType->isValueType)
@@ -2651,13 +2648,13 @@ void MemorySnapshotCrawler::dumpMulticastDelegateHierarchy(address_t address, ad
                 auto typeIndex = findTypeOfAddress(fieldAddress);
                 if (typeIndex >= 0)
                 {
-                    fieldType = &snapshot.typeDescriptions->items[typeIndex];
+                    fieldType = &snapshot->typeDescriptions->items[typeIndex];
                 }
             }
         }
         
         auto selected = fieldAddress == highlight;
-        auto isMulticastDelegate = fieldType->baseOrElementTypeIndex == snapshot.managedTypeIndex.system_MulticastDelegate;
+        auto isMulticastDelegate = fieldType->baseOrElementTypeIndex == snapshot->managedTypeIndex.system_MulticastDelegate;
         printf("%s%s:", __indent, field.name.c_str());
         if (selected) {printf("\e[1m");}
         printf("%s", fieldType->name.c_str());
@@ -2676,7 +2673,7 @@ void MemorySnapshotCrawler::dumpMulticastDelegateHierarchy(address_t address, ad
 
 void MemorySnapshotCrawler::dumpUnbalancedEvents(MemoryState state)
 {
-    auto &delegateType = snapshot.typeDescriptions->items[snapshot.managedTypeIndex.system_Delegate];
+    auto &delegateType = snapshot->typeDescriptions->items[snapshot->managedTypeIndex.system_Delegate];
     
     int32_t fieldOffset = 16;
     int32_t fieldTypeIndex = -1;
@@ -2700,7 +2697,7 @@ void MemorySnapshotCrawler::dumpUnbalancedEvents(MemoryState state)
     for (auto i = 0; i < managedObjects.size(); i++)
     {
         auto &mo = managedObjects[i];
-        auto &type = snapshot.typeDescriptions->items[mo.typeIndex];
+        auto &type = snapshot->typeDescriptions->items[mo.typeIndex];
         
         if ((state == MS_none || state == mo.state) && deriveFromMType(type, delegateType.typeIndex))
         {
@@ -2738,9 +2735,9 @@ void MemorySnapshotCrawler::dumpUnbalancedEvents(MemoryState state)
     {
         auto &data = *iter;
         auto targetTypeIndex = get<3>(data);
-        auto &targetType = snapshot.typeDescriptions->items[targetTypeIndex];
+        auto &targetType = snapshot->typeDescriptions->items[targetTypeIndex];
         
-        auto &type = snapshot.typeDescriptions->items[get<1>(data)];
+        auto &type = snapshot->typeDescriptions->items[get<1>(data)];
         
         printf("\e[36m0x%08llx type='%s'%d \e[32mtarget=[0x%08llx type='%s'%d size=%d]\n", get<0>(data), type.name.c_str(), type.typeIndex, get<2>(data), targetType.name.c_str(), targetType.typeIndex, get<4>(data));
     }
@@ -2761,14 +2758,14 @@ void MemorySnapshotCrawler::dumpUnbalancedEvents(MemoryState state)
     {
         auto iter = listeners.find(*i);
         auto &target = managedObjects[iter->first];
-        auto &targetType = snapshot.typeDescriptions->items[target.typeIndex];
+        auto &targetType = snapshot->typeDescriptions->items[target.typeIndex];
         auto &parents = iter->second;
         printf(format, ++counter);
         printf(" \e[32m0x%08llx type='%s'%d size=%d count=%d\n", target.address, targetType.name.c_str(), targetType.typeIndex, target.size, (int32_t)parents.size());
         for (auto p = parents.begin(); p != parents.end(); p++)
         {
             auto &parentObject = managedObjects[*p];
-            auto &parentType = snapshot.typeDescriptions->items[parentObject.typeIndex];
+            auto &parentType = snapshot->typeDescriptions->items[parentObject.typeIndex];
             printf("  \e[33m+ 0x%08llx type='%s'%d\n", parentObject.address, parentType.name.c_str(), parentType.typeIndex);
         }
     }
@@ -2777,7 +2774,7 @@ void MemorySnapshotCrawler::dumpUnbalancedEvents(MemoryState state)
 void MemorySnapshotCrawler::crawlGCHandles()
 {
     __sampler.begin("crawlGCHandles");
-    auto &gcHandles = *snapshot.gcHandles;
+    auto &gcHandles = *snapshot->gcHandles;
     for (auto i = 0; i < gcHandles.size; i++)
     {
         auto &item = gcHandles[i];
@@ -2796,7 +2793,7 @@ void MemorySnapshotCrawler::crawlGCHandles()
 void MemorySnapshotCrawler::crawlStatic()
 {
     __sampler.begin("crawlStatic");
-    auto &typeDescriptions = *snapshot.typeDescriptions;
+    auto &typeDescriptions = *snapshot->typeDescriptions;
     for (auto i = 0; i < typeDescriptions.size; i++)
     {
         auto &type = typeDescriptions[i];
@@ -2810,7 +2807,7 @@ void MemorySnapshotCrawler::crawlStatic()
             
             HeapMemoryReader *reader;
             address_t fieldAddress = 0;
-            auto *fieldType = &snapshot.typeDescriptions->items[field.typeIndex];
+            auto *fieldType = &snapshot->typeDescriptions->items[field.typeIndex];
             if (fieldType->isValueType)
             {
                 fieldAddress = field.offset - __vm->objectHeaderSize;

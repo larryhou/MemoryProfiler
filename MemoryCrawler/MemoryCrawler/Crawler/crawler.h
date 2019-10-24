@@ -101,7 +101,7 @@ public:
     InstanceManager<EntityConnection> connections;
     InstanceManager<EntityJoint> joints;
     
-    PackedMemorySnapshot snapshot;
+    PackedMemorySnapshot *snapshot;
     
 private:
     static constexpr int64_t REF_ITERATE_CAPACITY = 1 << 20;
@@ -136,11 +136,11 @@ private:
 
 public:
     MemorySnapshotCrawler();
-    MemorySnapshotCrawler(PackedMemorySnapshot &snapshot):snapshot(snapshot)
+    MemorySnapshotCrawler(PackedMemorySnapshot *snapshot):snapshot(snapshot)
     {
         __memoryReader = new HeapMemoryReader(snapshot);
         __staticMemoryReader = new StaticMemoryReader(snapshot);
-        __vm = &snapshot.virtualMachineInformation;
+        __vm = &snapshot->virtualMachineInformation;
         debug();
     }
     
