@@ -44,7 +44,7 @@ void readTypeDescriptionR(TypeDescription &item, FileStream &fs)
     auto flags = fs.readInt32();
     item.isValueType = (flags & (1 << 0)) != 0;
     item.isArray = (flags & (1 << 1)) != 0;
-    item.arrayRank = flags & 0xFFFF0000;
+    item.arrayRank = (flags >> 16) & 0xFFFF;
     item.baseOrElementTypeIndex = fs.readInt32();
     if (!item.isArray)
     {
