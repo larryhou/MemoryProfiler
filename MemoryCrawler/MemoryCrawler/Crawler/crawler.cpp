@@ -46,7 +46,7 @@ void MemorySnapshotCrawler::debug()
 
 void MemorySnapshotCrawler::summarize()
 {
-    __sampler.begin("summarize_managed_objects");
+    __sampler.begin("SummarizeManagedObjects");
     auto &nativeObjects = *snapshot->nativeObjects;
     auto &typeDescriptions = *snapshot->typeDescriptions;
     for (auto i = 0; i < typeDescriptions.size; i++)
@@ -75,8 +75,8 @@ void MemorySnapshotCrawler::summarize()
 
 void MemorySnapshotCrawler::prepare()
 {
-    __sampler.begin("prepare");
-    __sampler.begin("init_managed_types");
+    __sampler.begin("Prepare");
+    __sampler.begin("InitManagedTypes");
     Array<TypeDescription> &typeDescriptions = *snapshot->typeDescriptions;
     for (auto i = 0; i < typeDescriptions.size; i++)
     {
@@ -84,7 +84,7 @@ void MemorySnapshotCrawler::prepare()
         type.isUnityEngineObjectType = deriveFromMType(type, snapshot->managedTypeIndex.unityengine_Object);
     }
     __sampler.end();
-    __sampler.begin("init_native_connections");
+    __sampler.begin("InitNativeConnections");
     
     auto offset = snapshot->gcHandles->size;
     auto &nativeConnections = *snapshot->connections;
@@ -2783,7 +2783,7 @@ void MemorySnapshotCrawler::dumpUnbalancedEvents(MemoryState state)
 
 void MemorySnapshotCrawler::crawlGCHandles()
 {
-    __sampler.begin("crawlGCHandles");
+    __sampler.begin("CrawlGCHandles");
     auto &gcHandles = *snapshot->gcHandles;
     for (auto i = 0; i < gcHandles.size; i++)
     {
@@ -2802,7 +2802,7 @@ void MemorySnapshotCrawler::crawlGCHandles()
 
 void MemorySnapshotCrawler::crawlStatic()
 {
-    __sampler.begin("crawlStatic");
+    __sampler.begin("CrawlStatic");
     auto &typeDescriptions = *snapshot->typeDescriptions;
     for (auto i = 0; i < typeDescriptions.size; i++)
     {
