@@ -190,3 +190,6 @@ argv[1]=MemoryCapture/20190515123633_snapshot.pms
 ```
 
 [下载帮助文档](docs/README.pdf)
+
+
+[![](docs/figures/jetbrains.svg)](https://www.jetbrains.com/?from=MemoryProfiler)
