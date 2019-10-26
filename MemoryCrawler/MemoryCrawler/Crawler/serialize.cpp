@@ -24,11 +24,11 @@ MemorySnapshotReader::~MemorySnapshotReader()
 void MemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
 {
     __sampler.begin("MemorySnapshotReader");
-    __sampler.begin("open_snapshot");
+    __sampler.begin("OpenSnapshot");
     MemorySnapshotDeserializer::read(snapshot);
     __sampler.end();
     
-    __sampler.begin("read_header");
+    __sampler.begin("ReadHeader");
     readHeader(__fs);
     __sampler.end();
     
@@ -207,12 +207,12 @@ void readVirtualMachineInformation(VirtualMachineInformation &item, FileStream &
 
 void MemorySnapshotReader::readPackedMemorySnapshot(PackedMemorySnapshot &item, FileStream &fs)
 {
-    __sampler.begin("readPackedMemorySnapshot");
+    __sampler.begin("ReadPackedMemorySnapshot");
     auto fieldCount = fs.readUInt8();
     assert(fieldCount == 7);
     
     {
-        __sampler.begin("read_native_types");
+        __sampler.begin("ReadNativeTypes");
         auto size = fs.readUInt32();
         item.nativeTypes = new Array<PackedNativeType>(size);
         for (auto i = 0; i < size; i++)
@@ -222,7 +222,7 @@ void MemorySnapshotReader::readPackedMemorySnapshot(PackedMemorySnapshot &item, 
         __sampler.end();
     }
     {
-        __sampler.begin("read_native_objects");
+        __sampler.begin("ReadNativeObjects");
         auto size = fs.readUInt32();
         item.nativeObjects = new Array<PackedNativeUnityEngineObject>(size);
         for (auto i = 0; i < size; i++)
@@ -232,7 +232,7 @@ void MemorySnapshotReader::readPackedMemorySnapshot(PackedMemorySnapshot &item, 
         __sampler.end();
     }
     {
-        __sampler.begin("read_gc_handles");
+        __sampler.begin("ReadGCHandles");
         auto size = fs.readUInt32();
         item.gcHandles = new Array<PackedGCHandle>(size);
         for (auto i = 0; i < size; i++)
@@ -242,7 +242,7 @@ void MemorySnapshotReader::readPackedMemorySnapshot(PackedMemorySnapshot &item, 
         __sampler.end();
     }
     {
-        __sampler.begin("read_connections");
+        __sampler.begin("ReadConnections");
         auto size = fs.readUInt32();
         item.connections = new Array<Connection>(size);
         for (auto i = 0; i < size; i++)
@@ -252,7 +252,7 @@ void MemorySnapshotReader::readPackedMemorySnapshot(PackedMemorySnapshot &item, 
         __sampler.end();
     }
     {
-        __sampler.begin("read_heap_sections");
+        __sampler.begin("ReadHeapMemorySections");
         auto size = fs.readUInt32();
         item.heapSections = new Array<MemorySection>(size);
         for (auto i = 0; i < size; i++)
@@ -262,7 +262,7 @@ void MemorySnapshotReader::readPackedMemorySnapshot(PackedMemorySnapshot &item, 
         __sampler.end();
     }
     {
-        __sampler.begin("read_type_descriptions");
+        __sampler.begin("ReadTypeDescriptions");
         auto size = fs.readUInt32();
         item.typeDescriptions = new Array<TypeDescription>(size);
         for (auto i = 0; i < size; i++)
@@ -271,8 +271,8 @@ void MemorySnapshotReader::readPackedMemorySnapshot(PackedMemorySnapshot &item, 
         }
         __sampler.end();
     }
-    __sampler.begin("read_virtual_matchine_information");
-    __sampler.begin("read_object");
+    __sampler.begin("ReadVirtualMatchineInformation");
+    __sampler.begin("ReadObject");
     readVirtualMachineInformation(item.virtualMachineInformation, fs);
     __sampler.end(); // read_virtual_matchine_information
     __sampler.end(); // read_object
@@ -319,8 +319,8 @@ void MemorySnapshotDeserializer::prepareSnapshot()
 {
     __snapshot->uuid = uuid;
     
-    __sampler.begin("prepareSnapshot");
-    __sampler.begin("create_sorted_heap");
+    __sampler.begin("PrepareSnapshot");
+    __sampler.begin("CreateSortedHeapVector");
     for (auto i = 0; i < __snapshot->heapSections->size; i++)
     {
         MemorySection &heap = __snapshot->heapSections->items[i];
@@ -328,7 +328,7 @@ void MemorySnapshotDeserializer::prepareSnapshot()
     }
     __sampler.end();
     
-    __sampler.begin("create_type_strings");
+    __sampler.begin("CreateTypeStrings");
     
     // Premitive C# types
     string sSystemString("System.String");
@@ -356,7 +356,7 @@ void MemorySnapshotDeserializer::prepareSnapshot()
     
     ManagedTypeIndex &managedTypeIndex = __snapshot->managedTypeIndex;
     
-    __sampler.begin("read_type_index");
+    __sampler.begin("ReadTypeIndex");
     bool isUnityEngineObject = false;
     Array<TypeDescription> &typeDescriptions = *__snapshot->typeDescriptions;
     for (auto i = 0; i < typeDescriptions.size; i++)
@@ -405,7 +405,7 @@ void MemorySnapshotDeserializer::prepareSnapshot()
     assert(__cachedPtr != nullptr);
     __sampler.end();
     
-    __sampler.begin("set_native_type_index");
+    __sampler.begin("SetNativeTypeIndex");
     string sFont("Font");
     Array<PackedNativeType> &nativeTypes = *__snapshot->nativeTypes;
     for (auto i = 0; i < nativeTypes.size; i++)
@@ -420,7 +420,7 @@ void MemorySnapshotDeserializer::prepareSnapshot()
     }
     __sampler.end();
     
-    __sampler.begin("set_gchandle_index");
+    __sampler.begin("SetGCHandleIndex");
     Array<PackedGCHandle> &gcHandles = *__snapshot->gcHandles;
     for (auto i = 0; i < gcHandles.size; i++)
     {
@@ -428,7 +428,7 @@ void MemorySnapshotDeserializer::prepareSnapshot()
     }
     __sampler.end();
     
-    __sampler.begin("set_heap_index");
+    __sampler.begin("SetHeapIndex");
     Array<MemorySection> &managedHeapSections = *__snapshot->heapSections;
     
     auto sortedHeapSections = new std::vector<MemorySection *>;
@@ -447,7 +447,7 @@ void MemorySnapshotDeserializer::prepareSnapshot()
     }
     __sampler.end();
     
-    __sampler.begin("set_native_object_index");
+    __sampler.begin("SetNativeObjectIndex");
     Array<PackedNativeUnityEngineObject> &nativeObjects = *__snapshot->nativeObjects;
     for (auto i = 0; i < nativeObjects.size; i++)
     {
@@ -462,7 +462,7 @@ void MemorySnapshotDeserializer::prepareSnapshot()
 
 void MemorySnapshotDeserializer::finishSnapshot()
 {
-    __sampler.begin("finishSnapshot");
+    __sampler.begin("FinishSnapshot");
     
     auto &nativeTypes = *__snapshot->nativeTypes;
     for (auto i = 0; i < nativeTypes.size; i++)
