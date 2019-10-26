@@ -81,7 +81,7 @@ RawMemorySnapshotReader::~RawMemorySnapshotReader()
 void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
 {
     __sampler.begin("MemorySnapshotReader");
-    __sampler.begin("open_snapshot");
+    __sampler.begin("OpenSnapshot");
     MemorySnapshotDeserializer::read(snapshot);
     __sampler.end();
     
@@ -97,7 +97,7 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
             }break;
             case kSnapshotHeapMagicBytes:
             {
-                __sampler.begin("readHeapMemorySections");
+                __sampler.begin("ReadHeapMemorySections");
                 auto sectionCount = fs.readUInt32();
                 snapshot.heapSections = new Array<MemorySection>(sectionCount);
                 for (auto i = 0; i < sectionCount; i++)
@@ -108,7 +108,7 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
             }break;
             case kSnapshotStacksMagicBytes:
             {
-                __sampler.begin("readStacksMemorySections");
+                __sampler.begin("ReadStacksMemorySections");
                 auto sectionCount = fs.readUInt32();
                 snapshot.stacksSections = new Array<MemorySection>(sectionCount);
                 for (auto i = 0; i < sectionCount; i++)
@@ -119,7 +119,7 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
             }break;
             case kSnapshotMetadataMagicBytes:
             {
-                __sampler.begin("readTypeDescriptions");
+                __sampler.begin("ReadTypeDescriptions");
                 auto typeCount = fs.readUInt32();
                 auto typeDescriptions = snapshot.typeDescriptions = new Array<TypeDescription>(typeCount);
                 for (auto i = 0; i < typeCount; i++)
@@ -132,7 +132,7 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
             }break;
             case kSnapshotGCHandlesMagicBytes:
             {
-                __sampler.begin("readGCHandles");
+                __sampler.begin("ReadGCHandles");
                 auto itemCount = fs.readUInt32();
                 auto gcHandles = snapshot.gcHandles = new Array<PackedGCHandle>(itemCount);
                 for (auto i = 0; i < itemCount; i++)
@@ -143,7 +143,7 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
             }break;
             case kSnapshotNativeTypesMagicBytes:
             {
-                __sampler.begin("readNativeTypes");
+                __sampler.begin("ReadNativeTypes");
                 auto typeCount = fs.readUInt32();
                 
                 if (formatVersion <= 3)
@@ -183,7 +183,7 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
             }break;
             case kSnapshotNativeObjectsMagicBytes:
             {
-                __sampler.begin("readNativeObjectsAndConnections");
+                __sampler.begin("ReadNativeObjectsAndConnections");
                 std::vector<Connection> connections;
                 auto gcHandleCount = snapshot.gcHandles->size;
                 
@@ -236,7 +236,7 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
             }break;
             case kSnapshotRuntimeInfoMagicBytes:
             {
-                __sampler.begin("readVirtualMatchineInformation");
+                __sampler.begin("ReadVirtualMatchineInformation");
                 auto &vm = snapshot.virtualMachineInformation;
                 vm.pointerSize = fs.readInt32();
                 vm.objectHeaderSize = fs.readInt32();
