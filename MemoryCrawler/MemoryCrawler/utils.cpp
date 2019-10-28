@@ -58,7 +58,7 @@ std::string basename(const char *filepath)
         --offset;
     }
     
-    return std::string(&*offset, upper - offset);
+    return std::string(offset, upper - offset);
 }
 
 

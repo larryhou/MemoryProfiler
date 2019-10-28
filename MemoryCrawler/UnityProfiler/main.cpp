@@ -29,8 +29,7 @@ void processRecord(const char *filepath)
     char cmdpath[256];
     mkdir("__commands", 0777);
     memset(cmdpath, 0, sizeof(cmdpath));
-    sprintf(cmdpath, "__commands/%s.plog", filename);
-    delete [] filename;
+    sprintf(cmdpath, "__commands/%s.plog", filename.c_str());
     
     std::ofstream plog;
     plog.open(cmdpath, std::ofstream::app);
