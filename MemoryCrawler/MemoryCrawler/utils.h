@@ -11,11 +11,14 @@
 
 #include <string>
 #include <vector>
+#include <cmath>
 
 bool strbeg(const char *str, const char *cmp);
 void readCommandOptions(const char *command, std::function<void(std::vector<const char *> &)> callback);
 void help(const char *command, const char *options, const char *description, const int width = 6);
-const char *basename(const char *filepath);
+std::string basename(const char *filepath);
+
+std::string comma(uint64_t v, uint32_t width = 0);
 
 class CommandHistory
 {

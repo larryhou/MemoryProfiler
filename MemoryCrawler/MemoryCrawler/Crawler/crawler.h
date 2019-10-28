@@ -15,6 +15,7 @@
 #include <fstream>
 #include <vector>
 #include <map>
+#include <sys/stat.h>
 #include <unordered_map>
 #include "snapshot.h"
 #include "heap.h"
@@ -185,6 +186,7 @@ public:
     void barNMemory(MemoryState state, int32_t rank = 20);
     
     void statHeap(int32_t rank = 20);
+    void inspectHeap(const char *filename = nullptr);
     
     ManagedObject* getMRefNode(ManagedObject *mo, int32_t depth = 1);
     

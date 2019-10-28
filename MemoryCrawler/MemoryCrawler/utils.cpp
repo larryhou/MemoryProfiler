@@ -11,7 +11,38 @@
 
 char __help_padding[64];
 
-const char *basename(const char *filepath)
+std::string comma(uint64_t v, uint32_t width)
+{
+    const int32_t SEGMENT_SIZE = 3;
+    auto size = (int32_t)ceil(log10(fmax(10, v)));
+    
+    size += size / SEGMENT_SIZE;
+    if (size % SEGMENT_SIZE == 0) { --size; }
+    
+    auto fsize = width + width / SEGMENT_SIZE;
+    if (fsize % SEGMENT_SIZE == 0) { --fsize; }
+    if (fsize < size) { fsize = size; }
+    
+    char buf[fsize+1];
+    auto ptr = buf + sizeof(buf);
+    memset(ptr--, 0, 1);
+    if (v == 0) { *ptr-- = '0'; }
+    else
+    {
+        auto num = 0;
+        while (v > 0)
+        {
+            *ptr-- = '0' + (v % 10);
+            if (++num % SEGMENT_SIZE == 0) { *ptr-- = v < 10 ? ' ' : ','; }
+            v /= 10;
+        }
+    }
+    
+    if (ptr >= buf) { memset(buf, ' ', ptr - buf + 1); }
+    return buf;
+}
+
+std::string basename(const char *filepath)
 {
     auto offset = filepath + strlen(filepath);
     const char *upper = nullptr;
@@ -27,13 +58,7 @@ const char *basename(const char *filepath)
         --offset;
     }
     
-    auto name = &*offset;
-    auto size = upper - offset;
-    
-    char *filename = new char[size + 1];
-    memset(filename, 0, size + 1);
-    memcpy(filename, name, size);
-    return filename;
+    return &*offset;
 }
 
 

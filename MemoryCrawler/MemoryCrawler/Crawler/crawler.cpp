@@ -8,6 +8,8 @@
 
 #include "crawler.h"
 
+std::string comma(uint64_t v, uint32_t width);
+
 MemorySnapshotCrawler::MemorySnapshotCrawler()
 {
     
@@ -573,6 +575,82 @@ void MemorySnapshotCrawler::barNMemory(MemoryState state, int32_t rank)
     }
 }
 
+void MemorySnapshotCrawler::inspectHeap(const char *filename)
+{
+    auto &heapSections = *snapshot->heapSections;
+    
+    auto const COL_COUNT = 3;
+    auto const ROW_COUNT = (int32_t)ceil((double)heapSections.size / (double)COL_COUNT);
+    
+    auto maxShift = 0, maxSize = 0;
+    for (auto i = 0; i < heapSections.size; i++)
+    {
+        auto &item = heapSections.items[i];
+        auto shift = 0;
+        if (i != 0)
+        {
+            auto &base = heapSections.items[i-1];
+            shift = (int32_t)(item.startAddress - (base.startAddress + base.size));
+        }
+        
+        if (maxShift < shift) { maxShift = shift; }
+        if (maxSize < item.size) { maxSize = item.size; }
+    }
+    
+    auto sizew = (int32_t)ceil(log10(maxSize / 1024));
+    auto shiftw = (int32_t)ceil(log10(maxShift));
+    
+    auto len = 0;
+    auto indexw = (int32_t)ceil(log10(heapSections.size));
+    char indexf[indexw+4];
+    char indexb[indexw+1];
+    len = sprintf(indexf, "%%%dd", indexw);
+    memset(indexf+len, 0, 1);
+    
+    for (auto r = 0; r < ROW_COUNT; r++)
+    {
+        for (auto c = 0; c < COL_COUNT; c++)
+        {
+            auto index = r + c * ROW_COUNT;
+            if (index >= heapSections.size) {break;}
+            auto &item = heapSections.items[index];
+            auto shift = 0;
+            if (index > 0)
+            {
+                auto &base = heapSections.items[index-1];
+                shift = (int32_t)(item.startAddress - (base.startAddress + base.size));
+            }
+            sprintf(indexb, indexf, index);
+            assert(item.size % 1024 == 0);
+            printf(" %s 0x%llx %s %sK |", indexb, item.startAddress, comma(shift, shiftw).c_str(), comma(item.size/1024, sizew).c_str());
+        }
+        printf("\n");
+    }
+    
+    if (filename != nullptr && strlen(filename) > 0)
+    {
+        char basepath[256];
+        auto ptr = basepath;
+        ptr += sprintf(ptr, "%s", "__heap");
+        ptr += sprintf(ptr, "+%s", filename);
+        mkdir(basepath, 0766);
+        
+        std::fstream fs;
+        char filepath[sizeof(basepath) + 32];
+        for (auto i = 0; i < heapSections.size; i++)
+        {
+            auto &section = heapSections.items[i];
+            sprintf(filepath, "%s/%llx_%d.mem", basepath, section.startAddress, section.bytes->size);
+            
+            fs.open(filepath, std::fstream::out | std::fstream::trunc);
+            fs.write((char *)section.bytes->items, section.bytes->size);
+            fs.flush();
+            fs.close();
+            printf("%4d %s\n", i, filepath);
+        }
+    }
+}
+
 void MemorySnapshotCrawler::statHeap(int32_t rank)
 {
     using std::get;
@@ -581,6 +659,7 @@ void MemorySnapshotCrawler::statHeap(int32_t rank)
     map<int32_t, int32_t> sizeMemory;
     map<int32_t, int32_t> sizeCount;
     
+    auto maxsize = 0;
     vector<int32_t> indice;
     auto &sortedHeapSections = *snapshot->sortedHeapSections;
     for (auto iter = sortedHeapSections.begin(); iter != sortedHeapSections.end(); iter++)
@@ -594,6 +673,7 @@ void MemorySnapshotCrawler::statHeap(int32_t rank)
             sizeCount.insert(pair<int32_t, int32_t>(heap.size, 0));
         }
         match->second += heap.size;
+        if (heap.size > maxsize) { maxsize = heap.size; }
         sizeCount.at(heap.size)++;
         totalMemory += heap.size;
     }

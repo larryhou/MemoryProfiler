@@ -70,8 +70,7 @@ void processMemorySnapshot(const char * filepath)
     char cmdpath[128];
     mkdir("__commands", 0777);
     memset(cmdpath, 0, sizeof(cmdpath));
-    sprintf(cmdpath, "__commands/%s.mlog", filename);
-    delete [] filename;
+    sprintf(cmdpath, "__commands/%s.mlog", filename.c_str());
     
     ofstream mlog;
     mlog.open(cmdpath, ofstream::app);
@@ -519,6 +518,23 @@ void processMemorySnapshot(const char * filepath)
                                    }
                                });
         }
+        else if (strbeg(command, "iheap"))
+        {
+            readCommandOptions(command, [&](std::vector<const char *> options)
+                               {
+                if (options.size() == 1)
+                {
+                    mainCrawler.inspectHeap();
+                }
+                else
+                {
+                    if (strbeg(options[1], "save"))
+                    {
+                        mainCrawler.inspectHeap(filename.c_str());
+                    }
+                }
+            });
+        }
         else if (strbeg(command, "base"))
         {
             readCommandOptions(command, [&](std::vector<const char *> options)
@@ -705,6 +721,7 @@ int main(int argc, const char * argv[])
     {
         cout << "argv[" << i << "]=" << argv[i] << endl;
     }
+    
 #endif
     
     if (argc > 1)
