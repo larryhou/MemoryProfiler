@@ -577,19 +577,19 @@ void MemorySnapshotCrawler::barNMemory(MemoryState state, int32_t rank)
 
 void MemorySnapshotCrawler::inspectHeap(const char *filename)
 {
-    auto &heapSections = *snapshot->heapSections;
+    auto &heapSections = *snapshot->sortedHeapSections;
     
     auto const COL_COUNT = 3;
-    auto const ROW_COUNT = (int32_t)ceil((double)heapSections.size / (double)COL_COUNT);
+    auto const ROW_COUNT = (int32_t)ceil((double)heapSections.size() / (double)COL_COUNT);
     
     auto maxShift = 0, maxSize = 0;
-    for (auto i = 0; i < heapSections.size; i++)
+    for (auto i = 0; i < heapSections.size(); i++)
     {
-        auto &item = heapSections.items[i];
+        auto &item = *heapSections[i];
         auto shift = 0;
         if (i != 0)
         {
-            auto &base = heapSections.items[i-1];
+            auto &base = *heapSections[i-1];
             shift = (int32_t)(item.startAddress - (base.startAddress + base.size));
         }
         
@@ -597,11 +597,11 @@ void MemorySnapshotCrawler::inspectHeap(const char *filename)
         if (maxSize < item.size) { maxSize = item.size; }
     }
     
-    auto sizew = (int32_t)ceil(log10(maxSize / 1024));
-    auto shiftw = (int32_t)ceil(log10(maxShift));
+    auto sizew = (int32_t)ceil(log10(fmax(10, maxSize / 1024)));
+    auto shiftw = (int32_t)ceil(log10(fmax(10, maxShift)));
     
     auto len = 0;
-    auto indexw = (int32_t)ceil(log10(heapSections.size));
+    auto indexw = (int32_t)ceil(log10(fmax(10, heapSections.size())));
     char indexf[indexw+4];
     char indexb[indexw+1];
     len = sprintf(indexf, "%%%dd", indexw);
@@ -612,13 +612,13 @@ void MemorySnapshotCrawler::inspectHeap(const char *filename)
         for (auto c = 0; c < COL_COUNT; c++)
         {
             auto index = r + c * ROW_COUNT;
-            if (index >= heapSections.size) {break;}
-            auto &item = heapSections.items[index];
-            auto shift = 0;
+            if (index >= heapSections.size()) {break;}
+            auto &item = *heapSections[index];
+            int64_t shift = 0;
             if (index > 0)
             {
-                auto &base = heapSections.items[index-1];
-                shift = (int32_t)(item.startAddress - (base.startAddress + base.size));
+                auto &base = *heapSections[index-1];
+                shift = (int64_t)(item.startAddress - (base.startAddress + base.size));
             }
             sprintf(indexb, indexf, index);
             assert(item.size % 1024 == 0);
@@ -637,9 +637,9 @@ void MemorySnapshotCrawler::inspectHeap(const char *filename)
         
         std::fstream fs;
         char filepath[sizeof(basepath) + 32];
-        for (auto i = 0; i < heapSections.size; i++)
+        for (auto i = 0; i < heapSections.size(); i++)
         {
-            auto &section = heapSections.items[i];
+            auto &section = *heapSections[i];
             sprintf(filepath, "%s/%llx_%d.mem", basepath, section.startAddress, section.bytes->size);
             
             fs.open(filepath, std::fstream::out | std::fstream::trunc);
