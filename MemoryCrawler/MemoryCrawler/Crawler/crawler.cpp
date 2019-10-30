@@ -8,7 +8,7 @@
 
 #include "crawler.h"
 
-std::string comma(uint64_t v, uint32_t width);
+std::string comma(uint64_t v, uint32_t width = 0);
 
 MemorySnapshotCrawler::MemorySnapshotCrawler()
 {
@@ -458,7 +458,7 @@ void MemorySnapshotCrawler::barMMemory(MemoryState state, int32_t rank)
         }
     }
     
-    printf("### total=%.0f\n", totalMemory);
+    printf("### total=%s\n", comma(totalMemory).c_str());
     
     std::sort(indice.begin(), indice.end(), [&](int32_t a, int32_t b)
               {
@@ -531,7 +531,7 @@ void MemorySnapshotCrawler::barNMemory(MemoryState state, int32_t rank)
         }
     }
     
-    printf("### total=%.0f\n", totalMemory);
+    printf("### total=%s\n", comma(totalMemory).c_str());
     
     std::sort(indice.begin(), indice.end(), [&](int32_t a, int32_t b)
               {
@@ -699,7 +699,7 @@ void MemorySnapshotCrawler::statHeap(int32_t rank)
     
     char percentage[300+1];
     char fence[] = "█";
-    printf("### blocks=%d memory=%d\n", (int32_t)sortedHeapSections.size(), totalMemory);
+    printf("### blocks=%d memory=%s\n", (int32_t)sortedHeapSections.size(), comma(totalMemory).c_str());
     for (auto i = 0; i < stats.size(); i++)
     {
         if (rank > 0 && i >= rank){break;}
