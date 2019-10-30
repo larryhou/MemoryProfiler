@@ -188,7 +188,11 @@ void MemorySnapshotCrawler::compare(MemorySnapshotCrawler &crawler)
         while(position < referSections.size())
         {
             auto rs = referSections[position];
-            if (rs->startAddress >= s->startAddress && rs->startAddress + rs->size <= s->startAddress + s->size)
+            if (rs->startAddress < s->startAddress)
+            {
+                ++position;
+            }
+            else if (rs->startAddress >= s->startAddress && rs->startAddress + rs->size <= s->startAddress + s->size)
             {
                 concat.fragments.emplace_back(MemoryFragment(rs->startAddress, rs->size, position));
                 ++position;
@@ -623,7 +627,7 @@ void MemorySnapshotCrawler::statFragments()
     }
     
     auto memwidth = ceil(log10(fmax(10, maxsize)));
-    auto fragAddition = 0;
+    auto fragAddition = 0, allocAddition = 0;
     for (auto i = __concations.begin(); i != __concations.end(); i++)
     {
         auto &concat = *i;
@@ -655,12 +659,14 @@ void MemorySnapshotCrawler::statFragments()
             } break;
                 
             case CT_ALLOC:
+            {
                 printf("ALLOC\n");
-                break;
+                allocAddition += concat.count;
+            } break;
         }
     }
     
-    printf("[FragmentConcation] +%s=%dK\n", comma(fragAddition).c_str(), fragAddition/1024);
+    printf("[SUMMARY] fragments+%s=%dK allocations+%s=%dK\n", comma(fragAddition).c_str(), fragAddition/1024, comma(allocAddition).c_str(), allocAddition/1024);
 }
 
 void MemorySnapshotCrawler::inspectHeap(const char *filename)
