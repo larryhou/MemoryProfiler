@@ -14,7 +14,7 @@
 
 enum ConcationType
 {
-    CT_IDENTICAL = 0, CT_ALLOC, CT_CONCAT
+    CT_IDENTICAL = 0, CT_ALLOC, CT_DEALLOC, CT_CONCAT
 };
 
 struct MemoryFragment
