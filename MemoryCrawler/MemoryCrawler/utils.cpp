@@ -14,13 +14,12 @@ char __help_padding[64];
 std::string comma(uint64_t v, uint32_t width)
 {
     const int32_t SEGMENT_SIZE = 3;
-    if (width != 0 && width % SEGMENT_SIZE == 0) { --width; }
-    
     auto size = (int32_t)ceil(log10(fmax(10, v)));
-    if (size != 0 && size % SEGMENT_SIZE == 0) { --size; }
+    auto vsize = size + size / SEGMENT_SIZE;
+    if (size != 0 && size % SEGMENT_SIZE == 0) { --vsize; }
     
     auto fsize = width + width / SEGMENT_SIZE;
-    auto vsize = size + size / SEGMENT_SIZE;
+    if (width != 0 && width % SEGMENT_SIZE == 0) { --fsize; }
     if (fsize < vsize) { fsize = vsize; }
     
     char buf[fsize+1];
