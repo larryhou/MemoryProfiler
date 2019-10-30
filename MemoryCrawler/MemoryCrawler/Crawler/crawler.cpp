@@ -1357,7 +1357,7 @@ void MemorySnapshotCrawler::dumpRepeatedObjects(int32_t typeIndex, int32_t condi
     {
         auto hash = *iter;
         auto &children = stats.at(hash);
-        printf("\e[36m%8d #%-2d", memory.at(hash), (int32_t)children.size());
+        printf("\e[36m%s #%-2d", comma(memory.at(hash)).c_str(), (int32_t)children.size());
         
         bool extraComplate = false;
         for (auto n= children.begin(); n != children.end(); n++)
