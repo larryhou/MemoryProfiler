@@ -22,6 +22,7 @@
 #include "perf.h"
 #include "serialize.h"
 #include "stat.h"
+#include "fragment.h"
 
 using std::vector;
 using std::set;
@@ -112,6 +113,7 @@ private:
     HeapMemoryReader *__memoryReader;
     StaticMemoryReader *__staticMemoryReader;
     VirtualMachineInformation *__vm;
+    std::vector<MemoryConcation> __concations;
     
     std::wstring_convert<std::codecvt_utf8<char16_t>, char16_t> __convertor;
     
@@ -187,6 +189,7 @@ public:
     
     void statHeap(int32_t rank = 20);
     void inspectHeap(const char *filename = nullptr);
+    void statFragments();
     
     ManagedObject* getMRefNode(ManagedObject *mo, int32_t depth = 1);
     

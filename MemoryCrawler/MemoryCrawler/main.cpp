@@ -504,6 +504,13 @@ void processMemorySnapshot(const char * filepath)
                                    }
                                });
         }
+        else if (strbeg(command, "frag"))
+        {
+            readCommandOptions(command, [&](std::vector<const char *> options)
+                               {
+                                   mainCrawler.statFragments();
+                               });
+        }
         else if (strbeg(command, "heap"))
         {
             readCommandOptions(command, [&](std::vector<const char *> options)

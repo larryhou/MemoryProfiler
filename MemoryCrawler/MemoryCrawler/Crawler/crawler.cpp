@@ -175,6 +175,45 @@ void MemorySnapshotCrawler::compare(MemorySnapshotCrawler &crawler)
             no.state = typeA.name == typeB.name ? MS_persistent : MS_allocated;
         }
     }
+    
+    // Compare Memory
+    __concations.clear();
+    auto &sections = *snapshot->sortedHeapSections;
+    auto &referSections = *crawler.snapshot->sortedHeapSections;
+    auto position = 0;
+    for (auto i = 0; i < sections.size(); i++)
+    {
+        auto s = sections[i];
+        MemoryConcation concat(s->startAddress, s->size, i, CT_IDENTICAL);
+        while(position < referSections.size())
+        {
+            auto rs = referSections[position];
+            if (rs->startAddress >= s->startAddress && rs->startAddress + rs->size <= s->startAddress + s->size)
+            {
+                concat.fragments.emplace_back(MemoryFragment(rs->startAddress, rs->size, position));
+                ++position;
+            } else {break;}
+        }
+        switch (concat.fragments.size())
+        {
+            case 0:
+            {
+                concat.type = CT_ALLOC;
+            } break;
+            
+            case 1:
+            {
+                auto &frag = concat.fragments[0];
+                concat.type = (frag.address == concat.address && frag.count == concat.count) ? CT_IDENTICAL : CT_CONCAT;
+            } break;
+            
+            default:
+            {
+                concat.type = CT_CONCAT;
+            } break;
+        }
+        __concations.emplace_back(concat);
+    }
 }
 
 void MemorySnapshotCrawler::dumpAllClasses()
@@ -573,6 +612,55 @@ void MemorySnapshotCrawler::barNMemory(MemoryState state, int32_t rank)
         }
         printf("%s %s %s #%d *%d\n", progress, type.name.c_str(), comma(typeMemory.at(typeIndex)).c_str(), typeCount.at(typeIndex), typeIndex);
     }
+}
+
+void MemorySnapshotCrawler::statFragments()
+{
+    auto maxsize = 0;
+    for (auto i = __concations.begin(); i != __concations.end(); i++)
+    {
+        if (maxsize < i->count) { maxsize = i->count; }
+    }
+    
+    auto memwidth = ceil(log10(fmax(10, maxsize)));
+    auto fragAddition = 0;
+    for (auto i = __concations.begin(); i != __concations.end(); i++)
+    {
+        auto &concat = *i;
+        printf("[%03d] 0x%llx %s ", concat.index, concat.address, comma(concat.count, memwidth).c_str());
+        switch (concat.type)
+        {
+            case CT_IDENTICAL:
+                printf("IDENTICAL\n");
+                break;
+                
+            case CT_CONCAT:
+            {
+                auto maxsize = 0;
+                auto fragCount = 0;
+                for (auto f = concat.fragments.begin(); f != concat.fragments.end(); f++)
+                {
+                    if (f->count > maxsize) { maxsize = f->count; }
+                    fragCount += f->count;
+                }
+                fragAddition += concat.count - fragCount;
+                printf("CONCAT=%lu +%s=%dK\n", concat.fragments.size(), comma(concat.count - fragCount).c_str(), (concat.count - fragCount)/1024);
+                
+                auto width = ceil(log10(fmax(10, maxsize)));
+                for (auto f = concat.fragments.begin(); f != concat.fragments.end(); f++)
+                {
+                    auto &fragment = *f;
+                    printf("    - [%03d] 0x%llx %s\n", fragment.index, fragment.address, comma(fragment.count, width).c_str());
+                }
+            } break;
+                
+            case CT_ALLOC:
+                printf("ALLOC\n");
+                break;
+        }
+    }
+    
+    printf("[FragmentConcation] +%s=%dK\n", comma(fragAddition).c_str(), fragAddition/1024);
 }
 
 void MemorySnapshotCrawler::inspectHeap(const char *filename)
