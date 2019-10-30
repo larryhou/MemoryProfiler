@@ -15,12 +15,10 @@ std::string comma(uint64_t v, uint32_t width)
 {
     const int32_t SEGMENT_SIZE = 3;
     auto size = (int32_t)ceil(log10(fmax(10, v)));
-    auto vsize = size + size / SEGMENT_SIZE;
-    if (size != 0 && size % SEGMENT_SIZE == 0) { --vsize; }
+    if (width < size) { width = size; }
     
     auto fsize = width + width / SEGMENT_SIZE;
     if (width != 0 && width % SEGMENT_SIZE == 0) { --fsize; }
-    if (fsize < vsize) { fsize = vsize; }
     
     char buf[fsize+1];
     auto ptr = buf + sizeof(buf) - 1;
