@@ -689,6 +689,8 @@ void processMemorySnapshot(const char * filepath)
             help("event", NULL, "搜索所有未清理的delegate对象");
             help("delg", "[ADDRESS]*", "查看MulticastDelegate链表");
             help("heap", "[RANK]", "输出动态内存简报", __indent);
+            help("iheap", "[save]", "输出动态内存简报", __indent);
+            help("frag", NULL, "输出内存碎片信息", __indent);
             help("base", "[TYPE_INDEX]", "查看当前类型的子类型", __indent);
             help("save", NULL, "把当前内存快照分析结果以sqlite3格式保存到本机", __indent);
             help("uuid", NULL, "查看内存快照UUID", __indent);
