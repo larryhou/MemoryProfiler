@@ -672,7 +672,7 @@ void MemorySnapshotCrawler::statFragments()
         }
     }
     
-    printf("[SUMMARY] fragments+%s=%dK allocations+%s=%dK deallocations+%s=%dK\n", comma(fragAddition).c_str(), fragAddition/1024, comma(allocAddition).c_str(), allocAddition/1024, comma(deallocations).c_str(), deallocations/1024);
+    printf("[SUMMARY] fragments+%s=%dK alloc+%s=%dK dealloc+%s=%dK\n", comma(fragAddition).c_str(), fragAddition/1024, comma(allocAddition).c_str(), allocAddition/1024, comma(deallocations).c_str(), deallocations/1024);
 }
 
 void MemorySnapshotCrawler::inspectHeap(const char *filename)
