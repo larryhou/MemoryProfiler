@@ -157,7 +157,7 @@ void SnapshotCrawlerCache::insert(Array<TypeDescription> &types)
                                 sqlite3_bind_int(stmt, 9, t.typeIndex);
                                 sqlite3_bind_int64(stmt, 10, t.typeInfoAddress);
                                 sqlite3_bind_int(stmt, 11, t.nativeTypeArrayIndex);
-                                sqlite3_bind_int(stmt, 12, t.fields->size);
+                                sqlite3_bind_int(stmt, 12, t.fields != nullptr ? t.fields->size : 0);
                                 sqlite3_bind_int(stmt, 13, t.instanceCount);
                                 sqlite3_bind_int(stmt, 14, t.instanceMemory);
                                 sqlite3_bind_int(stmt, 15, t.nativeMemory);
@@ -167,6 +167,7 @@ void SnapshotCrawlerCache::insert(Array<TypeDescription> &types)
     insert<TypeDescription>("INSERT INTO fields VALUES (?1, ?2, ?3, ?4, ?5);",
                             types, [](TypeDescription &t, sqlite3_stmt *stmt)
                             {
+                                if (t.fields == nullptr) {return;}
                                 for (auto n = 0; n < t.fields->size; n++)
                                 {
                                     auto &f = t.fields->items[n];
