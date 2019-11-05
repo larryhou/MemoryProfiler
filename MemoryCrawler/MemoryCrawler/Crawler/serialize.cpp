@@ -12,7 +12,7 @@
 void MemorySnapshotDeserializer::read(PackedMemorySnapshot &snapshot)
 {
     __snapshot = &snapshot;
-    __fs.open(__filepath, false);
+    __fs.open(__filepath);
 }
 
 MemorySnapshotReader::MemorySnapshotReader(const char *filepath): MemorySnapshotDeserializer(filepath) {}
