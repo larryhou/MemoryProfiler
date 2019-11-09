@@ -150,7 +150,7 @@ int32_t HeapMemoryReader::findHeapOfAddress(address_t address)
         {
             max = mid - 1;
         }
-        else if (heap.startAddress + heap.bytes->size < address)
+        else if (heap.startAddress + heap.bytes->size <= address)
         {
             min = mid + 1;
         }

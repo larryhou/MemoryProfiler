@@ -21,6 +21,7 @@ MemorySnapshotCrawler &MemorySnapshotCrawler::crawl()
     prepare();
     crawlGCHandles();
     crawlStatic();
+    crawlLinks();
     summarize();
     __sampler.end();
 #if PERF_DEBUG
@@ -1090,6 +1091,12 @@ void MemorySnapshotCrawler::dumpMRefChain(address_t address, bool includeCircula
             {
                 printf("<GCHandle>::%s 0x%08llx\n", type.name.c_str(), node.address);
             }
+            else if (ec.fromKind == CK_link)
+            {
+                auto &link = snapshot->nativeManagedlinks->items[joint.linkIndex];
+                auto &no = snapshot->nativeObjects->items[link.linkArrayIndex];
+                printf("<LINK>::%s 0x%08llx <=> %s 0x%08llx\n", no.name.c_str(), link.nativeObjectAddress, type.name.c_str(), node.address);
+            }
             else
             {
                 auto &hookType = snapshot->typeDescriptions->items[joint.hookTypeIndex];
@@ -1135,7 +1142,7 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateMRefChain(ManagedObject *m
             vector<int32_t> __chain(chain);
             __chain.push_back(ci);
             
-            if (ec.fromKind == CK_static || ec.fromKind == CK_gcHandle || fromIndex < 0)
+            if (ec.fromKind == CK_static || ec.fromKind == CK_gcHandle || ec.fromKind == CK_link || fromIndex < 0)
             {
                 result.push_back(__chain);
                 continue;
@@ -1746,6 +1753,11 @@ bool MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
         ec.fromKind = CK_static;
         ec.from = -1;
     }
+    else if (joint.linkIndex >= 0)
+    {
+        ec.fromKind = CK_link;
+        ec.from = joint.linkIndex;
+    }
     else
     {
         ec.fromKind = CK_managed;
@@ -1931,11 +1943,11 @@ void MemorySnapshotCrawler::inspectMType(int32_t typeIndex)
     if (type.isArray) {printf(" isArray=%s arrayRank=%d", type.isArray ? "true" : "false", type.arrayRank);}
     if (type.staticFieldBytes != nullptr) {printf(" staticFieldBytes=%d", type.staticFieldBytes->size);}
     printf(" assembly='%s'", type.assembly.c_str());
-    if (type.instanceCount > 0) {printf(" %d#%d", type.instanceMemory, type.instanceCount);}
+    if (type.instanceCount > 0) {printf(" %s #%d", comma(type.instanceMemory).c_str(), type.instanceCount);}
     if (type.nativeTypeArrayIndex >= 0)
     {
         auto &nt = snapshot->nativeTypes->items[type.nativeTypeArrayIndex];
-        printf(" N[%d#%d]", nt.instanceMemory, nt.instanceCount);
+        printf(" N[%s #%d]", comma(nt.instanceMemory).c_str(), nt.instanceCount);
     }
     printf("\n");
     
@@ -1962,11 +1974,11 @@ void MemorySnapshotCrawler::inspectNType(int32_t typeIndex)
         auto &baseType = snapshot->nativeTypes->items[type.nativeBaseTypeArrayIndex];
         printf(" nativeBaseType='%s'%d", baseType.name.c_str(), baseType.typeIndex);
     }
-    printf(" instanceMemory=%d instanceCount=%d", type.instanceMemory, type.instanceCount);
+    printf(" %s #%d", comma(type.instanceMemory).c_str(), type.instanceCount);
     if (type.managedTypeArrayIndex >= 0)
     {
         auto &mt = snapshot->typeDescriptions->items[type.managedTypeArrayIndex];
-        printf(" M[0x%08llx typeIndex=%d instanceMemory=%d instanceCount=%d]", mt.typeInfoAddress, mt.typeIndex, mt.instanceMemory, mt.instanceCount);
+        printf(" M[0x%08llx typeIndex=%d %s #%d]", mt.typeInfoAddress, mt.typeIndex, comma(mt.instanceMemory).c_str(), mt.instanceCount);
     }
     printf("\n");
 }
@@ -2959,6 +2971,29 @@ void MemorySnapshotCrawler::dumpUnbalancedEvents(MemoryState state)
             printf("  \e[33m+ 0x%08llx type='%s'%d\n", parentObject.address, parentType.name.c_str(), parentType.typeIndex);
         }
     }
+}
+
+void MemorySnapshotCrawler::crawlLinks()
+{
+    __sampler.begin("CrawlLinks");
+    if (snapshot->nativeManagedlinks != nullptr)
+    {
+        auto &links = *snapshot->nativeManagedlinks;
+        
+        auto *iter = links.items;
+        for (auto i = 0; i < links.size; i++)
+        {
+            auto &joint = joints.add();
+            joint.jointArrayIndex = joints.size() - 1;
+            
+            // set gcHandle info
+            joint.gcHandleIndex = -1;
+            joint.linkIndex = iter->linkArrayIndex;
+            crawlManagedEntryAddress(iter->managedObjectAddress, nullptr, *__memoryReader, joint, false, 0);
+            ++iter;
+        }
+    }
+    __sampler.end();
 }
 
 void MemorySnapshotCrawler::crawlGCHandles()

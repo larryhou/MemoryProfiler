@@ -17,6 +17,7 @@ const uint32_t kSnapshotNativeTypesMagicBytes = 0x78514753;
 const uint32_t kSnapshotNativeObjectsMagicBytes = 0x6173FAFE;
 const uint32_t kSnapshotRuntimeInfoMagicBytes = 0x0183EFAC;
 const uint32_t kSnapshotTailMagicBytes = 0x865EEAAF;
+const uint32_t kSnapshotNativeManagedLinkMagicBytes = 0x55AA55AA;
 
 void readMemorySectionR(MemorySection &section, FileStream &fs)
 {
@@ -245,6 +246,48 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                 vm.arraySizeOffsetInHeader = fs.readInt32();
                 vm.allocationGranularity = fs.readInt32();
                 assert(fs.readUInt32() == kSnapshotTailMagicBytes);
+                __sampler.end();
+            }break;
+            case kSnapshotNativeManagedLinkMagicBytes:
+            {
+                __sampler.begin("ReadNativeManagedLinks");
+                
+                auto itemCount = fs.readUInt32();
+                auto nativeManagedLinks = snapshot.nativeManagedlinks = new Array<NativeManagedLink>(itemCount);
+                for (auto i = 0; i < itemCount; i++)
+                {
+                    auto &link = nativeManagedLinks->items[i];
+                    link.linkArrayIndex = fs.readInt32();
+                    assert(i == link.linkArrayIndex);
+                    
+                    link.nativeTypeIndex = fs.readInt32();
+                    link.nativeObjectAddress = fs.readUInt64();
+                    link.managedObjectAddress = fs.readUInt64();
+                    
+                    auto type = fs.readUInt32();
+                    if (type == (1 << 0))
+                    {
+                        auto &sprite = link.sprite;
+                        sprite.type = type;
+                        sprite.x = fs.readFloat();
+                        sprite.y = fs.readFloat();
+                        sprite.width = fs.readFloat();
+                        sprite.height = fs.readFloat();
+                        auto typeIndex = fs.readInt32();
+                        assert(typeIndex != -1);
+                        sprite.texture = fs.readUInt64();
+                    }
+                    else
+                    if (type == (1 << 1))
+                    {
+                        auto &tex = link.texture2D;
+                        tex.type = type;
+                        tex.isPOT = !fs.readBoolean();
+                        tex.format = fs.readUInt8();
+                        tex.width = fs.readUInt32();
+                        tex.height = fs.readUInt32();
+                    }
+                }
                 __sampler.end();
             }break;
             default: break;

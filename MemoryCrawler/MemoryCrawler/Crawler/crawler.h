@@ -33,6 +33,7 @@ struct EntityJoint
     int32_t hookTypeIndex = -1;
     address_t hookObjectAddress = 0;
     int32_t hookObjectIndex = -1;
+    int32_t linkIndex = -1;
     
     int32_t fieldTypeIndex = -1;
     int32_t fieldSlotIndex = -1;
@@ -223,6 +224,7 @@ private:
     void prepare();
     void crawlGCHandles();
     void crawlStatic();
+    void crawlLinks();
     void debug();
     
     int32_t findTypeOfAddress(address_t address);

@@ -15,7 +15,7 @@
 
 using std::string;
 
-enum ConnectionKind:uint8_t { CK_none = 0, CK_gcHandle, CK_static, CK_managed, CK_native };
+enum ConnectionKind:uint8_t { CK_none = 0, CK_gcHandle, CK_static, CK_managed, CK_native, CK_link };
 enum MemoryState:uint8_t { MS_none = 0, MS_persistent, MS_allocated };
 
 struct Connection
@@ -27,6 +27,35 @@ struct Connection
     ConnectionKind toKind = CK_none;
     
     ~Connection();
+};
+
+struct NativeObject
+{
+    uint32_t type;
+};
+
+struct NativeSprite: public NativeObject
+{
+    float x, y, width, height;
+    address_t texture;
+};
+
+struct NativeTexture2D: public NativeObject
+{
+    bool isPOT;
+    uint8_t format;
+    uint32_t width, height;
+};
+
+struct NativeManagedLink
+{
+    int32_t nativeTypeIndex;
+    int32_t linkArrayIndex;
+    address_t nativeObjectAddress;
+    address_t managedObjectAddress;
+    
+    NativeSprite sprite;
+    NativeTexture2D texture2D;
 };
 
 struct FieldDescription
@@ -145,6 +174,7 @@ struct PackedMemorySnapshot
     Array<PackedNativeUnityEngineObject> *nativeObjects = nullptr; // PackedNativeUnityEngineObject[]
     Array<PackedNativeType> *nativeTypes = nullptr; // PackedNativeType[]
     Array<TypeDescription> *typeDescriptions = nullptr; // TypeDescription[]
+    Array<NativeManagedLink> *nativeManagedlinks = nullptr; // NativeManagedLink[]
     VirtualMachineInformation virtualMachineInformation;
     
     std::vector<MemorySection *> *sortedHeapSections = nullptr;
