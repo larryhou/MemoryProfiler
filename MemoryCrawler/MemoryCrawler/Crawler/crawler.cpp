@@ -1093,9 +1093,9 @@ void MemorySnapshotCrawler::dumpMRefChain(address_t address, bool includeCircula
             }
             else if (ec.fromKind == CK_link)
             {
-                auto &link = snapshot->nativeAppending.links[joint.linkIndex];
-                auto &no = snapshot->nativeObjects->items[link.linkArrayIndex];
-                printf("<LINK>::%s 0x%08llx <=> %s 0x%08llx\n", no.name.c_str(), link.nativeObjectAddress, type.name.c_str(), node.address);
+                auto &appending = snapshot->nativeAppendingCollection.appendings[joint.linkIndex];
+                auto &no = snapshot->nativeObjects->items[appending.link.nativeArrayIndex];
+                printf("<LINK>::%s 0x%08llx <=> %s 0x%08llx\n", no.name.c_str(), appending.link.nativeAddress, type.name.c_str(), node.address);
             }
             else
             {
@@ -2976,18 +2976,18 @@ void MemorySnapshotCrawler::dumpUnbalancedEvents(MemoryState state)
 void MemorySnapshotCrawler::crawlLinks()
 {
     __sampler.begin("CrawlLinks");
-    if (snapshot->nativeAppending.links.size() > 0)
+    if (snapshot->nativeAppendingCollection.appendings.size() > 0)
     {
-        auto &links = snapshot->nativeAppending.links;
-        for (auto iter = links.begin(); iter != links.end(); iter++)
+        auto &appendings = snapshot->nativeAppendingCollection.appendings;
+        for (auto iter = appendings.begin(); iter != appendings.end(); iter++)
         {
             auto &joint = joints.add();
             joint.jointArrayIndex = joints.size() - 1;
             
             // set gcHandle info
             joint.gcHandleIndex = -1;
-            joint.linkIndex = iter->linkArrayIndex;
-            crawlManagedEntryAddress(iter->managedObjectAddress, nullptr, *__memoryReader, joint, false, 0);
+            joint.linkIndex = iter->link.nativeArrayIndex;
+            crawlManagedEntryAddress(iter->link.managedAddress, nullptr, *__memoryReader, joint, false, 0);
         }
     }
     __sampler.end();

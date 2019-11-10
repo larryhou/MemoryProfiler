@@ -29,17 +29,18 @@ struct Connection
     ~Connection();
 };
 
+struct NativeManagedLink
+{
+    int32_t nativeTypeArrayIndex;
+    int32_t nativeArrayIndex;
+    address_t nativeAddress;
+    address_t managedAddress;
+};
+
 struct NativeObject
 {
     uint32_t type;
     NativeObject(uint32_t t): type(t) {}
-};
-
-struct NativeSprite: public NativeObject
-{
-    float x, y, width, height;
-    address_t texture;
-    NativeSprite(uint32_t t): NativeObject(t) {}
 };
 
 struct NativeTexture2D: public NativeObject
@@ -50,22 +51,27 @@ struct NativeTexture2D: public NativeObject
     NativeTexture2D(uint32_t t): NativeObject(t) {}
 };
 
-struct NativeManagedLink
+struct NativeSprite: public NativeObject
 {
-    int32_t nativeTypeIndex;
-    int32_t linkArrayIndex;
-    address_t nativeObjectAddress;
-    address_t managedObjectAddress;
+    float x, y, width, height;
+    int32_t textureNativeArrayIndex = -1;
+    NativeTexture2D *texture;
+    NativeSprite(uint32_t t): NativeObject(t) {}
+};
+
+struct NativeAppending
+{
+    NativeManagedLink link;
     
     int32_t sprite = -1;
     int32_t texture = -1;
 };
 
-struct CustomNativeAppending
+struct NativeAppendingCollection
 {
     std::vector<NativeSprite> sprites;
     std::vector<NativeTexture2D> textures;
-    std::vector<NativeManagedLink> links;
+    std::vector<NativeAppending> appendings;
 };
 
 struct FieldDescription
@@ -185,7 +191,7 @@ struct PackedMemorySnapshot
     Array<PackedNativeType> *nativeTypes = nullptr; // PackedNativeType[]
     Array<TypeDescription> *typeDescriptions = nullptr; // TypeDescription[]
     VirtualMachineInformation virtualMachineInformation;
-    CustomNativeAppending nativeAppending;
+    NativeAppendingCollection nativeAppendingCollection;
     
     std::vector<MemorySection *> *sortedHeapSections = nullptr;
     

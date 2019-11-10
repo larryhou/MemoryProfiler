@@ -252,18 +252,27 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
             {
                 __sampler.begin("ReadCustomNativeAppending");
                 
-                CustomNativeAppending &appending = snapshot.nativeAppending;
+                NativeAppendingCollection &collection = snapshot.nativeAppendingCollection;
+                std::map<address_t, int32_t> indices;
+                {
+                    auto iter = snapshot.nativeObjects->items;
+                    for (auto i = 0; i < snapshot.nativeObjects->size; i++)
+                    {
+                        indices.insert(std::make_pair(iter->nativeObjectAddress, i));
+                    }
+                }
                 
                 auto itemCount = fs.readUInt32();
                 for (auto i = 0; i < itemCount; i++)
                 {
-                    NativeManagedLink link;
-                    link.linkArrayIndex = fs.readInt32();
-                    assert(i == link.linkArrayIndex);
+                    NativeAppending appending;
                     
-                    link.nativeTypeIndex = fs.readInt32();
-                    link.nativeObjectAddress = fs.readUInt64();
-                    link.managedObjectAddress = fs.readUInt64();
+                    NativeManagedLink &link = appending.link;
+                    link.nativeArrayIndex = fs.readInt32();
+                    assert(i == link.nativeArrayIndex);
+                    link.nativeTypeArrayIndex = fs.readInt32();
+                    link.nativeAddress = fs.readUInt64();
+                    link.managedAddress = fs.readUInt64();
                     
                     auto type = fs.readUInt32();
                     if (type == (1 << 0))
@@ -273,11 +282,18 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                         sprite.y = fs.readFloat();
                         sprite.width = fs.readFloat();
                         sprite.height = fs.readFloat();
-                        auto typeIndex = fs.readInt32();
-                        assert(typeIndex != -1);
-                        sprite.texture = fs.readUInt64();
-                        link.sprite = (int32_t)appending.sprites.size();
-                        appending.sprites.emplace_back(sprite);
+                        auto nativeTypeIndex = fs.readInt32();
+                        assert(nativeTypeIndex != -1);
+                        auto address = fs.readUInt64();
+                        if (address > 0)
+                        {
+                            auto match = indices.find(address);
+                            assert(match != indices.end());
+                            sprite.textureNativeArrayIndex = match->second;
+                        }
+                        
+                        appending.sprite = (int32_t)collection.sprites.size();
+                        collection.sprites.emplace_back(sprite);
                     }
                     else
                     if (type == (1 << 1))
@@ -296,11 +312,18 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                         }
                         tex.pot = tex.width == tex.height && pot;
                         
-                        link.texture = (int32_t)appending.textures.size();
-                        appending.textures.emplace_back(tex);
+                        appending.texture = (int32_t)collection.textures.size();
+                        collection.textures.emplace_back(tex);
                     }
                     
-                    appending.links.emplace_back(link);
+                    collection.appendings.emplace_back(appending);
+                }
+                
+                for (auto iter = collection.sprites.begin(); iter != collection.sprites.end(); iter++)
+                {
+                    if (iter->textureNativeArrayIndex < 0) {continue;}
+                    auto &appending = collection.appendings[iter->textureNativeArrayIndex];
+                    iter->texture = &collection.textures[appending.texture];
                 }
                 __sampler.end();
             }break;
