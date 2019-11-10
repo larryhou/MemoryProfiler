@@ -32,19 +32,22 @@ struct Connection
 struct NativeObject
 {
     uint32_t type;
+    NativeObject(uint32_t t): type(t) {}
 };
 
 struct NativeSprite: public NativeObject
 {
     float x, y, width, height;
     address_t texture;
+    NativeSprite(uint32_t t): NativeObject(t) {}
 };
 
 struct NativeTexture2D: public NativeObject
 {
-    bool isPOT;
+    bool pot;
     uint8_t format;
     uint32_t width, height;
+    NativeTexture2D(uint32_t t): NativeObject(t) {}
 };
 
 struct NativeManagedLink
@@ -54,8 +57,15 @@ struct NativeManagedLink
     address_t nativeObjectAddress;
     address_t managedObjectAddress;
     
-    NativeSprite sprite;
-    NativeTexture2D texture2D;
+    int32_t sprite = -1;
+    int32_t texture = -1;
+};
+
+struct CustomNativeAppending
+{
+    std::vector<NativeSprite> sprites;
+    std::vector<NativeTexture2D> textures;
+    std::vector<NativeManagedLink> links;
 };
 
 struct FieldDescription
@@ -174,8 +184,8 @@ struct PackedMemorySnapshot
     Array<PackedNativeUnityEngineObject> *nativeObjects = nullptr; // PackedNativeUnityEngineObject[]
     Array<PackedNativeType> *nativeTypes = nullptr; // PackedNativeType[]
     Array<TypeDescription> *typeDescriptions = nullptr; // TypeDescription[]
-    Array<NativeManagedLink> *nativeManagedlinks = nullptr; // NativeManagedLink[]
     VirtualMachineInformation virtualMachineInformation;
+    CustomNativeAppending nativeAppending;
     
     std::vector<MemorySection *> *sortedHeapSections = nullptr;
     

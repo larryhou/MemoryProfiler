@@ -1093,7 +1093,7 @@ void MemorySnapshotCrawler::dumpMRefChain(address_t address, bool includeCircula
             }
             else if (ec.fromKind == CK_link)
             {
-                auto &link = snapshot->nativeManagedlinks->items[joint.linkIndex];
+                auto &link = snapshot->nativeAppending.links[joint.linkIndex];
                 auto &no = snapshot->nativeObjects->items[link.linkArrayIndex];
                 printf("<LINK>::%s 0x%08llx <=> %s 0x%08llx\n", no.name.c_str(), link.nativeObjectAddress, type.name.c_str(), node.address);
             }
@@ -2976,12 +2976,10 @@ void MemorySnapshotCrawler::dumpUnbalancedEvents(MemoryState state)
 void MemorySnapshotCrawler::crawlLinks()
 {
     __sampler.begin("CrawlLinks");
-    if (snapshot->nativeManagedlinks != nullptr)
+    if (snapshot->nativeAppending.links.size() > 0)
     {
-        auto &links = *snapshot->nativeManagedlinks;
-        
-        auto *iter = links.items;
-        for (auto i = 0; i < links.size; i++)
+        auto &links = snapshot->nativeAppending.links;
+        for (auto iter = links.begin(); iter != links.end(); iter++)
         {
             auto &joint = joints.add();
             joint.jointArrayIndex = joints.size() - 1;
@@ -2990,7 +2988,6 @@ void MemorySnapshotCrawler::crawlLinks()
             joint.gcHandleIndex = -1;
             joint.linkIndex = iter->linkArrayIndex;
             crawlManagedEntryAddress(iter->managedObjectAddress, nullptr, *__memoryReader, joint, false, 0);
-            ++iter;
         }
     }
     __sampler.end();

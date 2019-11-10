@@ -250,13 +250,14 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
             }break;
             case kSnapshotNativeManagedLinkMagicBytes:
             {
-                __sampler.begin("ReadNativeManagedLinks");
+                __sampler.begin("ReadCustomNativeAppending");
+                
+                CustomNativeAppending &appending = snapshot.nativeAppending;
                 
                 auto itemCount = fs.readUInt32();
-                auto nativeManagedLinks = snapshot.nativeManagedlinks = new Array<NativeManagedLink>(itemCount);
                 for (auto i = 0; i < itemCount; i++)
                 {
-                    auto &link = nativeManagedLinks->items[i];
+                    NativeManagedLink link;
                     link.linkArrayIndex = fs.readInt32();
                     assert(i == link.linkArrayIndex);
                     
@@ -267,8 +268,7 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                     auto type = fs.readUInt32();
                     if (type == (1 << 0))
                     {
-                        auto &sprite = link.sprite;
-                        sprite.type = type;
+                        NativeSprite sprite(type);
                         sprite.x = fs.readFloat();
                         sprite.y = fs.readFloat();
                         sprite.width = fs.readFloat();
@@ -276,17 +276,31 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                         auto typeIndex = fs.readInt32();
                         assert(typeIndex != -1);
                         sprite.texture = fs.readUInt64();
+                        link.sprite = (int32_t)appending.sprites.size();
+                        appending.sprites.emplace_back(sprite);
                     }
                     else
                     if (type == (1 << 1))
                     {
-                        auto &tex = link.texture2D;
-                        tex.type = type;
-                        tex.isPOT = !fs.readBoolean();
+                        NativeTexture2D tex(type);
+                        tex.pot = !fs.readBoolean();
                         tex.format = fs.readUInt8();
                         tex.width = fs.readUInt32();
                         tex.height = fs.readUInt32();
+                        auto val = tex.width;
+                        auto pot = true;
+                        while (val > 0)
+                        {
+                            if ((val & 1) == 1) { pot = false; break; }
+                            val >>= 1;
+                        }
+                        tex.pot = tex.width == tex.height && pot;
+                        
+                        link.texture = (int32_t)appending.textures.size();
+                        appending.textures.emplace_back(tex);
                     }
+                    
+                    appending.links.emplace_back(link);
                 }
                 __sampler.end();
             }break;
