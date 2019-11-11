@@ -285,6 +285,7 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                     if (type == (1 << 0)) // Sprite
                     {
                         NativeSprite sprite;
+                        sprite.nativeArrayIndex = i;
                         sprite.x = fs.readFloat();
                         sprite.y = fs.readFloat();
                         sprite.width = fs.readFloat();
@@ -295,10 +296,10 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                         {
                             auto match = indices.find(address);
                             assert(match != indices.end());
-                            sprite.textureNativeArrayIndex = match->second;
+                            sprite.nativeArrayIndex = match->second;
                             Connection c;
                             c.from = offset + i;
-                            c.to = offset + sprite.textureNativeArrayIndex;
+                            c.to = offset + sprite.nativeArrayIndex;
                             connections.emplace_back(c);
                         }
                         
@@ -309,6 +310,7 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                     if (type == (1 << 1)) // Texture2D
                     {
                         NativeTexture2D tex;
+                        tex.nativeArrayIndex = i;
                         tex.pot = !fs.readBoolean();
                         tex.format = fs.readUInt8();
                         tex.width = fs.readUInt32();
@@ -329,6 +331,7 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                     if (type == (1 << 2)) // Transform
                     {
                         NativeTransform transform;
+                        transform.nativeArrayIndex = i;
                         transform.position = fs.read<NativeVector3>();
                         transform.localPosition = fs.read<NativeVector3>();
                         transform.rotation = fs.read<NativeQuaternion>();
@@ -356,6 +359,7 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                     if (type == (1 << 3)) // RectTransform
                     {
                         NativeRectTransform transform;
+                        transform.nativeArrayIndex = i;
                         transform.position = fs.read<NativeVector3>();
                         transform.localPosition = fs.read<NativeVector3>();
                         transform.rotation = fs.read<NativeQuaternion>();
@@ -390,12 +394,14 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                     if (type == (1 << 4)) // GameObject
                     {
                         NativeGameObject go;
+                        go.nativeArrayIndex = i;
                         go.isActive = fs.readBoolean();
                         go.isSelfActive = fs.readBoolean();
+                        go.nativeArrayIndex = i;
                         
                         auto &components = go.components;
                         auto compCount = fs.readUInt32();
-                        for (auto i = 0; i < compCount; i++)
+                        for (auto n = 0; n < compCount; n++)
                         {
                             NativeComponent component;
                             component.behaviour = fs.readBoolean();
@@ -414,7 +420,12 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                                 Connection c;
                                 c.from = offset + i;
                                 c.to = offset + match->second;
+                                component.nativeArrayIndex = match->second;
                                 connections.emplace_back(c);
+                            }
+                            else
+                            {
+                                component.nativeArrayIndex = -1;
                             }
                         }
                         
@@ -429,8 +440,8 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                 
                 for (auto iter = collection.sprites.begin(); iter != collection.sprites.end(); iter++)
                 {
-                    if (iter->textureNativeArrayIndex < 0) {continue;}
-                    auto &appending = collection.appendings[iter->textureNativeArrayIndex];
+                    if (iter->nativeArrayIndex < 0) {continue;}
+                    auto &appending = collection.appendings[iter->nativeArrayIndex];
                     iter->texture = &collection.textures[appending.texture];
                 }
                 

@@ -281,6 +281,46 @@ void processMemorySnapshot(const char * filepath)
                                    }
                                });
         }
+        else if (strbeg(command, "tfm")) // partial native object reference chains
+        {
+            readCommandOptions(command, [&](std::vector<const char *> &options)
+                               {
+                                   for (auto i = 1; i < options.size(); i++)
+                                   {
+                                       mainCrawler.inspectTransform(castAddress(options[i]));
+                                   }
+                               });
+        }
+        else if (strbeg(command, "tex")) // partial native object reference chains
+        {
+            readCommandOptions(command, [&](std::vector<const char *> &options)
+                               {
+                                   for (auto i = 1; i < options.size(); i++)
+                                   {
+                                       mainCrawler.inspectTexture2D(castAddress(options[i]));
+                                   }
+                               });
+        }
+        else if (strbeg(command, "sprite")) // partial native object reference chains
+        {
+            readCommandOptions(command, [&](std::vector<const char *> &options)
+                               {
+                                   for (auto i = 1; i < options.size(); i++)
+                                   {
+                                       mainCrawler.inspectSprite(castAddress(options[i]));
+                                   }
+                               });
+        }
+        else if (strbeg(command, "go")) // partial native object reference chains
+        {
+            readCommandOptions(command, [&](std::vector<const char *> &options)
+                               {
+                                   for (auto i = 1; i < options.size(); i++)
+                                   {
+                                       mainCrawler.inspectGameObject(castAddress(options[i]));
+                                   }
+                               });
+        }
         else if (strbeg(command, "replay"))
         {
             recordable = false;

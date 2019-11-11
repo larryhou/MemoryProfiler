@@ -58,7 +58,12 @@ struct NativeQuaternion
     float x, y, z, w;
 };
 
-struct NativeTransform
+struct NativeObject
+{
+    int32_t nativeArrayIndex;
+};
+
+struct NativeTransform: public NativeObject
 {
     NativeVector3 position;
     NativeVector3 localPosition;
@@ -78,7 +83,7 @@ struct NativeRectTransform: public NativeTransform
     NativeVector2 pivot;
 };
 
-struct NativeComponent
+struct NativeComponent: public NativeObject
 {
     address_t address;
     bool behaviour;
@@ -86,25 +91,24 @@ struct NativeComponent
     bool isActiveAndEnabled;
 };
 
-struct NativeGameObject
+struct NativeGameObject: public NativeObject
 {
     bool isActive;
     bool isSelfActive;
     std::vector<NativeComponent> components;
 };
 
-struct NativeTexture2D
+struct NativeTexture2D: public NativeObject
 {
     bool pot;
     uint8_t format;
     uint32_t width, height;
 };
 
-struct NativeSprite
+struct NativeSprite: public NativeObject
 {
     float x, y, width, height;
     NativeVector2 pivot;
-    int32_t textureNativeArrayIndex = -1;
     NativeTexture2D *texture;
 };
 

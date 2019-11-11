@@ -2973,6 +2973,112 @@ void MemorySnapshotCrawler::dumpUnbalancedEvents(MemoryState state)
     }
 }
 
+void MemorySnapshotCrawler::dumpTransform(NativeTransform &transform)
+{
+    printf("position={x=%.3f, y=%.3f, z=%.3f} localPosition={x=%.3f, y=%.3f, z=%.3f} rotation={x=%.3f, y=%.3f, z=%.3f} localRotation={x=%.3f, y=%.3f, z=%.3f} scale={x=%.3f, y=%.3f, z=%.3f}",
+           transform.position.x, transform.position.y, transform.position.z,
+           transform.localPosition.x, transform.localPosition.y, transform.localPosition.z,
+           transform.rotation.x, transform.rotation.y, transform.rotation.z,
+           transform.localRotation.x, transform.localRotation.y, transform.localRotation.z,
+           transform.scale.x, transform.scale.y, transform.scale.z);
+}
+
+void MemorySnapshotCrawler::inspectTransform(address_t address)
+{
+    auto index = findNObjectAtAddress(address);
+    if (index >= 0)
+    {
+        auto &collection = snapshot->nativeAppendingCollection;
+        auto &appending = collection.appendings[index];
+        if (appending.transform != -1)
+        {
+            auto &transform = collection.transforms[appending.transform];
+            dumpTransform(transform);
+            printf("\n");
+        }
+        else if (appending.rectTransform != -1)
+        {
+            auto &transform = collection.rectTransforms[appending.rectTransform];
+            dumpTransform(transform);
+            printf(" rect={x=%.3f, y=%.3f, width=%.3f, height=%.3f} anchorMin={x=%.3f, y=%.3f} anchorMax={x=%.3f, y=%.3f} sizeDelta={x=%.3f, y=%.3f} pivot={x=%.3f, y=%.3f} anchoredPosition={x=%.3f, y=%.3f}",
+                   transform.rect.x, transform.rect.y, transform.rect.width, transform.rect.height,
+                   transform.anchorMin.x, transform.anchorMin.y,
+                   transform.anchorMax.x, transform.anchorMax.y,
+                   transform.sizeDelta.x, transform.sizeDelta.y,
+                   transform.pivot.x, transform.pivot.y,
+                   transform.anchoredPosition.x, transform.anchoredPosition.y);
+            printf("\n");
+        }
+    }
+}
+
+void MemorySnapshotCrawler::inspectTexture2D(address_t address)
+{
+    auto index = findNObjectAtAddress(address);
+    if (index >= 0)
+    {
+        auto &collection = snapshot->nativeAppendingCollection;
+        auto &appending = collection.appendings[index];
+        if (appending.texture != -1)
+        {
+            auto &tex = collection.textures[appending.texture];
+            printf("POT=%s format=%d width=%d height=%d\n", tex.pot? "false" : "true", tex.format, tex.width, tex.height);
+        }
+    }
+}
+
+void MemorySnapshotCrawler::inspectSprite(address_t address)
+{
+    auto index = findNObjectAtAddress(address);
+    if (index >= 0)
+    {
+        auto &collection = snapshot->nativeAppendingCollection;
+        auto &appending = collection.appendings[index];
+        if (appending.sprite != -1)
+        {
+            auto &tex = collection.sprites[appending.sprite];
+            printf("rect={x=%.3f, y=%.3f, width=%.3f, height=%.3f} pivot={x=%.3f, y=%.3f}\n",
+                   tex.x, tex.y, tex.width, tex.height, tex.pivot.x, tex.pivot.y);
+        }
+    }
+}
+
+void MemorySnapshotCrawler::inspectGameObject(address_t address)
+{
+    auto index = findNObjectAtAddress(address);
+    if (index >= 0)
+    {
+        auto &collection = snapshot->nativeAppendingCollection;
+        auto &appending = collection.appendings[index];
+        if (appending.gameObject != -1)
+        {
+            auto &go = collection.gameObjects[appending.gameObject];
+            auto &no = snapshot->nativeObjects->items[go.nativeArrayIndex];
+            printf("0x%llx '%s' isActive=%s isSelfActive=%s\n", appending.link.nativeAddress, no.name.c_str(), go.isActive? "true" : "false", go.isSelfActive? "true":"false");
+            for (auto i = 0; i < go.components.size(); i++)
+            {
+                auto &component = go.components[i];
+                if (component.nativeArrayIndex == -1) {continue;}
+                auto &cno = snapshot->nativeObjects->items[component.nativeArrayIndex];
+                
+                printf("  - 0x%llx %s", component.address, cno.name.c_str());
+                if (component.behaviour)
+                {
+                    printf(" enabled=%s isActiveAndEnabled=%s", component.enabled? "true":"false", component.isActiveAndEnabled? "true":"false");
+                }
+                auto &item = collection.appendings[component.nativeArrayIndex];
+                auto typeIndex = findTypeAtTypeAddress(item.link.managedTypeAddress);
+                if (typeIndex >= 0)
+                {
+                    auto &cmt = snapshot->typeDescriptions->items[typeIndex];
+                    printf(" M[0x%llx %s]", item.link.managedAddress, cmt.name.c_str());
+                }
+                printf("\n");
+            }
+        }
+    }
+}
+
 void MemorySnapshotCrawler::crawlLinks()
 {
     __sampler.begin("CrawlLinks");

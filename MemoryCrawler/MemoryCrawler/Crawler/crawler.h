@@ -172,6 +172,11 @@ public:
     void retrieveMulticastDelegate(address_t address);
     void dumpMulticastDelegateHierarchy(address_t address, address_t highlight, vector<FieldDescription *> &fields, const char *indent);
     
+    void inspectGameObject(address_t address);
+    void inspectTransform(address_t address);
+    void inspectTexture2D(address_t address);
+    void inspectSprite(address_t address);
+    
     void inspectMType(int32_t typeIndex);
     void inspectNType(int32_t typeIndex);
     
@@ -261,6 +266,7 @@ private:
     void printByteArray(const char *data, int32_t size);
     
     string getNestIndent(const char *__indent, size_t __preindent_size, bool closed);
+    void dumpTransform(NativeTransform &transform);
     
     void summarize();
 };
