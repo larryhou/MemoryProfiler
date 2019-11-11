@@ -35,6 +35,7 @@ struct NativeManagedLink
     int32_t nativeArrayIndex;
     address_t nativeAddress;
     address_t managedAddress;
+    address_t managedTypeAddress;
 };
 
 struct NativeVector2

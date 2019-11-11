@@ -2987,7 +2987,16 @@ void MemorySnapshotCrawler::crawlLinks()
             // set gcHandle info
             joint.gcHandleIndex = -1;
             joint.linkArrayIndex = iter->link.nativeArrayIndex;
-            crawlManagedEntryAddress(iter->link.managedAddress, nullptr, *__memoryReader, joint, false, 0);
+            
+            if (iter->link.managedTypeAddress != 0)
+            {
+                auto typeIndex = findTypeAtTypeAddress(iter->link.managedTypeAddress);
+                if (typeIndex != -1)
+                {
+                    auto &type = snapshot->typeDescriptions->items[typeIndex];
+                    crawlManagedEntryAddress(iter->link.managedAddress, &type, *__memoryReader, joint, true, 0);
+                }
+            }
         }
     }
     __sampler.end();

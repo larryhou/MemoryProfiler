@@ -262,6 +262,9 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                     }
                 }
                 
+                std::vector<Connection> connections;
+                auto offset = snapshot.gcHandles->size;
+                
                 auto itemCount = fs.readUInt32();
                 for (auto i = 0; i < itemCount; i++)
                 {
@@ -273,6 +276,10 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                     link.nativeTypeArrayIndex = fs.readInt32();
                     link.nativeAddress = fs.readUInt64();
                     link.managedAddress = fs.readUInt64();
+                    if (link.managedAddress != 0)
+                    {
+                        link.managedTypeAddress = fs.readUInt64();
+                    }
                     
                     auto type = fs.readUInt32();
                     if (type == (1 << 0)) // Sprite
@@ -289,6 +296,10 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                             auto match = indices.find(address);
                             assert(match != indices.end());
                             sprite.textureNativeArrayIndex = match->second;
+                            Connection c;
+                            c.from = offset + i;
+                            c.to = offset + sprite.textureNativeArrayIndex;
+                            connections.emplace_back(c);
                         }
                         
                         appending.sprite = (int32_t)collection.sprites.size();
@@ -324,8 +335,22 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                         transform.localRotation = fs.read<NativeQuaternion>();
                         transform.scale = fs.read<NativeVector3>();
                         transform.parent = fs.readUInt64();
+                        
                         appending.transform = (int32_t)collection.transforms.size();
                         collection.transforms.emplace_back(transform);
+                        
+                        // generate connection
+                        if (transform.parent != 0)
+                        {
+                            auto match = indices.find(transform.parent);
+                            if (match != indices.end())
+                            {
+                                Connection c;
+                                c.from = offset + match->second;
+                                c.to = offset + i;
+                                connections.emplace_back(c);
+                            }
+                        }
                     }
                     else
                     if (type == (1 << 3)) // RectTransform
@@ -337,6 +362,20 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                         transform.localRotation = fs.read<NativeQuaternion>();
                         transform.scale = fs.read<NativeVector3>();
                         transform.parent = fs.readUInt64();
+                        
+                        // generate connection
+                        if (transform.parent != 0)
+                        {
+                            auto match = indices.find(transform.parent);
+                            if (match != indices.end())
+                            {
+                                Connection c;
+                                c.from = offset + match->second;
+                                c.to = offset + i;
+                                connections.emplace_back(c);
+                            }
+                        }
+                        
                         // RectTransform
                         transform.rect = fs.read<NativeRect>();
                         transform.anchorMin = fs.read<NativeVector2>();
@@ -367,6 +406,16 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                             }
                             component.address = fs.readUInt64();
                             components.emplace_back(component);
+                            
+                            // generate connection
+                            auto match = indices.find(component.address);
+                            if (match != indices.end())
+                            {
+                                Connection c;
+                                c.from = offset + i;
+                                c.to = offset + match->second;
+                                connections.emplace_back(c);
+                            }
                         }
                         
                         appending.gameObject = (int32_t)collection.gameObjects.size();
@@ -384,6 +433,14 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                     auto &appending = collection.appendings[iter->textureNativeArrayIndex];
                     iter->texture = &collection.textures[appending.texture];
                 }
+                
+                Array<Connection> *newConnections = new Array<Connection>(snapshot.connections->size + (uint32_t)connections.size());
+                memcpy(newConnections->items, snapshot.connections->items, snapshot.connections->size * sizeof(Connection));
+                memcpy(newConnections->items + snapshot.connections->size, &connections.front(), connections.size() * sizeof(Connection));
+                
+                delete snapshot.connections;
+                snapshot.connections = newConnections;
+                
                 __sampler.end();
             }break;
             default: break;
