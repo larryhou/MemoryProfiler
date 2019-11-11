@@ -3075,10 +3075,10 @@ void MemorySnapshotCrawler::inspectComponent(address_t address)
         if (match != map.end())
         {
             auto component = match->second;
-            auto &gno = snapshot->nativeObjects->items[component->gameObjectNativeArrayIndex];
+            auto &go = snapshot->nativeObjects->items[component->gameObjectNativeArrayIndex];
             auto &no = snapshot->nativeObjects->items[component->nativeArrayIndex];
             auto &nt = snapshot->nativeTypes->items[no.nativeTypeArrayIndex];
-            printf("0x%llx %s '%s' GameObject[0x%llx '%s']\n", component->address, nt.name.c_str(), no.name.c_str(), gno.nativeObjectAddress, gno.name.c_str());
+            printf("0x%llx %s '%s' GameObject[0x%llx '%s']\n", component->address, nt.name.c_str(), no.name.c_str(), go.nativeObjectAddress, go.name.c_str());
         }
     }
 }
