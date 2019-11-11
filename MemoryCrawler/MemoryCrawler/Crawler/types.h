@@ -12,7 +12,7 @@
 #include <string>
 
 using byte_t = unsigned char;
-using address_t = int64_t;
+using address_t = uint64_t;
 using seekdir_t = std::ios_base::seekdir;
 using unicode_t = std::u16string;
 using std::string;

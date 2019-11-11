@@ -259,6 +259,7 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                     for (auto i = 0; i < snapshot.nativeObjects->size; i++)
                     {
                         indices.insert(std::make_pair(iter->nativeObjectAddress, i));
+                        ++iter;
                     }
                 }
                 
@@ -282,8 +283,7 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                         sprite.y = fs.readFloat();
                         sprite.width = fs.readFloat();
                         sprite.height = fs.readFloat();
-                        auto nativeTypeIndex = fs.readInt32();
-                        assert(nativeTypeIndex != -1);
+                        sprite.pivot = fs.read<NativeVector2>();
                         auto address = fs.readUInt64();
                         if (address > 0)
                         {
@@ -305,7 +305,7 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                         tex.height = fs.readUInt32();
                         auto val = tex.width;
                         auto pot = true;
-                        while (val > 0)
+                        while (val > 2)
                         {
                             if ((val & 1) == 1) { pot = false; break; }
                             val >>= 1;
@@ -318,19 +318,65 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                     else
                     if (type == (1 << 2)) // Transform
                     {
-                        fs.read(buf, sizeof(NativeTransform));
+                        NativeTransform transform;
+                        transform.position = fs.read<NativeVector3>();
+                        transform.localPosition = fs.read<NativeVector3>();
+                        transform.rotation = fs.read<NativeQuaternion>();
+                        transform.localRotation = fs.read<NativeQuaternion>();
+                        transform.scale = fs.read<NativeVector3>();
+                        transform.parent = fs.readUInt64();
                         appending.transform = (int32_t)collection.transforms.size();
-                        collection.transforms.emplace_back(*(NativeTransform *)buf);
+                        collection.transforms.emplace_back(transform);
                     }
                     else
                     if (type == (1 << 3)) // RectTransform
                     {
-                        fs.read(buf, sizeof(NativeRectTransform));
+                        NativeRectTransform transform;
+                        transform.position = fs.read<NativeVector3>();
+                        transform.localPosition = fs.read<NativeVector3>();
+                        transform.rotation = fs.read<NativeQuaternion>();
+                        transform.localRotation = fs.read<NativeQuaternion>();
+                        transform.scale = fs.read<NativeVector3>();
+                        transform.parent = fs.readUInt64();
+                        // RectTransform
+                        transform.rect = fs.read<NativeRect>();
+                        transform.anchorMin = fs.read<NativeVector2>();
+                        transform.anchorMax = fs.read<NativeVector2>();
+                        transform.sizeDelta = fs.read<NativeVector2>();
+                        transform.anchoredPosition = fs.read<NativeVector2>();
+                        transform.pivot = fs.read<NativeVector2>();
                         appending.rectTransform = (int32_t)collection.rectTransforms.size();
-                        collection.rectTransforms.emplace_back(*(NativeRectTransform *)buf);
+                        collection.rectTransforms.emplace_back(transform);
                     }
-                
+                    else
+                    if (type == (1 << 4)) // GameObject
+                    {
+                        NativeGameObject go;
+                        go.isActive = fs.readBoolean();
+                        go.isSelfActive = fs.readBoolean();
+                        
+                        auto &components = go.components;
+                        auto compCount = fs.readUInt32();
+                        for (auto i = 0; i < compCount; i++)
+                        {
+                            NativeComponent component;
+                            component.isBehaviour = fs.readBoolean();
+                            if (component.isBehaviour)
+                            {
+                                component.enabled = fs.readBoolean();
+                                component.isActiveAndEnabled = fs.readBoolean();
+                            }
+                            component.address = fs.readUInt64();
+                            components.emplace_back(component);
+                        }
+                        
+                        appending.gameObject = (int32_t)collection.gameObjects.size();
+                        collection.gameObjects.emplace_back(go);
+                    }
+                    
                     collection.appendings.emplace_back(appending);
+                    auto magic = fs.readUInt32();
+                    assert(magic == 0x89ABCDEF);
                 }
                 
                 for (auto iter = collection.sprites.begin(); iter != collection.sprites.end(); iter++)

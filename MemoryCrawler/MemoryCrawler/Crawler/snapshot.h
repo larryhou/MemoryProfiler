@@ -52,12 +52,19 @@ struct NativeRect
     float x, y, width, height;
 };
 
+struct NativeQuaternion
+{
+    float x, y, z, w;
+};
+
 struct NativeTransform
 {
     NativeVector3 position;
     NativeVector3 localPosition;
-    NativeVector3 eulerAngels;
-    NativeVector3 localEulerAngels;
+    NativeQuaternion rotation;
+    NativeQuaternion localRotation;
+    NativeVector3 scale;
+    address_t parent;
 };
 
 struct NativeRectTransform: public NativeTransform
@@ -65,10 +72,24 @@ struct NativeRectTransform: public NativeTransform
     NativeRect rect;
     NativeVector2 anchorMin;
     NativeVector2 anchorMax;
-    NativeVector2 offsetMin;
-    NativeVector2 offsetMax;
-    NativeVector3 anchoredPosition;
+    NativeVector2 sizeDelta;
+    NativeVector2 anchoredPosition;
     NativeVector2 pivot;
+};
+
+struct NativeComponent
+{
+    address_t address;
+    bool isBehaviour;
+    bool enabled;
+    bool isActiveAndEnabled;
+};
+
+struct NativeGameObject
+{
+    bool isActive;
+    bool isSelfActive;
+    std::vector<NativeComponent> components;
 };
 
 struct NativeTexture2D
@@ -81,6 +102,7 @@ struct NativeTexture2D
 struct NativeSprite
 {
     float x, y, width, height;
+    NativeVector2 pivot;
     int32_t textureNativeArrayIndex = -1;
     NativeTexture2D *texture;
 };
@@ -93,6 +115,7 @@ struct NativeAppending
     int32_t texture = -1;
     int32_t transform = -1;
     int32_t rectTransform = -1;
+    int32_t gameObject = -1;
 };
 
 struct NativeAppendingCollection
@@ -101,6 +124,7 @@ struct NativeAppendingCollection
     std::vector<NativeTexture2D> textures;
     std::vector<NativeTransform> transforms;
     std::vector<NativeRectTransform> rectTransforms;
+    std::vector<NativeGameObject> gameObjects;
     std::vector<NativeAppending> appendings;
 };
 
