@@ -80,7 +80,7 @@ struct NativeRectTransform: public NativeTransform
 struct NativeComponent
 {
     address_t address;
-    bool isBehaviour;
+    bool isBehaviourComponent;
     bool enabled;
     bool isActiveAndEnabled;
 };
