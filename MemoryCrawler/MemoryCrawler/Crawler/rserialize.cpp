@@ -360,8 +360,8 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                         for (auto i = 0; i < compCount; i++)
                         {
                             NativeComponent component;
-                            component.isBehaviourComponent = fs.readBoolean();
-                            if (component.isBehaviourComponent)
+                            component.behaviour = fs.readBoolean();
+                            if (component.behaviour)
                             {
                                 component.enabled = fs.readBoolean();
                                 component.isActiveAndEnabled = fs.readBoolean();
