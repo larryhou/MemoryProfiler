@@ -37,26 +37,52 @@ struct NativeManagedLink
     address_t managedAddress;
 };
 
-struct NativeObject
+struct NativeVector2
 {
-    uint32_t type;
-    NativeObject(uint32_t t): type(t) {}
+    float x, y;
 };
 
-struct NativeTexture2D: public NativeObject
+struct NativeVector3: public NativeVector2
+{
+    float z;
+};
+
+struct NativeRect
+{
+    float x, y, width, height;
+};
+
+struct NativeTransform
+{
+    NativeVector3 position;
+    NativeVector3 localPosition;
+    NativeVector3 eulerAngels;
+    NativeVector3 localEulerAngels;
+};
+
+struct NativeRectTransform: public NativeTransform
+{
+    NativeRect rect;
+    NativeVector2 anchorMin;
+    NativeVector2 anchorMax;
+    NativeVector2 offsetMin;
+    NativeVector2 offsetMax;
+    NativeVector3 anchoredPosition;
+    NativeVector2 pivot;
+};
+
+struct NativeTexture2D
 {
     bool pot;
     uint8_t format;
     uint32_t width, height;
-    NativeTexture2D(uint32_t t): NativeObject(t) {}
 };
 
-struct NativeSprite: public NativeObject
+struct NativeSprite
 {
     float x, y, width, height;
     int32_t textureNativeArrayIndex = -1;
     NativeTexture2D *texture;
-    NativeSprite(uint32_t t): NativeObject(t) {}
 };
 
 struct NativeAppending
@@ -65,12 +91,16 @@ struct NativeAppending
     
     int32_t sprite = -1;
     int32_t texture = -1;
+    int32_t transform = -1;
+    int32_t rectTransform = -1;
 };
 
 struct NativeAppendingCollection
 {
     std::vector<NativeSprite> sprites;
     std::vector<NativeTexture2D> textures;
+    std::vector<NativeTransform> transforms;
+    std::vector<NativeRectTransform> rectTransforms;
     std::vector<NativeAppending> appendings;
 };
 

@@ -251,7 +251,7 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
             case kSnapshotNativeManagedLinkMagicBytes:
             {
                 __sampler.begin("ReadNativeAppending");
-                
+                char buf[256];
                 NativeAppendingCollection &collection = snapshot.nativeAppendingCollection;
                 std::map<address_t, int32_t> indices;
                 {
@@ -275,9 +275,9 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                     link.managedAddress = fs.readUInt64();
                     
                     auto type = fs.readUInt32();
-                    if (type == (1 << 0))
+                    if (type == (1 << 0)) // Sprite
                     {
-                        NativeSprite sprite(type);
+                        NativeSprite sprite;
                         sprite.x = fs.readFloat();
                         sprite.y = fs.readFloat();
                         sprite.width = fs.readFloat();
@@ -296,9 +296,9 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                         collection.sprites.emplace_back(sprite);
                     }
                     else
-                    if (type == (1 << 1))
+                    if (type == (1 << 1)) // Texture2D
                     {
-                        NativeTexture2D tex(type);
+                        NativeTexture2D tex;
                         tex.pot = !fs.readBoolean();
                         tex.format = fs.readUInt8();
                         tex.width = fs.readUInt32();
@@ -315,7 +315,21 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                         appending.texture = (int32_t)collection.textures.size();
                         collection.textures.emplace_back(tex);
                     }
-                    
+                    else
+                    if (type == (1 << 2)) // Transform
+                    {
+                        fs.read(buf, sizeof(NativeTransform));
+                        appending.transform = (int32_t)collection.transforms.size();
+                        collection.transforms.emplace_back(*(NativeTransform *)buf);
+                    }
+                    else
+                    if (type == (1 << 3)) // RectTransform
+                    {
+                        fs.read(buf, sizeof(NativeRectTransform));
+                        appending.rectTransform = (int32_t)collection.rectTransforms.size();
+                        collection.rectTransforms.emplace_back(*(NativeRectTransform *)buf);
+                    }
+                
                     collection.appendings.emplace_back(appending);
                 }
                 
