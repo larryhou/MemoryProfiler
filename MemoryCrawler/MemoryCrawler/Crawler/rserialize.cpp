@@ -251,7 +251,6 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
             case kSnapshotNativeManagedLinkMagicBytes:
             {
                 __sampler.begin("ReadNativeAppending");
-                char buf[256];
                 NativeAppendingCollection &collection = snapshot.nativeAppendingCollection;
                 std::map<address_t, int32_t> indices;
                 {
