@@ -281,6 +281,16 @@ void processMemorySnapshot(const char * filepath)
                                    }
                                });
         }
+        else if (strbeg(command, "comp")) // partial native object reference chains
+        {
+            readCommandOptions(command, [&](std::vector<const char *> &options)
+                               {
+                                   for (auto i = 1; i < options.size(); i++)
+                                   {
+                                       mainCrawler.inspectComponent(castAddress(options[i]));
+                                   }
+                               });
+        }
         else if (strbeg(command, "tfm")) // partial native object reference chains
         {
             readCommandOptions(command, [&](std::vector<const char *> &options)

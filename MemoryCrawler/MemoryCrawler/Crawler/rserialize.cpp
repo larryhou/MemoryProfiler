@@ -416,7 +416,6 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                                 component.isActiveAndEnabled = fs.readBoolean();
                             }
                             component.address = fs.readUInt64();
-                            components.emplace_back(component);
                             
                             // generate connection
                             auto match = indices.find(component.address);
@@ -426,12 +425,17 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                                 c.from = offset + i;
                                 c.to = offset + match->second;
                                 component.nativeArrayIndex = match->second;
+                                component.gameObjectNativeArrayIndex = i;
                                 connections.emplace_back(c);
                             }
                             else
                             {
                                 component.nativeArrayIndex = -1;
+                                component.gameObjectNativeArrayIndex = -1;
                             }
+                            
+                            components.emplace_back(collection.components.size());
+                            collection.components.emplace_back(component);
                         }
                         
                         appending.gameObject = (int32_t)collection.gameObjects.size();
@@ -456,6 +460,12 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                 
                 delete snapshot.connections;
                 snapshot.connections = newConnections;
+                
+                for (auto iter = collection.components.begin(); iter != collection.components.end(); iter++)
+                {
+                    auto &component = *iter;
+                    collection.componentAddressMap.insert(std::make_pair(component.address, &component));
+                }
                 
                 __sampler.end();
             }break;

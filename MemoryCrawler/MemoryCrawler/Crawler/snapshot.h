@@ -9,6 +9,7 @@
 #ifndef snapshot_h
 #define snapshot_h
 
+#include <map>
 #include <string>
 #include <vector>
 #include "types.h"
@@ -89,13 +90,14 @@ struct NativeComponent: public NativeObject
     bool behaviour;
     bool enabled;
     bool isActiveAndEnabled;
+    int32_t gameObjectNativeArrayIndex;
 };
 
 struct NativeGameObject: public NativeObject
 {
     bool isActive;
     bool isSelfActive;
-    std::vector<NativeComponent> components;
+    std::vector<int32_t> components;
 };
 
 struct NativeTexture2D: public NativeObject
@@ -132,6 +134,8 @@ struct NativeAppendingCollection
     std::vector<NativeRectTransform> rectTransforms;
     std::vector<NativeGameObject> gameObjects;
     std::vector<NativeAppending> appendings;
+    std::vector<NativeComponent> components;
+    std::map<address_t, NativeComponent *> componentAddressMap;
 };
 
 struct FieldDescription

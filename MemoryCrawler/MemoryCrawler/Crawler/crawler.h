@@ -173,6 +173,7 @@ public:
     void dumpMulticastDelegateHierarchy(address_t address, address_t highlight, vector<FieldDescription *> &fields, const char *indent);
     
     void inspectGameObject(address_t address);
+    void inspectComponent(address_t address);
     void inspectTransform(address_t address);
     void inspectTexture2D(address_t address);
     void inspectSprite(address_t address);
