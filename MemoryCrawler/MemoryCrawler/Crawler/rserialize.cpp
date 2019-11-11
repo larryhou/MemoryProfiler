@@ -17,7 +17,7 @@ const uint32_t kSnapshotNativeTypesMagicBytes = 0x78514753;
 const uint32_t kSnapshotNativeObjectsMagicBytes = 0x6173FAFE;
 const uint32_t kSnapshotRuntimeInfoMagicBytes = 0x0183EFAC;
 const uint32_t kSnapshotTailMagicBytes = 0x865EEAAF;
-const uint32_t kSnapshotNativeManagedLinkMagicBytes = 0x55AA55AA;
+const uint32_t kSnapshotNativeAppendingMagicBytes = 0x55AA55AA;
 
 void readMemorySectionR(MemorySection &section, FileStream &fs)
 {
@@ -248,7 +248,7 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                 assert(fs.readUInt32() == kSnapshotTailMagicBytes);
                 __sampler.end();
             }break;
-            case kSnapshotNativeManagedLinkMagicBytes:
+            case kSnapshotNativeAppendingMagicBytes:
             {
                 __sampler.begin("ReadNativeAppending");
                 NativeAppendingCollection &collection = snapshot.nativeAppendingCollection;
