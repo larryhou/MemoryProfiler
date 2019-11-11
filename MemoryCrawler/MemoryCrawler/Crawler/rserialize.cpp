@@ -296,11 +296,16 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                         {
                             auto match = indices.find(address);
                             assert(match != indices.end());
-                            sprite.nativeArrayIndex = match->second;
+                            sprite.textureNativeArrayIndex = match->second;
                             Connection c;
                             c.from = offset + i;
-                            c.to = offset + sprite.nativeArrayIndex;
+                            c.to = offset + sprite.textureNativeArrayIndex;
                             connections.emplace_back(c);
+                        }
+                        else
+                        {
+                            sprite.nativeArrayIndex = -1;
+                            sprite.textureNativeArrayIndex = -1;
                         }
                         
                         appending.sprite = (int32_t)collection.sprites.size();

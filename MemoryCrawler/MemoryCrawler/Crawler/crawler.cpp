@@ -460,6 +460,7 @@ void MemorySnapshotCrawler::trackNTypeObjects(MemoryState state, int32_t typeInd
                             indice.push_back(itemIndex);
                         }
                     }, 0);
+    auto &collection = snapshot->nativeAppendingCollection;
     auto listCount = 0;
     for (auto i = indice.begin(); i != indice.end(); i++)
     {
@@ -467,7 +468,28 @@ void MemorySnapshotCrawler::trackNTypeObjects(MemoryState state, int32_t typeInd
         
         auto &no = snapshot->nativeObjects->items[*i];
         auto &type = snapshot->nativeTypes->items[no.nativeTypeArrayIndex];
-        printf("0x%08llx %8d %s '%s'\n", no.nativeObjectAddress, no.size, type.name.c_str(), no.name.c_str());
+        printf("0x%08llx %8d %s '%s'", no.nativeObjectAddress, no.size, type.name.c_str(), no.name.c_str());
+        if (collection.appendings.size() > 0)
+        {
+            auto &appending = collection.appendings[no.nativeObjectArrayIndex];
+            if (typeIndex == snapshot->nativeTypeIndex.Sprite)
+            {
+                auto &sprite = collection.sprites[appending.sprite];
+                printf(" rect={x=%.0f, y=%.0f, width=%.0f, height=%.0f} pivot={x=%.2f, y=%.2f}",
+                       sprite.x, sprite.y, sprite.width, sprite.height, sprite.pivot.x, sprite.pivot.y);
+                if (sprite.textureNativeArrayIndex >= 0)
+                {
+                    auto &texture = snapshot->nativeObjects->items[sprite.textureNativeArrayIndex];
+                    printf(" T[Texture2D=0x%llx %s]", texture.nativeObjectAddress, texture.name.c_str());
+                }
+            }
+            else if (typeIndex == snapshot->nativeTypeIndex.Texture2D)
+            {
+                auto &tex = collection.textures[appending.texture];
+                printf(" pot=%s format=%d %dx%d", tex.pot? "false" : "true", tex.format, tex.width, tex.height);
+            }
+        }
+        printf("\n");
     }
     printf("\e[37m[SUMMARY] total_count=%d memory=%d\n", count, total);
 }
@@ -3036,9 +3058,9 @@ void MemorySnapshotCrawler::inspectSprite(address_t address)
         auto &appending = collection.appendings[index];
         if (appending.sprite != -1)
         {
-            auto &tex = collection.sprites[appending.sprite];
+            auto &sprite = collection.sprites[appending.sprite];
             printf("rect={x=%.3f, y=%.3f, width=%.3f, height=%.3f} pivot={x=%.3f, y=%.3f}\n",
-                   tex.x, tex.y, tex.width, tex.height, tex.pivot.x, tex.pivot.y);
+                   sprite.x, sprite.y, sprite.width, sprite.height, sprite.pivot.x, sprite.pivot.y);
         }
     }
 }

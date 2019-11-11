@@ -407,16 +407,22 @@ void MemorySnapshotDeserializer::prepareSnapshot()
     
     __sampler.begin("SetNativeTypeIndex");
     string sFont("Font");
+    string sGameObject("GameObject");
+    string sTexture2D("Texture2D");
+    string sSprite("Sprite");
+    string sTransform("Transform");
+    string sRectTransform("RectTransform");
     Array<PackedNativeType> &nativeTypes = *__snapshot->nativeTypes;
     for (auto i = 0; i < nativeTypes.size; i++)
     {
         auto &nt = nativeTypes[i];
         nt.typeIndex = i;
-        if (strend(&nt.name, &sFont))
-        {
-            __snapshot->nativeTypeIndex.Font = i;
-        }
-        
+        if (strend(&nt.name, &sFont)) { __snapshot->nativeTypeIndex.Font = i; }
+        else if (strcmp(nt.name.c_str(), sGameObject.c_str()) == 0) { __snapshot->nativeTypeIndex.GameObject = i; }
+        else if (strcmp(nt.name.c_str(), sTexture2D.c_str()) == 0) { __snapshot->nativeTypeIndex.Texture2D = i; }
+        else if (strcmp(nt.name.c_str(), sSprite.c_str()) == 0) { __snapshot->nativeTypeIndex.Sprite = i; }
+        else if (strcmp(nt.name.c_str(), sTransform.c_str()) == 0) { __snapshot->nativeTypeIndex.Transform = i; }
+        else if (strcmp(nt.name.c_str(), sRectTransform.c_str()) == 0) { __snapshot->nativeTypeIndex.RectTransform = i; }
     }
     __sampler.end();
     

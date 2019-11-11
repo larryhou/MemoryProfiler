@@ -110,6 +110,7 @@ struct NativeSprite: public NativeObject
     float x, y, width, height;
     NativeVector2 pivot;
     NativeTexture2D *texture;
+    int32_t textureNativeArrayIndex;
 };
 
 struct NativeAppending
