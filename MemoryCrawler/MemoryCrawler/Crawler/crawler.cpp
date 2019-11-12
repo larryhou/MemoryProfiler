@@ -486,7 +486,7 @@ void MemorySnapshotCrawler::trackNTypeObjects(MemoryState state, int32_t typeInd
             else if (typeIndex == snapshot->nativeTypeIndex.Texture2D)
             {
                 auto &tex = collection.textures[appending.texture];
-                printf(" pot=%s format=%d %dx%d", tex.pot? "false" : "true", tex.format, tex.width, tex.height);
+                printf(" pot=%s format=%d %dx%d", tex.pot? "true" : "false", tex.format, tex.width, tex.height);
             }
         }
         printf("\n");
@@ -3044,7 +3044,7 @@ void MemorySnapshotCrawler::inspectTexture2D(address_t address)
         if (appending.texture != -1)
         {
             auto &tex = collection.textures[appending.texture];
-            printf("POT=%s format=%d width=%d height=%d\n", tex.pot? "false" : "true", tex.format, tex.width, tex.height);
+            printf("pot=%s format=%d width=%d height=%d\n", tex.pot? "true" : "false", tex.format, tex.width, tex.height);
         }
     }
 }
