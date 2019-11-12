@@ -3095,7 +3095,7 @@ void MemorySnapshotCrawler::inspectGameObject(address_t address)
             auto &go = collection.gameObjects[appending.gameObject];
             auto &no = snapshot->nativeObjects->items[go.nativeArrayIndex];
             auto &nt = snapshot->nativeTypes->items[no.nativeTypeArrayIndex];
-            printf("0x%llx %s '%s' isActive=%s isSelfActive=%s\n", appending.link.nativeAddress, nt.name.c_str(), no.name.c_str(), go.isActive? "true" : "false", go.isSelfActive? "true":"false");
+            printf("0x%llx '%s' %s isActive=%s isSelfActive=%s\n", appending.link.nativeAddress, no.name.c_str(), nt.name.c_str(), go.isActive? "true" : "false", go.isSelfActive? "true":"false");
             for (auto i = 0; i < go.components.size(); i++)
             {
                 auto index = go.components[i];
@@ -3103,7 +3103,7 @@ void MemorySnapshotCrawler::inspectGameObject(address_t address)
                 if (component.nativeArrayIndex == -1) {continue;}
                 auto &cno = snapshot->nativeObjects->items[component.nativeArrayIndex];
                 auto &cnt = snapshot->nativeTypes->items[cno.nativeTypeArrayIndex];
-                printf("  - 0x%llx %s '%s'", component.address, cnt.name.c_str(), cno.name.c_str());
+                printf("  - 0x%llx '%s' %s", component.address, cno.name.c_str(), cnt.name.c_str());
                 if (component.behaviour)
                 {
                     printf(" enabled=%s isActiveAndEnabled=%s", component.enabled? "true":"false", component.isActiveAndEnabled? "true":"false");
