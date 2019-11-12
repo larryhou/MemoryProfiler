@@ -421,12 +421,8 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                             auto match = indices.find(component.address);
                             if (match != indices.end())
                             {
-                                Connection c;
-                                c.from = offset + i;
-                                c.to = offset + match->second;
                                 component.nativeArrayIndex = match->second;
                                 component.gameObjectNativeArrayIndex = i;
-                                connections.emplace_back(c);
                             }
                             else
                             {
