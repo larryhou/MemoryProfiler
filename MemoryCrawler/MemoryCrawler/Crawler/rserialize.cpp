@@ -344,21 +344,11 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                         transform.scale = fs.read<NativeVector3>();
                         transform.parent = fs.readUInt64();
                         
+                        auto count = fs.readUInt32();
+                        while (count-- > 0) {transform.children.push_back(fs.readUInt64());}
+                        
                         appending.transform = (int32_t)collection.transforms.size();
                         collection.transforms.emplace_back(transform);
-                        
-                        // generate connection
-                        if (transform.parent != 0)
-                        {
-                            auto match = indices.find(transform.parent);
-                            if (match != indices.end())
-                            {
-                                Connection c;
-                                c.from = offset + match->second;
-                                c.to = offset + i;
-                                connections.emplace_back(c);
-                            }
-                        }
                     }
                     else
                     if (type == (1 << 3)) // RectTransform
@@ -372,18 +362,8 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                         transform.scale = fs.read<NativeVector3>();
                         transform.parent = fs.readUInt64();
                         
-                        // generate connection
-                        if (transform.parent != 0)
-                        {
-                            auto match = indices.find(transform.parent);
-                            if (match != indices.end())
-                            {
-                                Connection c;
-                                c.from = offset + match->second;
-                                c.to = offset + i;
-                                connections.emplace_back(c);
-                            }
-                        }
+                        auto count = fs.readUInt32();
+                        while (count-- > 0) {transform.children.push_back(fs.readUInt64());}
                         
                         // RectTransform
                         transform.rect = fs.read<NativeRect>();
@@ -443,6 +423,7 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                     assert(magic == 0x89ABCDEF);
                 }
                 
+                // connect Sprite object to Texture2D object
                 for (auto iter = collection.sprites.begin(); iter != collection.sprites.end(); iter++)
                 {
                     if (iter->nativeArrayIndex < 0) {continue;}
@@ -450,17 +431,56 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                     iter->texture = &collection.textures[appending.texture];
                 }
                 
+                // generate Transform connections
+                for (auto iter = collection.transforms.begin(); iter != collection.transforms.end(); iter++)
+                {
+                    for (auto child = iter->children.begin(); child != iter->children.end(); child++)
+                    {
+                        auto match = indices.find(*child);
+                        if (match != indices.end())
+                        {
+                            Connection c;
+                            c.to = offset + match->second;
+                            c.from = offset + iter->nativeArrayIndex;
+                            connections.emplace_back(c);
+                        }
+                    }
+                }
+                
+                // generate RectTransform connections
+                for (auto iter = collection.rectTransforms.begin(); iter != collection.rectTransforms.end(); iter++)
+                {
+                    for (auto child = iter->children.begin(); child != iter->children.end(); child++)
+                    {
+                        auto match = indices.find(*child);
+                        if (match != indices.end())
+                        {
+                            Connection c;
+                            c.to = offset + match->second;
+                            c.from = offset + iter->nativeArrayIndex;
+                            connections.emplace_back(c);
+                        }
+                    }
+                }
+                
+#ifdef APPEND_CONNECTIONS
                 Array<Connection> *newConnections = new Array<Connection>(snapshot.connections->size + (uint32_t)connections.size());
                 memcpy(newConnections->items, snapshot.connections->items, snapshot.connections->size * sizeof(Connection));
                 memcpy(newConnections->items + snapshot.connections->size, &connections.front(), connections.size() * sizeof(Connection));
+#else
+                Array<Connection> *newConnections = new Array<Connection>((uint32_t)connections.size());
+                memcpy(newConnections->items, &connections.front(), connections.size() * sizeof(Connection));
+#endif
                 
                 delete snapshot.connections;
                 snapshot.connections = newConnections;
                 
                 for (auto iter = collection.components.begin(); iter != collection.components.end(); iter++)
                 {
-                    auto &component = *iter;
-                    collection.componentAddressMap.insert(std::make_pair(component.address, &component));
+                    if (iter->address > 0)
+                    {
+                        collection.componentAddressMap.insert(std::make_pair(iter->address, &*iter));
+                    }
                 }
                 
                 __sampler.end();

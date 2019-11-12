@@ -1361,13 +1361,13 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateNRefChain(PackedNativeUnit
 
 void MemorySnapshotCrawler::tryAcceptConnection(Connection &nc)
 {
-    if (nc.fromKind == CK_native)
+    if (nc.from >= 0)
     {
         auto &no = snapshot->nativeObjects->items[nc.from];
         no.toConnections.push_back(nc.connectionArrayIndex);
     }
     
-    if (nc.toKind == CK_native)
+    if (nc.to >= 0)
     {
         auto &no = snapshot->nativeObjects->items[nc.to];
         no.fromConnections.push_back(nc.connectionArrayIndex);
@@ -2048,7 +2048,7 @@ void MemorySnapshotCrawler::findNObject(address_t address)
     }
     else
     {
-        printf("not found native object at address[%08lldx]\n", address);
+        printf("not found native object at address[0x%08llx]\n", address);
     }
 }
 
@@ -2083,14 +2083,7 @@ void MemorySnapshotCrawler::dumpNObjectHierarchy(PackedNativeUnityEngineObject *
         printf("%s'%s':%s 0x%08llx\n", indent, no->name.c_str(), type.name.c_str(), no->nativeObjectAddress);
     }
     
-    static const int32_t ITER_HIERARCHY_CAPACITY = 256;
-    
     auto toCount = (int32_t)no->toConnections.size();
-    if (toCount * __iter_capacity > ITER_HIERARCHY_CAPACITY)
-    {
-        toCount = ITER_HIERARCHY_CAPACITY / __iter_capacity;
-    }
-    
     for (auto i = 0; i < toCount; i++)
     {
         auto closed = i + 1 == toCount;

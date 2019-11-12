@@ -72,6 +72,7 @@ struct NativeTransform: public NativeObject
     NativeQuaternion localRotation;
     NativeVector3 scale;
     address_t parent;
+    std::vector<address_t> children;
 };
 
 struct NativeRectTransform: public NativeTransform
