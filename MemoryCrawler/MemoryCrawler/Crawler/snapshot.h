@@ -137,6 +137,8 @@ struct NativeAppendingCollection
     std::vector<NativeAppending> appendings;
     std::vector<NativeComponent> components;
     std::map<address_t, NativeComponent *> componentAddressMap;
+    std::map<address_t, address_t> nmAddressMap;
+    std::map<address_t, address_t> mnAddressMap;
 };
 
 struct FieldDescription

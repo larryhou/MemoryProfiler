@@ -1520,7 +1520,9 @@ address_t MemorySnapshotCrawler::findMObjectOfNObject(address_t address)
     auto iter = __managedNativeAddressMap.find(address);
     if (iter == __managedNativeAddressMap.end())
     {
-        return 0;
+        auto &link = snapshot->nativeAppendingCollection.nmAddressMap;
+        auto match = link.find(address);
+        return match != link.end()? match->second : 0;
     }
     else
     {
@@ -1546,7 +1548,9 @@ address_t MemorySnapshotCrawler::findNObjectOfMObject(address_t address)
     auto iter = __nativeManagedAddressMap.find(address);
     if (iter == __nativeManagedAddressMap.end())
     {
-        return 0;
+        auto &link = snapshot->nativeAppendingCollection.mnAddressMap;
+        auto match = link.find(address);
+        return match != link.end()? match->second : 0;
     }
     else
     {

@@ -279,6 +279,8 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                     if (link.managedAddress != 0)
                     {
                         link.managedTypeAddress = fs.readUInt64();
+                        collection.mnAddressMap.insert(std::make_pair(link.managedAddress, link.nativeAddress));
+                        collection.nmAddressMap.insert(std::make_pair(link.nativeAddress, link.managedAddress));
                     }
                     
                     auto type = fs.readUInt32();
