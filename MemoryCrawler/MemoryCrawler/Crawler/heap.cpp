@@ -117,7 +117,7 @@ uint32_t HeapMemoryReader::readObjectSize(address_t address, TypeDescription &ty
         size += 4; // string length
         size += readStringLength(address + __vm->objectHeaderSize) * 2; // char16_t
         size += 2; // \x00\x00
-        return size;
+        return size < 0 ? 0 : size;
     }
     
     return type.size;

@@ -123,20 +123,20 @@ void processMemorySnapshot(const char * filepath)
         const char *command = input.c_str();
         if (strbeg(command, "read"))
         {
-            MemorySnapshotCrawler *crawler = nullptr;
             readCommandOptions(command, [&](std::vector<const char *> &options)
                                {
+                                   PackedMemorySnapshot __snapshot;
+                                   MemorySnapshotCrawler __crawler(&snapshot);
                                    if (options.size() == 1)
                                    {
-                                       crawler = SnapshotCrawlerCache().read(uuid);
+                                       SnapshotCrawlerCache().read(uuid, &__crawler);
                                    }
                                    else
                                    {
-                                       crawler = SnapshotCrawlerCache().read(options[1]);
-                                       mainCrawler.compare(*crawler);
+                                       SnapshotCrawlerCache().read(options[1], &__crawler);
+                                       mainCrawler.compare(__crawler);
                                    }
                                });
-            delete crawler;
         }
         else if (strbeg(command, "save"))
         {

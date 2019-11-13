@@ -132,10 +132,12 @@ void SnapshotCrawlerCache::createFieldTable()
 {
     create("CREATE TABLE fields (" \
            "id INTEGER PRIMARY KEY," \
+           "hookTypeIndex INTEGER," \
+           "slotIndex INTEGER," \
            "isStatic INTEGER," \
            "name TEXT NOT NULL," \
            "offset INTEGER," \
-           "typeIndex INTEGER REFERENCES types (typeIndex));");
+           "typeIndex INTEGER);");
 }
 
 void SnapshotCrawlerCache::insert(Array<TypeDescription> &types)
@@ -164,18 +166,22 @@ void SnapshotCrawlerCache::insert(Array<TypeDescription> &types)
                             });
     
     // type fields
-    insert<TypeDescription>("INSERT INTO fields VALUES (?1, ?2, ?3, ?4, ?5);",
-                            types, [](TypeDescription &t, sqlite3_stmt *stmt)
+    int32_t fieldKey = 1;
+    insert<TypeDescription>("INSERT INTO fields VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7);",
+                            types, [&](TypeDescription &t, sqlite3_stmt *stmt)
                             {
                                 if (t.fields == nullptr) {return;}
                                 for (auto n = 0; n < t.fields->size; n++)
                                 {
                                     auto &f = t.fields->items[n];
-                                    sqlite3_bind_int64(stmt, 1, t.typeIndex << 16 | n);
-                                    sqlite3_bind_int(stmt, 2, f.isStatic);
-                                    sqlite3_bind_text(stmt, 3, f.name.c_str(), (int)f.name.size(), SQLITE_STATIC);
-                                    sqlite3_bind_int(stmt, 4, f.offset);
-                                    sqlite3_bind_int(stmt, 5, f.typeIndex);
+                                    sqlite3_bind_int(stmt, 1, fieldKey);
+                                    sqlite3_bind_int(stmt, 2, f.hookTypeIndex);
+                                    sqlite3_bind_int(stmt, 3, n);
+                                    sqlite3_bind_int(stmt, 4, f.isStatic);
+                                    sqlite3_bind_text(stmt, 5, f.name.c_str(), (int)f.name.size(), SQLITE_STATIC);
+                                    sqlite3_bind_int(stmt, 6, f.offset);
+                                    sqlite3_bind_int(stmt, 7, f.typeIndex);
+                                    ++fieldKey;
                                 }
                             });
 }
@@ -331,6 +337,7 @@ void SnapshotCrawlerCache::insertStringTable(MemorySnapshotCrawler &crawler)
         {
             int32_t size;
             auto target = crawler.getString(mo.address, size);
+            if (size < 0) {continue;}
             
             sqlite3_bind_int(stmt, 1, sequence++);
             sqlite3_bind_int(stmt, 2, size);
@@ -346,13 +353,11 @@ void SnapshotCrawlerCache::insertStringTable(MemorySnapshotCrawler &crawler)
     sqlite3_finalize(stmt);
 }
 
-MemorySnapshotCrawler *SnapshotCrawlerCache::read(const char *uuid)
+void SnapshotCrawlerCache::read(const char *uuid, MemorySnapshotCrawler *crawler)
 {
     __sampler.begin("SnapshotCrawlerCache::read");
-    char filepath[64];
+    char filepath[256];
     sprintf(filepath, "%s/%s.db", __workspace, uuid);
-    
-    auto crawler = new MemorySnapshotCrawler();
     
     __sampler.begin("open");
     open(filepath);
@@ -435,19 +440,20 @@ MemorySnapshotCrawler *SnapshotCrawlerCache::read(const char *uuid)
     select("select * from fields;", (int32_t)selectCount("fields"),
            [&](sqlite3_stmt *stmt)
            {
-               auto id = sqlite3_column_int64(stmt, 0);
-               auto fieldHookTypeIndex = id >> 16;
-               auto fieldSlotIndex = id & 0xFFFF;
+               sqlite3_column_int(stmt, 0);
+               auto fieldHookTypeIndex = sqlite3_column_int(stmt, 1);
+               auto fieldSlotIndex = sqlite3_column_int(stmt, 2);
                if (hookType == nullptr || fieldHookTypeIndex != typeIndex)
                {
                    hookType = &snapshot.typeDescriptions->items[fieldHookTypeIndex];
                    typeIndex = (int32_t)fieldHookTypeIndex;
                }
                auto &field = hookType->fields->items[fieldSlotIndex];
-               field.isStatic = (bool)sqlite3_column_int(stmt, 1);
-               field.name = (char *)sqlite3_column_text(stmt, 2);
-               field.offset = sqlite3_column_int(stmt, 3);
-               field.typeIndex = sqlite3_column_int(stmt, 4);
+               field.hookTypeIndex = fieldHookTypeIndex;
+               field.isStatic = (bool)sqlite3_column_int(stmt, 3);
+               field.name = (char *)sqlite3_column_text(stmt, 4);
+               field.offset = sqlite3_column_int(stmt, 5);
+               field.typeIndex = sqlite3_column_int(stmt, 6);
            });
     __sampler.end(); // read_fields
     __sampler.end(); // read_type_fields
@@ -521,7 +527,6 @@ MemorySnapshotCrawler *SnapshotCrawlerCache::read(const char *uuid)
     
     __sampler.end();
     __sampler.summarize();
-    return crawler;
 }
 
 void SnapshotCrawlerCache::select(const char *sql, int32_t size, std::function<void (sqlite3_stmt *)> kernel)

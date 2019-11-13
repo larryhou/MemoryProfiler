@@ -496,10 +496,10 @@ void MemorySnapshotCrawler::trackNTypeObjects(MemoryState state, int32_t typeInd
 
 void MemorySnapshotCrawler::barMMemory(MemoryState state, int32_t rank)
 {
-    double totalMemory = 0;
+    int64_t totalMemory = 0;
     vector<int32_t> indice;
-    map<int32_t, int32_t> typeMemory;
-    map<int32_t, int32_t> typeCount;
+    map<int32_t, int64_t> typeMemory;
+    map<int32_t, int64_t> typeCount;
     
     for (auto i = 0; i < managedObjects.size(); i++)
     {
@@ -514,10 +514,10 @@ void MemorySnapshotCrawler::barMMemory(MemoryState state, int32_t rank)
             auto iter = typeMemory.find(typeIndex);
             if (iter == typeMemory.end())
             {
-                iter = typeMemory.insert(pair<int32_t, int32_t>(typeIndex, 0)).first;
+                iter = typeMemory.insert(std::make_pair(typeIndex, 0)).first;
                 indice.push_back(typeIndex);
                 
-                typeCount.insert(pair<int32_t, int32_t>(typeIndex, 0));
+                typeCount.insert(std::make_pair(typeIndex, 0));
             }
             
             iter->second += mo.size;
@@ -542,7 +542,7 @@ void MemorySnapshotCrawler::barMMemory(MemoryState state, int32_t rank)
     for (auto i = 0; i < indice.size(); i++)
     {
         auto index = indice[i];
-        percent = 100 * (typeMemory.at(index) / totalMemory);
+        percent = 100 * (typeMemory.at(index) / static_cast<double>(totalMemory));
         accumulation += percent;
         stats.push_back(std::make_tuple(index, percent, accumulation));
     }
@@ -565,7 +565,7 @@ void MemorySnapshotCrawler::barMMemory(MemoryState state, int32_t rank)
             memcpy(iter, fence, 3);
             iter += 3;
         }
-        printf("%s %s %s #%d *%d\n", progress, type.name.c_str(), comma(typeMemory.at(typeIndex)).c_str(), typeCount.at(typeIndex), typeIndex);
+        printf("%s %s %s #%lld *%d\n", progress, type.name.c_str(), comma(typeMemory.at(typeIndex)).c_str(), typeCount.at(typeIndex), typeIndex);
     }
 }
 
@@ -1758,6 +1758,7 @@ bool MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
         mo = &createManagedObject(address, typeIndex);
         mo->size = memoryReader.readObjectSize(mo->address, entryType);
         mo->isValueType = entryType.isValueType;
+        assert(typeIndex < snapshot->typeDescriptions->size);
     }
     else
     {
