@@ -70,6 +70,7 @@ void SnapshotCrawlerCache::insert(Array<PackedNativeType> &nativeTypes)
                                  sqlite3_bind_int(stmt, 4, nt.managedTypeArrayIndex);
                                  sqlite3_bind_int(stmt, 5, nt.instanceCount);
                                  sqlite3_bind_int(stmt, 6, nt.instanceMemory);
+                                 return true;
                              });
 }
 
@@ -105,6 +106,7 @@ void SnapshotCrawlerCache::insert(Array<PackedNativeUnityEngineObject> &nativeOb
                                               sqlite3_bind_int(stmt, 9, no.size);
                                               sqlite3_bind_int(stmt, 10, no.managedObjectArrayIndex);
                                               sqlite3_bind_int(stmt, 11, no.nativeObjectArrayIndex);
+                                              return true;
                                           });
 }
 
@@ -132,12 +134,12 @@ void SnapshotCrawlerCache::createFieldTable()
 {
     create("CREATE TABLE fields (" \
            "id INTEGER PRIMARY KEY," \
-           "hookTypeIndex INTEGER," \
+           "hookTypeIndex INTEGER REFERENCES nativeTypes (typeIndex)," \
            "slotIndex INTEGER," \
            "isStatic INTEGER," \
            "name TEXT NOT NULL," \
            "offset INTEGER," \
-           "typeIndex INTEGER);");
+           "typeIndex INTEGER REFERENCES nativeTypes (typeIndex));");
 }
 
 void SnapshotCrawlerCache::insert(Array<TypeDescription> &types)
@@ -163,26 +165,61 @@ void SnapshotCrawlerCache::insert(Array<TypeDescription> &types)
                                 sqlite3_bind_int(stmt, 13, t.instanceCount);
                                 sqlite3_bind_int(stmt, 14, t.instanceMemory);
                                 sqlite3_bind_int(stmt, 15, t.nativeMemory);
+                                return true;
                             });
     
     // type fields
-    int32_t fieldKey = 1;
-    insert<TypeDescription>("INSERT INTO fields VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7);",
+    char *errmsg;
+    sqlite3_stmt *stmt;
+    
+    sqlite3_exec(__database, "BEGIN TRANSACTION", nullptr, nullptr, &errmsg);
+    auto sql = "INSERT INTO fields VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7);";
+    sqlite3_prepare_v2(__database, sql, (int)strlen(sql), &stmt, nullptr);
+    
+    int32_t slotKey = 0;
+    for (auto i = 0; i < types.size; i++)
+    {
+        auto &t = types.items[i];
+        if (t.fields == nullptr || t.fields->size == 0) { continue; }
+        auto iter = t.fields->items;
+        auto count = t.fields->size;
+        while (count-- > 0)
+        {
+            auto &f = *iter;
+            sqlite3_bind_int(stmt, 1, slotKey++);
+            sqlite3_bind_int(stmt, 2, f.hookTypeIndex);
+            sqlite3_bind_int(stmt, 3, f.fieldSlotIndex);
+            sqlite3_bind_int(stmt, 4, f.isStatic);
+            sqlite3_bind_text(stmt, 5, f.name.c_str(), (int)f.name.size(), SQLITE_STATIC);
+            sqlite3_bind_int(stmt, 6, f.offset);
+            sqlite3_bind_int(stmt, 7, f.typeIndex);
+            if (sqlite3_step(stmt) != SQLITE_DONE) {}
+            sqlite3_reset(stmt);
+            ++iter;
+        }
+    }
+    
+    sqlite3_exec(__database, "COMMIT TRANSACTION", nullptr, nullptr, &errmsg);
+    sqlite3_finalize(stmt);
+    
+    insert<TypeDescription>("INSERT INTO fields VALUES (?1, ?2, ?3, ?4, ?5, ?6);",
                             types, [&](TypeDescription &t, sqlite3_stmt *stmt)
                             {
-                                if (t.fields == nullptr) {return;}
-                                for (auto n = 0; n < t.fields->size; n++)
+                                if (t.fields == nullptr || t.fields->size == 0) {return false;}
+                                auto iter = t.fields->items;
+                                auto count = t.fields->size;
+                                while (count-- > 0)
                                 {
-                                    auto &f = t.fields->items[n];
-                                    sqlite3_bind_int(stmt, 1, fieldKey);
-                                    sqlite3_bind_int(stmt, 2, f.hookTypeIndex);
-                                    sqlite3_bind_int(stmt, 3, n);
-                                    sqlite3_bind_int(stmt, 4, f.isStatic);
-                                    sqlite3_bind_text(stmt, 5, f.name.c_str(), (int)f.name.size(), SQLITE_STATIC);
-                                    sqlite3_bind_int(stmt, 6, f.offset);
-                                    sqlite3_bind_int(stmt, 7, f.typeIndex);
-                                    ++fieldKey;
+                                    auto &f = *iter;
+                                    sqlite3_bind_int(stmt, 1, f.hookTypeIndex);
+                                    sqlite3_bind_int(stmt, 2, f.fieldSlotIndex);
+                                    sqlite3_bind_int(stmt, 3, f.isStatic);
+                                    sqlite3_bind_text(stmt, 4, f.name.c_str(), (int)f.name.size(), SQLITE_STATIC);
+                                    sqlite3_bind_int(stmt, 5, f.offset);
+                                    sqlite3_bind_int(stmt, 6, f.typeIndex);
+                                    ++iter;
                                 }
+                                return true;
                             });
 }
 
