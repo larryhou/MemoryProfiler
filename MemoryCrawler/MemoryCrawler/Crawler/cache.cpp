@@ -201,26 +201,6 @@ void SnapshotCrawlerCache::insert(Array<TypeDescription> &types)
     
     sqlite3_exec(__database, "COMMIT TRANSACTION", nullptr, nullptr, &errmsg);
     sqlite3_finalize(stmt);
-    
-    insert<TypeDescription>("INSERT INTO fields VALUES (?1, ?2, ?3, ?4, ?5, ?6);",
-                            types, [&](TypeDescription &t, sqlite3_stmt *stmt)
-                            {
-                                if (t.fields == nullptr || t.fields->size == 0) {return false;}
-                                auto iter = t.fields->items;
-                                auto count = t.fields->size;
-                                while (count-- > 0)
-                                {
-                                    auto &f = *iter;
-                                    sqlite3_bind_int(stmt, 1, f.hookTypeIndex);
-                                    sqlite3_bind_int(stmt, 2, f.fieldSlotIndex);
-                                    sqlite3_bind_int(stmt, 3, f.isStatic);
-                                    sqlite3_bind_text(stmt, 4, f.name.c_str(), (int)f.name.size(), SQLITE_STATIC);
-                                    sqlite3_bind_int(stmt, 5, f.offset);
-                                    sqlite3_bind_int(stmt, 6, f.typeIndex);
-                                    ++iter;
-                                }
-                                return true;
-                            });
 }
 
 void SnapshotCrawlerCache::createJointTable()
