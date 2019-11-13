@@ -465,15 +465,14 @@ void RawMemorySnapshotReader::read(PackedMemorySnapshot &snapshot)
                     }
                 }
                 
-#ifdef APPEND_CONNECTIONS
+#ifdef STRIP_NATIVE_CONNECTIONS
+                Array<Connection> *newConnections = new Array<Connection>((uint32_t)connections.size());
+                memcpy(newConnections->items, &connections.front(), connections.size() * sizeof(Connection));
+#else
                 Array<Connection> *newConnections = new Array<Connection>(snapshot.connections->size + (uint32_t)connections.size());
                 memcpy(newConnections->items, snapshot.connections->items, snapshot.connections->size * sizeof(Connection));
                 memcpy(newConnections->items + snapshot.connections->size, &connections.front(), connections.size() * sizeof(Connection));
-#else
-                Array<Connection> *newConnections = new Array<Connection>((uint32_t)connections.size());
-                memcpy(newConnections->items, &connections.front(), connections.size() * sizeof(Connection));
 #endif
-                
                 delete snapshot.connections;
                 snapshot.connections = newConnections;
                 
