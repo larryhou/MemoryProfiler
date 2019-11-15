@@ -3076,7 +3076,12 @@ void MemorySnapshotCrawler::inspectComponent(address_t address)
             auto &go = snapshot->nativeObjects->items[component->gameObjectNativeArrayIndex];
             auto &no = snapshot->nativeObjects->items[component->nativeArrayIndex];
             auto &nt = snapshot->nativeTypes->items[no.nativeTypeArrayIndex];
-            printf("0x%llx %s '%s' GameObject[0x%llx '%s']\n", component->address, nt.name.c_str(), no.name.c_str(), go.nativeObjectAddress, go.name.c_str());
+            printf("0x%llx %s '%s'", component->address, nt.name.c_str(), no.name.c_str());
+            if (component->behaviour)
+            {
+                printf(" enabled=%s isActiveAndEnabled=%s", component->enabled? "true":"false", component->isActiveAndEnabled?"true":"false");
+            }
+            printf(" GameObject[0x%llx '%s']\n", go.nativeObjectAddress, go.name.c_str());
         }
     }
 }
