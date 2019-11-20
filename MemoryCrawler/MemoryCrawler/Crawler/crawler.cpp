@@ -480,7 +480,7 @@ void MemorySnapshotCrawler::trackNTypeObjects(MemoryState state, int32_t typeInd
                 if (sprite.textureNativeArrayIndex >= 0)
                 {
                     auto &texture = snapshot->nativeObjects->items[sprite.textureNativeArrayIndex];
-                    printf(" Texture2D[0x%llx %s]", texture.nativeObjectAddress, texture.name.c_str());
+                    printf(" Texture2D[0x%llx '%s']", texture.nativeObjectAddress, texture.name.c_str());
                 }
             }
             else if (typeIndex == snapshot->nativeTypeIndex.Texture2D)
