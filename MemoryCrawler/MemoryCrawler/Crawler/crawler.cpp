@@ -1408,16 +1408,17 @@ int32_t MemorySnapshotCrawler::findTypeAtTypeAddress(address_t address)
 
 int32_t MemorySnapshotCrawler::findTypeOfAddress(address_t address)
 {
-    auto typeIndex = findTypeAtTypeAddress(address);
+    auto typeIndex = findTypeAtTypeAddress(address); // il2cpp
     if (typeIndex != -1) {return typeIndex;}
-    auto typePtr = __memoryReader->readPointer(address);
-    if (typePtr == 0) {return -1;}
-    auto vtablePtr = __memoryReader->readPointer(typePtr);
-    if (vtablePtr != 0)
+    // MonoObject->vtable->kclass
+    auto vtable = __memoryReader->readPointer(address);
+    if (vtable == 0) {return -1;}
+    auto klass = __memoryReader->readPointer(vtable);
+    if (klass != 0)
     {
-        return findTypeAtTypeAddress(vtablePtr);
+        return findTypeAtTypeAddress(klass);
     }
-    return findTypeAtTypeAddress(typePtr);
+    return findTypeAtTypeAddress(vtable);
 }
 
 void MemorySnapshotCrawler::dumpRepeatedObjects(int32_t typeIndex, int32_t condition)
