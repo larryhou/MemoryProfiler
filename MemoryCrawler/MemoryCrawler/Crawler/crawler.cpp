@@ -820,7 +820,7 @@ void MemorySnapshotCrawler::statHeap(int32_t rank)
         stats.push_back(std::make_tuple(size, percent, accumulation, rm));
     }
     
-    char percentage[300+1];
+    char percentage[600+1];
     char fence[] = "█";
     printf("### blocks=%d memory=%s\n", (int32_t)sortedHeapSections.size(), comma(totalMemory).c_str());
     for (auto i = 0; i < stats.size(); i++)
