@@ -210,7 +210,7 @@ void MemorySnapshotCrawler::compare(MemorySnapshotCrawler &crawler)
             case 1:
             {
                 auto &frag = concat.fragments[0];
-                concat.type = (frag.address == concat.address && frag.count == concat.count) ? CT_IDENTICAL : CT_CONCAT;
+                concat.type = (frag.address == concat.address && frag.size == concat.size) ? CT_IDENTICAL : CT_CONCAT;
             } break;
             
             default:
@@ -647,7 +647,7 @@ void MemorySnapshotCrawler::statFragments()
     auto maxsize = 0;
     for (auto i = __concations.begin(); i != __concations.end(); i++)
     {
-        if (maxsize < i->count) { maxsize = i->count; }
+        if (maxsize < i->size) { maxsize = i->size; }
     }
     
     auto memwidth = ceil(log10(fmax(10, maxsize)));
@@ -655,7 +655,7 @@ void MemorySnapshotCrawler::statFragments()
     for (auto i = __concations.begin(); i != __concations.end(); i++)
     {
         auto &concat = *i;
-        printf("[%03d] 0x%llx %s ", concat.index, concat.address, comma(concat.count, memwidth).c_str());
+        printf("[%03d] 0x%llx %s ", concat.index, concat.address, comma(concat.size, memwidth).c_str());
         switch (concat.type)
         {
             case CT_IDENTICAL:
@@ -668,34 +668,176 @@ void MemorySnapshotCrawler::statFragments()
                 auto fragCount = 0;
                 for (auto f = concat.fragments.begin(); f != concat.fragments.end(); f++)
                 {
-                    if (f->count > maxsize) { maxsize = f->count; }
-                    fragCount += f->count;
+                    if (f->size > maxsize) { maxsize = f->size; }
+                    fragCount += f->size;
                 }
-                fragAddition += concat.count - fragCount;
-                printf("CONCAT=%lu +%s=%dK\n", concat.fragments.size(), comma(concat.count - fragCount).c_str(), (concat.count - fragCount)/1024);
+                fragAddition += concat.size - fragCount;
+                printf("CONCAT=%lu +%s=%dK\n", concat.fragments.size(), comma(concat.size - fragCount).c_str(), (concat.size - fragCount)/1024);
                 
                 auto width = ceil(log10(fmax(10, maxsize)));
                 for (auto f = concat.fragments.begin(); f != concat.fragments.end(); f++)
                 {
                     auto &fragment = *f;
-                    printf("    - [%03d] 0x%llx %s\n", fragment.index, fragment.address, comma(fragment.count, width).c_str());
+                    printf("    - [%03d] 0x%llx %s\n", fragment.index, fragment.address, comma(fragment.size, width).c_str());
                 }
             } break;
                 
             case CT_ALLOC:
             {
                 printf("ALLOC\n");
-                allocAddition += concat.count;
+                allocAddition += concat.size;
             } break;
                 
             case CT_DEALLOC:
             {
-                deallocations += concat.count;
+                deallocations += concat.size;
             } break;
         }
     }
     
     printf("[SUMMARY] fragments+%s=%dK alloc+%s=%dK dealloc+%s=%dK\n", comma(fragAddition).c_str(), fragAddition/1024, comma(allocAddition).c_str(), allocAddition/1024, comma(deallocations).c_str(), deallocations/1024);
+}
+
+void MemorySnapshotCrawler::drawHeapGraph(const char *filename, bool comparisonEnabled)
+{
+    const double canvasWidth = 1280, canvasHeight = 720;
+    const double gap = 5;
+    
+    std::vector<MemoryFragment> fragments;
+    auto &heapSections = *snapshot->sortedHeapSections;
+    for (auto iter = heapSections.begin(); iter!=heapSections.end(); iter++)
+    {
+        auto &section = **iter;
+        fragments.push_back(MemoryFragment(section.startAddress, section.size, (int32_t)fragments.size()));
+    }
+    
+    std::vector<MemoryFragment> __fragments;
+    if (comparisonEnabled)
+    {
+        for (auto iter = __concations.begin(); iter != __concations.end(); iter++)
+        {
+            if (iter->type == CT_DEALLOC)
+            {
+                __fragments.push_back(MemoryFragment(iter->address, iter->size, iter->index));
+            }
+            else
+            {
+                for (auto f = iter->fragments.begin(); f != iter->fragments.end(); f++)
+                {
+                    __fragments.emplace_back(*f);
+                }
+            }
+        }
+    }
+    
+    std::vector<std::vector<MemoryFragment> *> sources{ &fragments };
+    
+    auto front = &fragments.front();
+    auto back = &fragments.back();
+    if (comparisonEnabled)
+    {
+        if (__fragments.front().address < front->address)
+        {
+            front = &__fragments.front();
+        }
+        
+        if (__fragments.back().address > back->address + back->size)
+        {
+            back = &__fragments.back();
+        }
+        
+        sources.push_back(&__fragments);
+    }
+    
+    const int64_t length = 1 << 27; // 128MB
+    const int64_t offset = front->address;
+    const int64_t magnitude = (back->address + back->size) - offset;
+    const int64_t rowCount = magnitude / length + (magnitude % length > 0 ? 1 : 0);
+    const double rowHeight = (canvasHeight - (rowCount - 1) * gap) / rowCount;
+    
+    double cursorX = 0, cursorY = 0;
+    std::vector<std::vector<Rectangle>> layers(sources.size());
+    for (auto n = 0; n < sources.size(); n++)
+    {
+        auto &blocks = layers[n];
+        auto provider = sources[n];
+        
+        int64_t position = 0;
+        for (auto i = 0; i < provider->size(); i++)
+        {
+            auto &section = (*provider)[i];
+            auto s = section.address - offset - position;
+            while (s >= length)
+            {
+                position += length;
+                s = section.address - offset - position;
+                cursorY += gap + rowHeight;
+                cursorX = 0;
+            }
+            
+            blocks.push_back(Rectangle((double)s * canvasWidth / length, cursorY,
+                                        fmin(section.size, length - s) * canvasWidth / length, rowHeight));
+            
+            int64_t r = (int64_t)(s + section.size) - length;
+            while (r >= 0)
+            {
+                position += length;
+                cursorY += gap + rowHeight;
+                cursorX = 0;
+                if (r > 0)
+                {
+                    blocks.push_back(Rectangle(0, cursorY,
+                                                fmin(r, length) * canvasWidth/length, rowHeight));
+                }
+                r -= length;
+            }
+        }
+    }
+    
+    cursorY = 0;
+    std::vector<Rectangle> regions;
+    for (auto i = 0; i < rowCount; i++)
+    {
+        regions.push_back(Rectangle(0, cursorY, canvasWidth, rowHeight));
+        cursorY += gap + rowHeight;
+    }
+    
+    char str[512];
+    auto ptr = str;
+    
+    mkdir("__graph", 0777);
+    sprintf(ptr, "__graph/%s.svg", filename);
+    
+    FileStream fs;
+    fs.open(ptr, std::fstream::out | std::fstream::trunc | std::fstream::binary);
+    fs.write("<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\"");
+    sprintf(ptr, " width=\"%.0f\" height=\"%.0f\">\n", canvasWidth, canvasHeight);
+    fs.write((const char *)ptr);
+    auto index = 0;
+    for (auto iter = regions.begin(); iter != regions.end(); iter++)
+    {
+        sprintf(ptr, "<rect x=\"%.2f\" y=\"%.2f\" width=\"%.2f\" height=\"%.2f\" stroke=\"none\" fill=\"lightgray\"/>\n", iter->x, iter->y, iter->width, iter->height);
+        fs.write((const char *)ptr);
+        
+        auto address = offset + index * length;
+        sprintf(ptr, "<text x=\"%.2f\" y=\"%.2f\" fill=\"gray\" font-family=\"Courier\" font-size=\"20\" opacity=\"0.2\">0x%llx</text>\n", iter->x, iter->y + 20, address);
+        fs.write((const char *)ptr);
+        ++index;
+    }
+    
+    for (auto i = 0; i < layers.size(); i++)
+    {
+        auto &blocks = layers[i];
+        for (auto iter = blocks.begin(); iter != blocks.end(); iter++)
+        {
+            const char *color = i == 0 ? "red" : "blue";
+            sprintf(ptr, "<rect x=\"%.2f\" y=\"%.2f\" width=\"%.2f\" height=\"%.2f\" stroke=\"none\" fill=\"%s\"/>\n", iter->x, iter->y, iter->width, iter->height, color);
+            fs.write((const char *)ptr);
+        }
+    }
+    
+    fs.write("</svg>");
+    fs.close();
 }
 
 void MemorySnapshotCrawler::inspectHeap(const char *filename)

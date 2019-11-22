@@ -196,6 +196,7 @@ public:
     
     void statHeap(int32_t rank = 20);
     void inspectHeap(const char *filename = nullptr);
+    void drawHeapGraph(const char *filename, bool comparisonEnabled = false);
     void statFragments();
     
     ManagedObject* getMRefNode(ManagedObject *mo, int32_t depth = 1);
@@ -353,5 +354,12 @@ InstanceManager<T>::~InstanceManager<T>()
         delete [] *iter;
     }
 }
+
+struct Rectangle
+{
+    double x, y, width, height;
+    Rectangle(double x, double y, double width, double height): x(x), y(y), width(width), height(height) {}
+    Rectangle(): Rectangle(0, 0, 0, 0) {}
+};
 
 #endif /* crawler_h */

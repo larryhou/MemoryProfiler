@@ -590,6 +590,12 @@ void processMemorySnapshot(const char * filepath)
                     {
                         mainCrawler.inspectHeap(filename.c_str());
                     }
+                    else if (strbeg(options[1], "draw"))
+                    {
+                        mainCrawler.drawHeapGraph(filename.c_str(),
+                                                  options.size() > 2 && strcmp(options[2], "true") == 0);
+                    }
+                        
                 }
             });
         }
