@@ -787,7 +787,7 @@ void MemorySnapshotCrawler::drawHeapGraph(const char *filename, bool comparisonE
                 if (r > 0)
                 {
                     blocks.push_back(Rectangle(0, cursorY,
-                                                fmin(r, length) * canvasWidth/length, rowHeight));
+                                               fmin(r, length) * canvasWidth/length, rowHeight));
                 }
                 r -= length;
             }
