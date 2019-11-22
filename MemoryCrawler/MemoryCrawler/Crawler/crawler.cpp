@@ -718,7 +718,7 @@ void MemorySnapshotCrawler::drawHeapGraph(const char *filename, bool comparisonE
         {
             if (iter->type == CT_DEALLOC)
             {
-                __fragments.push_back(*iter);
+                __fragments.emplace_back(*iter);
             }
             else
             {
