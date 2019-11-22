@@ -828,7 +828,7 @@ void MemorySnapshotCrawler::drawHeapGraph(const char *filename, bool comparisonE
     for (auto i = 0; i < layers.size(); i++)
     {
         auto &blocks = layers[i];
-        const char *color = i == 0 ? "red" : "blue";
+        const char *color = i == 0 ? "red" : "gold";
         double scale = i == 0 ? 1.0 : 0.5;
         for (auto iter = blocks.begin(); iter != blocks.end(); iter++)
         {
