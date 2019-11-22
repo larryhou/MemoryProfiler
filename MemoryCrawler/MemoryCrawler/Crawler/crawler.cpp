@@ -700,7 +700,7 @@ void MemorySnapshotCrawler::statFragments()
 
 void MemorySnapshotCrawler::drawHeapGraph(const char *filename, bool comparisonEnabled)
 {
-    const double canvasWidth = 1280, canvasHeight = 720;
+    const double canvasWidth = 1920, canvasHeight = 1080;
     const double gap = 5;
     
     std::vector<MemoryFragment> fragments;
@@ -718,7 +718,7 @@ void MemorySnapshotCrawler::drawHeapGraph(const char *filename, bool comparisonE
         {
             if (iter->type == CT_DEALLOC)
             {
-                __fragments.push_back(MemoryFragment(iter->address, iter->size, iter->index));
+                __fragments.push_back(*iter);
             }
             else
             {
@@ -755,7 +755,6 @@ void MemorySnapshotCrawler::drawHeapGraph(const char *filename, bool comparisonE
     const int64_t rowCount = magnitude / length + (magnitude % length > 0 ? 1 : 0);
     const double rowHeight = (canvasHeight - (rowCount - 1) * gap) / rowCount;
     
-    double cursorX = 0, cursorY = 0;
     std::vector<std::vector<Rectangle>> layers(sources.size());
     for (auto n = 0; n < sources.size(); n++)
     {
@@ -763,6 +762,7 @@ void MemorySnapshotCrawler::drawHeapGraph(const char *filename, bool comparisonE
         auto provider = sources[n];
         
         int64_t position = 0;
+        double cursorX = 0, cursorY = 0;
         for (auto i = 0; i < provider->size(); i++)
         {
             auto &section = (*provider)[i];
@@ -794,7 +794,7 @@ void MemorySnapshotCrawler::drawHeapGraph(const char *filename, bool comparisonE
         }
     }
     
-    cursorY = 0;
+    double cursorY = 0;
     std::vector<Rectangle> regions;
     for (auto i = 0; i < rowCount; i++)
     {
@@ -828,10 +828,11 @@ void MemorySnapshotCrawler::drawHeapGraph(const char *filename, bool comparisonE
     for (auto i = 0; i < layers.size(); i++)
     {
         auto &blocks = layers[i];
+        const char *color = i == 0 ? "red" : "blue";
+        double scale = i == 0 ? 1.0 : 0.5;
         for (auto iter = blocks.begin(); iter != blocks.end(); iter++)
         {
-            const char *color = i == 0 ? "red" : "blue";
-            sprintf(ptr, "<rect x=\"%.2f\" y=\"%.2f\" width=\"%.2f\" height=\"%.2f\" stroke=\"none\" fill=\"%s\"/>\n", iter->x, iter->y, iter->width, iter->height, color);
+            sprintf(ptr, "<rect x=\"%.2f\" y=\"%.2f\" width=\"%.2f\" height=\"%.2f\" stroke=\"none\" fill=\"%s\"/>\n", iter->x, iter->y + iter->height * (1 - scale), iter->width, iter->height * scale, color);
             fs.write((const char *)ptr);
         }
     }
