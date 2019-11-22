@@ -825,11 +825,14 @@ void MemorySnapshotCrawler::drawHeapGraph(const char *filename, bool comparisonE
         ++index;
     }
     
+    std::vector<const char *> colors {"red", "gold"};
+    std::vector<float> scales {1.0, 0.5};
+    
     for (auto i = 0; i < layers.size(); i++)
     {
         auto &blocks = layers[i];
-        const char *color = i == 0 ? "red" : "gold";
-        double scale = i == 0 ? 1.0 : 0.5;
+        auto color = colors[i];
+        auto scale = scales[i];
         for (auto iter = blocks.begin(); iter != blocks.end(); iter++)
         {
             sprintf(ptr, "<rect x=\"%.2f\" y=\"%.2f\" width=\"%.2f\" height=\"%.2f\" stroke=\"none\" fill=\"%s\"/>\n", iter->x, iter->y + iter->height * (1 - scale), iter->width, iter->height * scale, color);
