@@ -21,10 +21,10 @@ struct MemoryFragment
 {
     address_t address;
     uint32_t index;
-    uint32_t count;
+    uint32_t size;
     
     MemoryFragment() : MemoryFragment(0, 0, 0) {}
-    MemoryFragment(address_t address, uint32_t count, uint32_t index): address(address), count(count), index(index) {}
+    MemoryFragment(address_t address, uint32_t size, uint32_t index): address(address), size(size), index(index) {}
 };
 
 struct MemoryConcation: public MemoryFragment
@@ -34,7 +34,7 @@ struct MemoryConcation: public MemoryFragment
     
     MemoryConcation() : MemoryConcation(0, 0, 0, CT_IDENTICAL) {}
     MemoryConcation(ConcationType type) : MemoryConcation(0, 0, 0, type) {}
-    MemoryConcation(address_t address, uint32_t count, uint32_t index, ConcationType type) : MemoryFragment(address, count, index), type(type) {}
+    MemoryConcation(address_t address, uint32_t size, uint32_t index, ConcationType type) : MemoryFragment(address, size, index), type(type) {}
 };
 
 #endif /* fragment_h */
