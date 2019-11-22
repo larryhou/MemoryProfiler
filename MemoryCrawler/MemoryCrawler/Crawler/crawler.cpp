@@ -698,7 +698,7 @@ void MemorySnapshotCrawler::statFragments()
     printf("[SUMMARY] fragments+%s=%dK alloc+%s=%dK dealloc+%s=%dK\n", comma(fragAddition).c_str(), fragAddition/1024, comma(allocAddition).c_str(), allocAddition/1024, comma(deallocations).c_str(), deallocations/1024);
 }
 
-void MemorySnapshotCrawler::drawHeapGraph(const char *filename, bool comparationEnabled)
+void MemorySnapshotCrawler::drawHeapGraph(const char *filename, bool comparisonEnabled)
 {
     const double canvasWidth = 1280, canvasHeight = 720;
     const double gap = 5;
@@ -712,7 +712,7 @@ void MemorySnapshotCrawler::drawHeapGraph(const char *filename, bool comparation
     }
     
     std::vector<MemoryFragment> __fragments;
-    if (comparationEnabled)
+    if (comparisonEnabled)
     {
         for (auto iter = __concations.begin(); iter != __concations.end(); iter++)
         {
@@ -734,7 +734,7 @@ void MemorySnapshotCrawler::drawHeapGraph(const char *filename, bool comparation
     
     auto front = &fragments.front();
     auto back = &fragments.back();
-    if (comparationEnabled)
+    if (comparisonEnabled)
     {
         if (__fragments.front().address < front->address)
         {

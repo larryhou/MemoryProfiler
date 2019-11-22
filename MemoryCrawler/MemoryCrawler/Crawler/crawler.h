@@ -196,7 +196,7 @@ public:
     
     void statHeap(int32_t rank = 20);
     void inspectHeap(const char *filename = nullptr);
-    void drawHeapGraph(const char *filename, bool comparationEnabled = false);
+    void drawHeapGraph(const char *filename, bool comparisonEnabled = false);
     void statFragments();
     
     ManagedObject* getMRefNode(ManagedObject *mo, int32_t depth = 1);
