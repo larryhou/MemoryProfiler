@@ -538,7 +538,7 @@ void MemorySnapshotCrawler::topMObjects(int32_t rank, address_t address, bool ke
         return a->address < b->address;
     });
     
-    if (rank > objects.size()) { rank = (int32_t)objects.size(); }
+    if (rank > objects.size() || rank <= 0) { rank = (int32_t)objects.size(); }
     
     if (keepAddressOrder)
     {
