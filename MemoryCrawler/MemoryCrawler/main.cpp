@@ -659,6 +659,16 @@ void processMemorySnapshot(const char * filepath)
                                    }
                                });
         }
+        else if (strbeg(command, "uname"))
+        {
+            readCommandOptions(command, [&](std::vector<const char *> options)
+                               {
+                                   for (auto i = 1; i < options.size(); i++)
+                                   {
+                                       mainCrawler.findNObject(options[i]);
+                                   }
+                               });
+        }
         else if (strbeg(command, "static"))
         {
             readCommandOptions(command, [&](std::vector<const char *> options)
@@ -792,6 +802,7 @@ void processMemorySnapshot(const char * filepath)
             help("handle", NULL, "查看GCHandle对象", __indent);
             help("static", "[TYPE_INDEX]", "查看类静态对象数据", __indent);
             help("class", "[CLASS_NAME]", "查看类信息", __indent);
+            help("uname", "[UNITY_ASSET_NAME]", "列举名字以指定字符开头的所有Native对象", __indent);
             help("help", NULL, "帮助", __indent);
             help("quit", NULL, "退出", __indent);
             cout << std::flush;

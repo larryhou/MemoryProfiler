@@ -232,6 +232,31 @@ void MemorySnapshotCrawler::dumpAllClasses()
     }
 }
 
+void MemorySnapshotCrawler::findNObject(string name)
+{
+    auto &nativeObjects = snapshot->nativeObjects->items;
+    for (auto i = 0; i < snapshot->nativeObjects->size; i++)
+    {
+        bool completed = true;
+        auto &no = nativeObjects[i];
+        if (no.name.size() < name.size()) {continue;}
+        auto &nt = snapshot->nativeTypes->items[no.nativeTypeArrayIndex];
+        auto np = name.begin();
+        auto tp = no.name.begin();
+        while (np != name.end())
+        {
+            if (*np != *tp) { completed = false; break; }
+            ++np;
+            ++tp;
+        }
+        
+        if (completed)
+        {
+            printf("\e[36m0x%llx \e[32m%s \e[37m'%s'\n", no.nativeObjectAddress, nt.name.c_str(), no.name.c_str());
+        }
+    }
+}
+
 void MemorySnapshotCrawler::findClass(string name)
 {
     auto &typeDescriptions = snapshot->typeDescriptions->items;
@@ -2297,7 +2322,12 @@ void MemorySnapshotCrawler::inspectVObject(address_t address)
 
 void MemorySnapshotCrawler::inspectMObject(address_t address, int32_t depth)
 {
-    dumpMObjectHierarchy(address, nullptr, set<int64_t>(), false, depth, "");
+    auto index = findMObjectAtAddress(address);
+    if (index == -1) {return;}
+    
+    auto &mo = managedObjects[index];
+    auto &type = snapshot->typeDescriptions->items[mo.typeIndex];
+    dumpMObjectHierarchy(address, &type, set<int64_t>(), true, depth, "");
 }
 
 void MemorySnapshotCrawler::inspectNObject(address_t address, int32_t depth)
