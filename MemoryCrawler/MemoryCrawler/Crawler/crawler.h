@@ -202,7 +202,7 @@ public:
     void drawUsedHeapGraph(const char *filename, bool sort = false);
     void statFragments();
     
-    ManagedObject* getMRefNode(ManagedObject *mo, int32_t depth = 1);
+    EntityConnection* getMRefNode(ManagedObject *mo, int32_t depth = 1);
     
     void dumpVRefChain(address_t address);
     void dumpMRefChain(address_t address, bool includeCircular, int32_t route = 2, int32_t depth = -1);

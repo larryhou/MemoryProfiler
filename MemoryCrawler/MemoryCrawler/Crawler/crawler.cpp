@@ -445,12 +445,54 @@ void MemorySnapshotCrawler::trackMTypeObjects(MemoryState state, int32_t typeInd
         if (rank > 0 && listCount++ >= rank) {break;}
         
         auto &mo = managedObjects[*i];
-        auto tag = getMRefNode(&mo, depth);
+        auto relation = getMRefNode(&mo, depth);
         printf("0x%08llx %8d", mo.address, mo.size);
-        if (tag != nullptr)
+        if (relation != nullptr)
         {
-            auto &tagType = snapshot->typeDescriptions->items[tag->typeIndex];
-            printf(" ⤽[0x%08llx type='%s'%d]", tag->address, tagType.name.c_str(), tagType.typeIndex);
+            ManagedObject *node = nullptr;
+            switch (relation->fromKind)
+            {
+                case CK_link:
+                {
+                    auto appending = snapshot->nativeAppendingCollection.appendings[relation->from];
+                    auto index = findMObjectAtAddress(appending.link.managedAddress);
+                    if (index >= 0)
+                    {
+                        if (mo.managedObjectIndex != index) {node = &managedObjects[index];}
+                    } else { printf(" ⤽[<LINK>0x%08llx]", appending.link.managedAddress); }
+                } break;
+                    
+                case CK_gcHandle:
+                {
+                    auto address = snapshot->gcHandles->items[relation->from].target;
+                    auto index = findMObjectAtAddress(address);
+                    if (index >= 0)
+                    {
+                        if (mo.managedObjectIndex != index) {node = &managedObjects[index];}
+                    } else { printf(" ⤽[<GCHandle>0x%08llx]", address); }
+                } break;
+                
+                case CK_managed:
+                {
+                    if (relation->from != mo.managedObjectIndex) {node = &managedObjects[relation->from];}
+                } break;
+                    
+                default: break;
+            }
+            
+            if (node != nullptr)
+            {
+                auto &tagType = snapshot->typeDescriptions->items[node->typeIndex];
+                printf(" ⤽[0x%08llx type='%s'%d]", node->address, tagType.name.c_str(), tagType.typeIndex);
+            }
+            else
+            {
+                printf(" ⤽[NULL]");
+            }
+        }
+        else
+        {
+            printf(" ⤽[NULL]");
         }
         printf("\n");
     }
@@ -1429,19 +1471,25 @@ void MemorySnapshotCrawler::dumpVRefChain(address_t address)
     }
 }
 
-ManagedObject* MemorySnapshotCrawler::getMRefNode(ManagedObject *mo, int32_t depth)
+EntityConnection* MemorySnapshotCrawler::getMRefNode(ManagedObject *mo, int32_t depth)
 {
+    EntityConnection *relation = nullptr;
+    
     auto target = mo;
     while (target != nullptr && depth-- > 0)
     {
         auto &fromConnections = target->fromConnections;
         if (fromConnections.size() == 0) {break;}
-        auto cindex = fromConnections[0];
-        auto mindex = connections[cindex].from;
+        
+        relation = &connections[fromConnections.front()];
+        if (relation->fromKind == CK_link || relation->fromKind == CK_gcHandle) {break;}
+        
+        auto mindex = relation->from;
         if (mindex <= -1 || mindex >= managedObjects.size()) {break;}
         target = &managedObjects[mindex];
     }
-    return target;
+    
+    return relation;
 }
 
 void MemorySnapshotCrawler::dumpMRefChain(address_t address, bool includeCircular, int32_t route, int32_t depth)
