@@ -531,7 +531,11 @@ void MemorySnapshotCrawler::topMObjects(int32_t rank, address_t address, bool ke
     
     std::sort(objects.begin(), objects.end(), [](ManagedObject *a, ManagedObject *b)
     {
-        return a->size > b->size;
+        if (a->size != b->size)
+        {
+            return a->size > b->size;
+        }
+        return a->address < b->address;
     });
     
     if (rank > objects.size()) { rank = (int32_t)objects.size(); }
