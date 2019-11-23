@@ -761,7 +761,7 @@ void MemorySnapshotCrawler::drawUsedHeapGraph(const char *filename, bool sort)
     auto ptr = str;
     
     mkdir("__graph", 0777);
-    sprintf(ptr, "__graph/%s_used+heap.svg", filename);
+    sprintf(ptr, "__graph/%s_used+heap_%lldK.svg", filename, length >> 10);
     
     FileStream fs;
     fs.open(ptr, std::fstream::out | std::fstream::trunc | std::fstream::binary);
