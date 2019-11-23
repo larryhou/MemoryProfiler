@@ -832,8 +832,6 @@ void MemorySnapshotCrawler::drawUsedHeapGraph(const char *filename, bool sort)
         assert(mo->address >= s->startAddress);
         
         Rectangle rect(rowWidth * (mo->address - s->startAddress) / length, cursorY, rowWidth * mo->size / length, rowHeight);
-        if (rect.width < 0.001) { continue; }
-        
         assert(rect.x < s->size * rowWidth / length);
         
         if (back.width != 0 && back ^ rect)
