@@ -197,6 +197,7 @@ public:
     void statHeap(int32_t rank = 20);
     void inspectHeap(const char *filename = nullptr);
     void drawHeapGraph(const char *filename, bool comparisonEnabled = false);
+    void drawUsedHeapGraph(const char *filename, bool sort = false);
     void statFragments();
     
     ManagedObject* getMRefNode(ManagedObject *mo, int32_t depth = 1);
@@ -360,6 +361,20 @@ struct Rectangle
     double x, y, width, height;
     Rectangle(double x, double y, double width, double height): x(x), y(y), width(width), height(height) {}
     Rectangle(): Rectangle(0, 0, 0, 0) {}
+    
+    bool operator ^ (Rectangle &v)
+    {
+        return y == v.y && x + width == v.x;
+    }
+    
+    Rectangle& operator + (Rectangle &v)
+    {
+        x = fmin(x, v.x);
+        y = fmin(y, v.y);
+        width = fmax(x + width, v.x + v.width) - x;
+        height = fmax(y + height, v.y + v.height) - y;
+        return *this;
+    }
 };
 
 #endif /* crawler_h */

@@ -698,6 +698,117 @@ void MemorySnapshotCrawler::statFragments()
     printf("[SUMMARY] fragments+%s=%dK alloc+%s=%dK dealloc+%s=%dK\n", comma(fragAddition).c_str(), fragAddition/1024, comma(allocAddition).c_str(), allocAddition/1024, comma(deallocations).c_str(), deallocations/1024);
 }
 
+void MemorySnapshotCrawler::drawUsedHeapGraph(const char *filename, bool sort)
+{
+    const double rowWidth = 1920, rowHeight = 100, gap = 5;
+    
+    int64_t length = 0;
+    auto &heapSections = *snapshot->sortedHeapSections;
+    for (auto iter = heapSections.begin(); iter!=heapSections.end(); iter++)
+    {
+        auto &section = **iter;
+        if (section.size > length) { length = section.size; }
+    }
+    
+    std::map<address_t, ManagedObject *> map;
+    for (auto i = 0; i < managedObjects.size(); i++)
+    {
+        auto &mo = managedObjects[i];
+        if (mo.size <= 0 || mo.address <= 0xFFFF) {continue;}
+        map.insert(std::make_pair(mo.address, &mo));
+    }
+
+    auto section = heapSections.begin();
+    std::map<int32_t, std::vector<Rectangle>> stacks;
+    std::vector<Rectangle> *children = &stacks.insert(std::make_pair((**section).heapArrayIndex, std::vector<Rectangle>())).first->second;
+    
+    Rectangle back;
+    double cursorY = 0;
+    for (auto iter = map.begin(); iter != map.end(); iter++)
+    {
+        auto &mo = iter->second;
+        
+        auto s = *section;
+        while (mo->address >= s->startAddress + s->size)
+        {
+            section++;
+            assert(section != heapSections.end());
+            children = &stacks.insert(std::make_pair((**section).heapArrayIndex, std::vector<Rectangle>())).first->second;
+            cursorY += rowHeight + gap;
+            s = *section;
+        }
+        
+        assert(mo->address >= s->startAddress);
+        
+        Rectangle rect(rowWidth * (mo->address - s->startAddress) / length, cursorY, rowWidth * mo->size / length, rowHeight);
+        assert(rect.x < s->size * rowWidth / length);
+        
+        if (back.width != 0 && back ^ rect)
+        {
+            back + rect;
+            memcpy(&children->back(), &back, sizeof(Rectangle));
+        }
+        else
+        {
+            memcpy(&back, &rect, sizeof(Rectangle));
+            children->push_back(back);
+        }
+    }
+    
+    const double canvasWidth = rowWidth, canvasHeight = cursorY + rowHeight;
+    
+    char str[512];
+    auto ptr = str;
+    
+    mkdir("__graph", 0777);
+    sprintf(ptr, "__graph/%s_used+heap.svg", filename);
+    
+    FileStream fs;
+    fs.open(ptr, std::fstream::out | std::fstream::trunc | std::fstream::binary);
+    fs.write("<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\"");
+    sprintf(ptr, " width=\"%.0f\" height=\"%.0f\">\n", canvasWidth, canvasHeight);
+    fs.write((const char *)ptr);
+    
+    using Iterator = decltype(stacks.begin());
+    std::vector<Iterator> indices;
+    for (auto iter = stacks.begin(); iter != stacks.end(); iter++) { indices.push_back(iter); }
+    if(sort)
+    {
+        std::sort(indices.begin(), indices.end(), [&](Iterator a, Iterator b)
+        {
+            return heapSections[a->first]->size > heapSections[b->first]->size;
+        });
+    }
+    
+    cursorY = 0;
+    for (auto i = 0; i < indices.size(); i++)
+    {
+        Iterator iter = indices[i];
+        auto &section = *heapSections[iter->first];
+        sprintf(ptr, "<rect x=\"%.2f\" y=\"%.2f\" width=\"%.2f\" height=\"%.2f\" stroke=\"none\" fill=\"lightgray\"/>\n", 0.0, cursorY, rowWidth, rowHeight);
+        fs.write((const char *)ptr);
+        sprintf(ptr, "<rect x=\"%.2f\" y=\"%.2f\" width=\"%.2f\" height=\"%.2f\" stroke=\"none\" fill=\"red\"/>\n", 0.0, cursorY, rowWidth * section.size / length, rowHeight);
+        fs.write((const char *)ptr);
+
+        sprintf(ptr, "<text x=\"%.2f\" y=\"%.2f\" fill=\"darkred\" font-family=\"Courier\" font-size=\"20\" opacity=\"0.2\">0x%llx</text>\n", 0.0, cursorY + 20, section.startAddress);
+        fs.write((const char *)ptr);
+        
+        auto scale = 0.75;
+        auto &blocks = iter->second;
+        for (auto c = blocks.begin(); c != blocks.end(); c++)
+        {
+            assert(c->x < section.size * rowWidth / length);
+            sprintf(ptr, "<rect x=\"%.2f\" y=\"%.2f\" width=\"%.2f\" height=\"%.2f\" stroke=\"none\" fill=\"gold\"/>\n", c->x, cursorY + c->height * (1 - scale), c->width, c->height * scale);
+            fs.write((const char *)ptr);
+        }
+        
+        cursorY += rowHeight + gap;
+    }
+    
+    fs.write("</svg>");
+    fs.close();
+}
+
 void MemorySnapshotCrawler::drawHeapGraph(const char *filename, bool comparisonEnabled)
 {
     const double canvasWidth = 1920, canvasHeight = 1080;

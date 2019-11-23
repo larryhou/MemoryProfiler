@@ -562,6 +562,13 @@ void processMemorySnapshot(const char * filepath)
                                    mainCrawler.statFragments();
                                });
         }
+        else if (strbeg(command, "draw"))
+        {
+            readCommandOptions(command, [&](std::vector<const char *> options)
+                               {
+                                   mainCrawler.drawUsedHeapGraph(filename.c_str(), options.size() > 1 && strcmp(options[1], "true") == 0);
+                               });
+        }
         else if (strbeg(command, "heap"))
         {
             readCommandOptions(command, [&](std::vector<const char *> options)
