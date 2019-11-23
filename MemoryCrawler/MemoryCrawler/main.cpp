@@ -781,6 +781,10 @@ void processMemorySnapshot(const char * filepath)
             help("iheap", "[save|draw]", "输出动态内存简报", __indent);
             help("draw", "[SORT_SECTION_BY_SIZE]", "生成SVG文件可视化内存使用情况，用来定位内存碎片问题", __indent);
             help("frag", NULL, "输出内存碎片信息", __indent);
+            help("go", "[ADDRESS]*", "输出GameObject对象的entity-components信息", __indent);
+            help("comp", "[ADDRESS]*", "输出Native组件信息", __indent);
+            help("tex", "[ADDRESS]*", "输出Texture2D资源信息", __indent);
+            help("sprite", "[ADDRESS]*", "输出Sprite资源信息", __indent);
             help("base", "[TYPE_INDEX]", "查看当前类型的子类型", __indent);
             help("save", NULL, "把当前内存快照分析结果以sqlite3格式保存到本机", __indent);
             help("uuid", NULL, "查看内存快照UUID", __indent);
