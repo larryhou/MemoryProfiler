@@ -771,12 +771,15 @@ void processMemorySnapshot(const char * filepath)
             help("ustat", "[RANK]", "按类型输出引擎对象内存占用前RANK名的简报[支持内存追踪过滤]", __indent);
             help("bar", "[RANK]", "输出托管类型内存占用前RANK名图形简报[支持内存追踪过滤]", __indent);
             help("ubar", "[RANK]", "输出引擎类型内存占用前RANK名图形简报[支持内存追踪过滤]", __indent);
+            help("top", "[RANK] [ADDRESS] [KEEP_ADDRESS_ORDER]", "按大小降序/原序输出最大的内存对象列表", __indent);
+            help("utop", "[RANK]", "按大小降序输出输出Native对象列表", __indent);
             help("list", NULL, "列举托管类型所有活跃对象内存占用简报[支持内存追踪过滤]", __indent);
             help("ulist", NULL, "列举引擎类型所有活跃对象内存占用简报[支持内存追踪过滤]", __indent);
             help("event", NULL, "搜索所有未清理的delegate对象");
             help("delg", "[ADDRESS]*", "查看MulticastDelegate链表");
             help("heap", "[RANK]", "输出动态内存简报", __indent);
-            help("iheap", "[save]", "输出动态内存简报", __indent);
+            help("iheap", "[save|draw]", "输出动态内存简报", __indent);
+            help("draw", "[SORT_SECTION_BY_SIZE]", "生成SVG文件可视化内存使用情况，用来定位内存碎片问题", __indent);
             help("frag", NULL, "输出内存碎片信息", __indent);
             help("base", "[TYPE_INDEX]", "查看当前类型的子类型", __indent);
             help("save", NULL, "把当前内存快照分析结果以sqlite3格式保存到本机", __indent);
