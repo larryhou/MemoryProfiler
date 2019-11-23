@@ -500,7 +500,7 @@ void MemorySnapshotCrawler::topMObjects(int32_t rank)
     for (auto i = 0; i < managedObjects.size(); i++)
     {
         auto &mo = managedObjects[i];
-        if (mo.size <= 0 || mo.address <= 0xFFFF) {continue;}
+        if (mo.size <= 0 || mo.address <= 0xFFFF || mo.isValueType) {continue;}
         objects.push_back(&mo);
     }
     
@@ -769,7 +769,7 @@ void MemorySnapshotCrawler::drawUsedHeapGraph(const char *filename, bool sort)
     for (auto i = 0; i < managedObjects.size(); i++)
     {
         auto &mo = managedObjects[i];
-        if (mo.size <= 0 || mo.address <= 0xFFFF) {continue;}
+        if (mo.size <= 0 || mo.address <= 0xFFFF || mo.isValueType) {continue;}
         map.insert(std::make_pair(mo.address, &mo));
     }
 
