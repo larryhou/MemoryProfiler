@@ -783,6 +783,7 @@ void processMemorySnapshot(const char * filepath)
             help("frag", NULL, "输出内存碎片信息", __indent);
             help("go", "[ADDRESS]*", "输出GameObject对象的entity-components信息", __indent);
             help("comp", "[ADDRESS]*", "输出Native组件信息", __indent);
+            help("tfm", "[ADDRESS]*", "输出Transform/RectTransform内存值信息", __indent);
             help("tex", "[ADDRESS]*", "输出Texture2D资源信息", __indent);
             help("sprite", "[ADDRESS]*", "输出Sprite资源信息", __indent);
             help("base", "[TYPE_INDEX]", "查看当前类型的子类型", __indent);
