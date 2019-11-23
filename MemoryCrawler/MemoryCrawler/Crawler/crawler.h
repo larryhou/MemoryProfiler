@@ -193,6 +193,8 @@ public:
     
     void barMMemory(MemoryState state, int32_t rank = 20);
     void barNMemory(MemoryState state, int32_t rank = 20);
+    void topMObjects(int32_t rank = 100);
+    void topNObjects(int32_t rank = 100);
     
     void statHeap(int32_t rank = 20);
     void inspectHeap(const char *filename = nullptr);

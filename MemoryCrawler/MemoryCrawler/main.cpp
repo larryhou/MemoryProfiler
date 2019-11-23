@@ -555,6 +555,20 @@ void processMemorySnapshot(const char * filepath)
                                    }
                                });
         }
+        else if (strbeg(command, "top"))
+        {
+            readCommandOptions(command, [&](std::vector<const char *> options)
+                               {
+                                   mainCrawler.topMObjects(options.size() == 1 ? 50 : atoi(options[1]));
+                               });
+        }
+        else if (strbeg(command, "utop"))
+        {
+            readCommandOptions(command, [&](std::vector<const char *> options)
+                               {
+                                   mainCrawler.topNObjects(options.size() == 1 ? 50 : atoi(options[1]));
+                               });
+        }
         else if (strbeg(command, "frag"))
         {
             readCommandOptions(command, [&](std::vector<const char *> options)

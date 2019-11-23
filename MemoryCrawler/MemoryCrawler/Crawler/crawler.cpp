@@ -494,6 +494,61 @@ void MemorySnapshotCrawler::trackNTypeObjects(MemoryState state, int32_t typeInd
     printf("\e[37m[SUMMARY] total_count=%d memory=%d\n", count, total);
 }
 
+void MemorySnapshotCrawler::topMObjects(int32_t rank)
+{
+    std::vector<ManagedObject *> objects;
+    for (auto i = 0; i < managedObjects.size(); i++)
+    {
+        auto &mo = managedObjects[i];
+        if (mo.size <= 0 || mo.address <= 0xFFFF) {continue;}
+        objects.push_back(&mo);
+    }
+    
+    std::sort(objects.begin(), objects.end(), [](ManagedObject *a, ManagedObject *b)
+              {
+                  if (a->size != b->size)
+                  {
+                      return a->size > b->size;
+                  }
+                  return a->address < b->address;
+              });
+    for (auto i = 0; i < rank; i++)
+    {
+        auto mo = objects[i];
+        if (i >= objects.size()) {break;}
+        
+        auto &type = snapshot->typeDescriptions->items[mo->typeIndex];
+        printf("0x%llx %s %s\n", mo->address, type.name.c_str(), comma(mo->size).c_str());
+    }
+}
+
+void MemorySnapshotCrawler::topNObjects(int32_t rank)
+{
+    std::vector<PackedNativeUnityEngineObject *> objects;
+    for (auto i = 0; i < snapshot->nativeObjects->size; i++)
+    {
+        auto &no = snapshot->nativeObjects->items[i];
+        objects.push_back(&no);
+    }
+    
+    std::sort(objects.begin(), objects.end(), [](PackedNativeUnityEngineObject *a, PackedNativeUnityEngineObject *b)
+              {
+                  if (a->size != b->size)
+                  {
+                      return a->size > b->size;
+                  }
+                  return a->nativeObjectAddress < b->nativeObjectAddress;
+              });
+    for (auto i = 0; i < rank; i++)
+    {
+        auto no = objects[i];
+        if (i >= objects.size()) {break;}
+        
+        auto &type = snapshot->nativeTypes->items[no->nativeTypeArrayIndex];
+        printf("0x%llx %s '%s' %s\n", no->nativeObjectAddress, type.name.c_str(), no->name.c_str(), comma(no->size).c_str());
+    }
+}
+
 void MemorySnapshotCrawler::barMMemory(MemoryState state, int32_t rank)
 {
     int64_t totalMemory = 0;
