@@ -1481,8 +1481,14 @@ EntityConnection* MemorySnapshotCrawler::getMRefNode(ManagedObject *mo, int32_t 
         auto &fromConnections = target->fromConnections;
         if (fromConnections.size() == 0) {break;}
         
-        relation = &connections[fromConnections.front()];
-        if (relation->fromKind == CK_link || relation->fromKind == CK_gcHandle) {break;}
+        auto iter = fromConnections.begin();
+        while (relation == nullptr || relation->fromKind == CK_link || relation->fromKind == CK_gcHandle)
+        {
+            if (iter == fromConnections.end()) {break;}
+            relation = &connections[*iter++];
+        }
+        
+        if (relation == nullptr || relation->fromKind == CK_link || relation->fromKind == CK_gcHandle) {break;}
         
         auto mindex = relation->from;
         if (mindex <= -1 || mindex >= managedObjects.size()) {break;}
