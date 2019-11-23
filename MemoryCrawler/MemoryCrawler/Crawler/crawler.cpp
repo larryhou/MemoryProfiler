@@ -832,6 +832,8 @@ void MemorySnapshotCrawler::drawUsedHeapGraph(const char *filename, bool sort)
         assert(mo->address >= s->startAddress);
         
         Rectangle rect(rowWidth * (mo->address - s->startAddress) / length, cursorY, rowWidth * mo->size / length, rowHeight);
+        if (rect.width < 0.001) { continue; }
+        
         assert(rect.x < s->size * rowWidth / length);
         
         if (back.width != 0 && back ^ rect)
@@ -876,12 +878,12 @@ void MemorySnapshotCrawler::drawUsedHeapGraph(const char *filename, bool sort)
     {
         Iterator iter = indices[i];
         auto &section = *heapSections[iter->first];
-        sprintf(ptr, "<rect x=\"%.2f\" y=\"%.2f\" width=\"%.2f\" height=\"%.2f\" stroke=\"none\" fill=\"lightgray\"/>\n", 0.0, cursorY, rowWidth, rowHeight);
+        sprintf(ptr, "<rect x=\"%.3f\" y=\"%.3f\" width=\"%.3f\" height=\"%.3f\" stroke=\"none\" fill=\"lightgray\"/>\n", 0.0, cursorY, rowWidth, rowHeight);
         fs.write((const char *)ptr);
-        sprintf(ptr, "<rect x=\"%.2f\" y=\"%.2f\" width=\"%.2f\" height=\"%.2f\" stroke=\"none\" fill=\"red\"/>\n", 0.0, cursorY, rowWidth * section.size / length, rowHeight);
+        sprintf(ptr, "<rect x=\"%.3f\" y=\"%.3f\" width=\"%.3f\" height=\"%.3f\" stroke=\"none\" fill=\"red\"/>\n", 0.0, cursorY, rowWidth * section.size / length, rowHeight);
         fs.write((const char *)ptr);
 
-        sprintf(ptr, "<text x=\"%.2f\" y=\"%.2f\" fill=\"darkred\" font-family=\"Courier\" font-size=\"20\" opacity=\"0.2\">0x%llx</text>\n", 0.0, cursorY + 20, section.startAddress);
+        sprintf(ptr, "<text x=\"%.3f\" y=\"%.3f\" fill=\"darkred\" font-family=\"Courier\" font-size=\"20\" opacity=\"0.2\">0x%llx</text>\n", 0.0, cursorY + 20, section.startAddress);
         fs.write((const char *)ptr);
         
         auto scale = 0.75;
@@ -889,7 +891,7 @@ void MemorySnapshotCrawler::drawUsedHeapGraph(const char *filename, bool sort)
         for (auto c = blocks.begin(); c != blocks.end(); c++)
         {
             assert(c->x < section.size * rowWidth / length);
-            sprintf(ptr, "<rect x=\"%.2f\" y=\"%.2f\" width=\"%.2f\" height=\"%.2f\" stroke=\"none\" fill=\"gold\"/>\n", c->x, cursorY + c->height * (1 - scale), c->width, c->height * scale);
+            sprintf(ptr, "<rect x=\"%.3f\" y=\"%.3f\" width=\"%.3f\" height=\"%.3f\" stroke=\"none\" fill=\"gold\"/>\n", c->x, cursorY + c->height * (1 - scale), c->width, c->height * scale);
             fs.write((const char *)ptr);
         }
         
