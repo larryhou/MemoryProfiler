@@ -494,24 +494,56 @@ void MemorySnapshotCrawler::trackNTypeObjects(MemoryState state, int32_t typeInd
     printf("\e[37m[SUMMARY] total_count=%d memory=%d\n", count, total);
 }
 
-void MemorySnapshotCrawler::topMObjects(int32_t rank)
+void MemorySnapshotCrawler::topMObjects(int32_t rank, address_t address, bool keepAddressOrder)
 {
-    std::vector<ManagedObject *> objects;
-    for (auto i = 0; i < managedObjects.size(); i++)
+    MemorySection *section = nullptr;
+    auto &heapSections = *snapshot->sortedHeapSections;
+    for (auto iter = heapSections.begin(); iter != heapSections.end(); iter++)
     {
-        auto &mo = managedObjects[i];
-        if (mo.size <= 0 || mo.address <= 0xFFFF || mo.isValueType) {continue;}
-        objects.push_back(&mo);
+        auto &s = **iter;
+        if (s.startAddress == address)
+        {
+            section = &s;
+            break;
+        }
+    }
+    
+    std::vector<ManagedObject *> objects;
+    if (section == nullptr)
+    {
+        for (auto i = 0; i < managedObjects.size(); i++)
+        {
+            auto &mo = managedObjects[i];
+            if (mo.size <= 0 || mo.address <= 0xFFFF || mo.isValueType) {continue;}
+            objects.push_back(&mo);
+        }
+    }
+    else
+    {
+        for (auto i = 0; i < managedObjects.size(); i++)
+        {
+            auto &mo = managedObjects[i];
+            if (mo.size <= 0 || mo.address <= 0xFFFF || mo.isValueType) {continue;}
+            if (mo.address < section->startAddress || mo.address >= section->startAddress + section->size) {continue;}
+            objects.push_back(&mo);
+        }
     }
     
     std::sort(objects.begin(), objects.end(), [](ManagedObject *a, ManagedObject *b)
-              {
-                  if (a->size != b->size)
-                  {
-                      return a->size > b->size;
-                  }
-                  return a->address < b->address;
-              });
+    {
+        return a->size > b->size;
+    });
+    
+    if (rank > objects.size()) { rank = (int32_t)objects.size(); }
+    
+    if (keepAddressOrder)
+    {
+        std::sort(objects.begin(), objects.begin() + rank, [](ManagedObject *a, ManagedObject *b)
+        {
+            return a->address < b->address;
+        });
+    }
+    
     for (auto i = 0; i < rank; i++)
     {
         auto mo = objects[i];

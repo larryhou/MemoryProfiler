@@ -559,7 +559,9 @@ void processMemorySnapshot(const char * filepath)
         {
             readCommandOptions(command, [&](std::vector<const char *> options)
                                {
-                                   mainCrawler.topMObjects(options.size() == 1 ? 50 : atoi(options[1]));
+                                   mainCrawler.topMObjects(options.size() == 1 ? 50 : atoi(options[1]),
+                                                           options.size() > 2? castAddress(options[2]) : 0,
+                                                           options.size() > 3? strcmp(options[3], "true") == 0 : false);
                                });
         }
         else if (strbeg(command, "utop"))

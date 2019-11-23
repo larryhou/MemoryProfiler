@@ -193,7 +193,7 @@ public:
     
     void barMMemory(MemoryState state, int32_t rank = 20);
     void barNMemory(MemoryState state, int32_t rank = 20);
-    void topMObjects(int32_t rank = 100);
+    void topMObjects(int32_t rank = 100, address_t address = 0, bool keepAddressOrder = false);
     void topNObjects(int32_t rank = 100);
     
     void statHeap(int32_t rank = 20);
