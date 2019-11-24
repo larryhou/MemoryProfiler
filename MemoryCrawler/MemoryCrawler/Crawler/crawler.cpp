@@ -459,7 +459,7 @@ void MemorySnapshotCrawler::trackMTypeObjects(MemoryState state, int32_t typeInd
                     if (index >= 0)
                     {
                         node = &managedObjects[index];
-                        printf("<LINK>");
+                        printf("<LINK>::");
                     }
                 } break;
                     
@@ -470,7 +470,7 @@ void MemorySnapshotCrawler::trackMTypeObjects(MemoryState state, int32_t typeInd
                     if (index >= 0)
                     {
                         node = &managedObjects[index];
-                        printf("<GCHandle>");
+                        printf("<GCHandle>::");
                     }
                 } break;
                 
