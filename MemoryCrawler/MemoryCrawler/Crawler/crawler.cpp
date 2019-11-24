@@ -446,7 +446,7 @@ void MemorySnapshotCrawler::trackMTypeObjects(MemoryState state, int32_t typeInd
         
         auto &mo = managedObjects[*i];
         auto relation = getMRefNode(&mo, depth);
-        printf("0x%08llx %8d", mo.address, mo.size);
+        printf("0x%08llx %8d  ⤽[", mo.address, mo.size);
         if (relation != nullptr)
         {
             ManagedObject *node = nullptr;
@@ -458,8 +458,9 @@ void MemorySnapshotCrawler::trackMTypeObjects(MemoryState state, int32_t typeInd
                     auto index = findMObjectAtAddress(appending.link.managedAddress);
                     if (index >= 0)
                     {
-                        if (mo.managedObjectIndex != index) {node = &managedObjects[index];}
-                    } else { printf(" ⤽[<LINK>0x%08llx]", appending.link.managedAddress); }
+                        node = &managedObjects[index];
+                        printf("<LINK>");
+                    }
                 } break;
                     
                 case CK_gcHandle:
@@ -468,8 +469,9 @@ void MemorySnapshotCrawler::trackMTypeObjects(MemoryState state, int32_t typeInd
                     auto index = findMObjectAtAddress(address);
                     if (index >= 0)
                     {
-                        if (mo.managedObjectIndex != index) {node = &managedObjects[index];}
-                    } else { printf(" ⤽[<GCHandle>0x%08llx]", address); }
+                        node = &managedObjects[index];
+                        printf("<GCHandle>");
+                    }
                 } break;
                 
                 case CK_managed:
@@ -483,18 +485,18 @@ void MemorySnapshotCrawler::trackMTypeObjects(MemoryState state, int32_t typeInd
             if (node != nullptr)
             {
                 auto &tagType = snapshot->typeDescriptions->items[node->typeIndex];
-                printf(" ⤽[0x%08llx type='%s'%d]", node->address, tagType.name.c_str(), tagType.typeIndex);
+                printf("0x%08llx type='%s'%d", node->address, tagType.name.c_str(), tagType.typeIndex);
             }
             else
             {
-                printf(" ⤽[NULL]");
+                printf("NULL");
             }
         }
         else
         {
-            printf(" ⤽[NULL]");
+            printf("NULL");
         }
-        printf("\n");
+        printf("]\n");
     }
     
     printf("\e[37m[SUMMARY] total_count=%d memory=%d\n", count, total);
