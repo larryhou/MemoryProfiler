@@ -538,6 +538,7 @@ void MemorySnapshotCrawler::trackMTypeObjects(MemoryState state, int32_t typeInd
 
 void MemorySnapshotCrawler::trackNTypeObjects(MemoryState state, int32_t typeIndex, int32_t rank)
 {
+    auto maxValue = 0;
     TrackStatistics objects;
     for (auto i = 0; i < snapshot->nativeObjects->size; i++)
     {
@@ -545,6 +546,7 @@ void MemorySnapshotCrawler::trackNTypeObjects(MemoryState state, int32_t typeInd
         if (no.nativeTypeArrayIndex == typeIndex && (state == MS_none || state == no.state))
         {
             objects.collect(i, no.nativeTypeArrayIndex, no.size);
+            if (no.size > maxValue) { maxValue = no.size; }
         }
     }
     
@@ -563,6 +565,7 @@ void MemorySnapshotCrawler::trackNTypeObjects(MemoryState state, int32_t typeInd
                             indice.push_back(itemIndex);
                         }
                     }, 0);
+    auto digitCount = indice.size() == 0 ? 2 : (int32_t)ceil(log10(maxValue));
     auto &collection = snapshot->nativeAppendingCollection;
     auto listCount = 0;
     for (auto i = indice.begin(); i != indice.end(); i++)
@@ -571,7 +574,7 @@ void MemorySnapshotCrawler::trackNTypeObjects(MemoryState state, int32_t typeInd
         
         auto &no = snapshot->nativeObjects->items[*i];
         auto &type = snapshot->nativeTypes->items[no.nativeTypeArrayIndex];
-        printf("0x%08llx %8d %s '%s'", no.nativeObjectAddress, no.size, type.name.c_str(), no.name.c_str());
+        printf("0x%08llx %s %s '%s'", no.nativeObjectAddress, comma(no.size, digitCount).c_str(), type.name.c_str(), no.name.c_str());
         if (collection.appendings.size() > 0)
         {
             auto &appending = collection.appendings[no.nativeObjectArrayIndex];
