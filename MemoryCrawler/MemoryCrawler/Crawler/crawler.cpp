@@ -574,7 +574,7 @@ void MemorySnapshotCrawler::trackNTypeObjects(MemoryState state, int32_t typeInd
         
         auto &no = snapshot->nativeObjects->items[*i];
         auto &type = snapshot->nativeTypes->items[no.nativeTypeArrayIndex];
-        printf("0x%08llx %s %s '%s'", no.nativeObjectAddress, comma(no.size, digitCount).c_str(), type.name.c_str(), no.name.c_str());
+        printf("0x%08llx %s %s \e[33m'%s'\e[36m", no.nativeObjectAddress, comma(no.size, digitCount).c_str(), type.name.c_str(), no.name.c_str());
         if (collection.appendings.size() > 0)
         {
             auto &appending = collection.appendings[no.nativeObjectArrayIndex];
@@ -586,7 +586,7 @@ void MemorySnapshotCrawler::trackNTypeObjects(MemoryState state, int32_t typeInd
                 if (sprite.textureNativeArrayIndex >= 0)
                 {
                     auto &texture = snapshot->nativeObjects->items[sprite.textureNativeArrayIndex];
-                    printf(" Texture2D[0x%llx '%s']", texture.nativeObjectAddress, texture.name.c_str());
+                    printf(" Texture2D[0x%llx \e[32m'%s'\e[36m]", texture.nativeObjectAddress, texture.name.c_str());
                 }
             }
             else if (typeIndex == snapshot->nativeTypeIndex.Texture2D)
