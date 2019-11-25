@@ -465,7 +465,9 @@ void MemorySnapshotCrawler::trackMTypeObjects(MemoryState state, int32_t typeInd
                     if (index >= 0)
                     {
                         node = &managedObjects[index];
-                        printf("<LINK>::");
+                        auto &no = snapshot->nativeObjects->items[relation->from];
+                        auto &nt = snapshot->nativeTypes->items[no.nativeTypeArrayIndex];
+                        printf("<LINK>::{0x%llx %s \e[33m'%s'\e[36m} ", no.nativeObjectAddress, nt.name.c_str(), no.name.c_str());
                     }
                 } break;
                     
