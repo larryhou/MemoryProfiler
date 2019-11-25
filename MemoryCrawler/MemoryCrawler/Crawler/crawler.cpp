@@ -416,6 +416,7 @@ void MemorySnapshotCrawler::trackNStatistics(MemoryState state, int32_t depth)
 
 void MemorySnapshotCrawler::trackMTypeObjects(MemoryState state, int32_t typeIndex, int32_t rank, int32_t depth)
 {
+    auto maxValue = 0;
     TrackStatistics objects;
     for (auto i = 0; i < managedObjects.size(); i++)
     {
@@ -423,6 +424,7 @@ void MemorySnapshotCrawler::trackMTypeObjects(MemoryState state, int32_t typeInd
         if (mo.typeIndex == typeIndex && (state == MS_none || state == mo.state))
         {
             objects.collect(i, mo.typeIndex, mo.size);
+            if (mo.size > maxValue) { maxValue = mo.size; }
         }
     }
     
@@ -445,6 +447,10 @@ void MemorySnapshotCrawler::trackMTypeObjects(MemoryState state, int32_t typeInd
                             indice.push_back(itemIndex);
                         }
                     }, 0);
+    
+    
+    auto digitCount = indice.size() == 0 ? 2 : (int32_t)ceil(log10(maxValue));
+    
     auto listCount = 0;
     for (auto i = indice.begin(); i != indice.end(); i++)
     {
@@ -452,7 +458,7 @@ void MemorySnapshotCrawler::trackMTypeObjects(MemoryState state, int32_t typeInd
         
         auto &mo = managedObjects[*i];
         auto relation = getMRefNode(&mo, depth);
-        printf("0x%08llx %8d  ⤽[", mo.address, mo.size);
+        printf("\e[36m0x%08llx %s ⤽[", mo.address, comma(mo.size, digitCount).c_str());
         if (relation != nullptr)
         {
             ManagedObject *node = nullptr;
@@ -465,9 +471,7 @@ void MemorySnapshotCrawler::trackMTypeObjects(MemoryState state, int32_t typeInd
                     if (index >= 0)
                     {
                         node = &managedObjects[index];
-                        auto &no = snapshot->nativeObjects->items[relation->from];
-                        auto &nt = snapshot->nativeTypes->items[no.nativeTypeArrayIndex];
-                        printf("<LINK>::{0x%llx %s \e[33m'%s'\e[36m} ", no.nativeObjectAddress, nt.name.c_str(), no.name.c_str());
+                        printf("<LINK>::");
                     }
                 } break;
                     
@@ -480,6 +484,14 @@ void MemorySnapshotCrawler::trackMTypeObjects(MemoryState state, int32_t typeInd
                         node = &managedObjects[index];
                         printf("<GCHandle>::");
                     }
+                } break;
+                    
+                case CK_static:
+                {
+                    auto &ej = joints[relation->jointArrayIndex];
+                    auto &type = snapshot->typeDescriptions->items[ej.hookTypeIndex];
+                    auto &field = type.fields->items[ej.fieldSlotIndex];
+                    printf("<Static>::%s::%s", type.name.c_str(), field.name.c_str());
                 } break;
                 
                 case CK_managed:
@@ -495,7 +507,7 @@ void MemorySnapshotCrawler::trackMTypeObjects(MemoryState state, int32_t typeInd
                 auto &tagType = snapshot->typeDescriptions->items[node->typeIndex];
                 printf("0x%08llx type='%s'%d", node->address, tagType.name.c_str(), tagType.typeIndex);
             }
-            else
+            else if (relation->fromKind != CK_static)
             {
                 printf("NULL");
             }
@@ -504,7 +516,21 @@ void MemorySnapshotCrawler::trackMTypeObjects(MemoryState state, int32_t typeInd
         {
             printf("NULL");
         }
-        printf("]\n");
+        printf("]");
+        if (type.isUnityEngineObjectType)
+        {
+            auto nAddress = findNObjectOfMObject(mo.address);
+            if (nAddress != 0)
+            {
+                auto index = __nativeObjectAddressMap.at(nAddress);
+                assert(index >= 0);
+                
+                auto &no = snapshot->nativeObjects->items[index];
+                auto &nt = snapshot->nativeTypes->items[no.nativeTypeArrayIndex];
+                printf(" \e[32m*{0x%llx %s \e[33m'%s'\e[32m %s}", no.nativeObjectAddress, nt.name.c_str(), no.name.c_str(), comma(no.size).c_str());
+            }
+        }
+        printf("\n");
     }
     
     printf("\e[37m[SUMMARY] total_count=%d memory=%d\n", count, total);
@@ -1502,7 +1528,7 @@ EntityConnection* MemorySnapshotCrawler::getMRefNode(ManagedObject *mo, int32_t 
             relation = &connections[*iter++];
         }
         
-        if (relation == nullptr || relation->fromKind == CK_link || relation->fromKind == CK_gcHandle) {break;}
+        if (relation == nullptr || relation->fromKind == CK_link || relation->fromKind == CK_gcHandle || relation->fromKind == CK_static) {break;}
         
         auto mindex = relation->from;
         if (mindex <= -1 || mindex >= managedObjects.size()) {break;}
