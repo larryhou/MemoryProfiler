@@ -625,13 +625,17 @@ void MemorySnapshotCrawler::topMObjects(int32_t rank, address_t address, bool ke
         });
     }
     
+    address_t prevAddress = 0;
     for (auto i = 0; i < rank; i++)
     {
         auto mo = objects[i];
         if (i >= objects.size()) {break;}
         
         auto &type = snapshot->typeDescriptions->items[mo->typeIndex];
-        printf("0x%llx %s %s\n", mo->address, type.name.c_str(), comma(mo->size).c_str());
+        printf("0x%llx %s %s", mo->address, type.name.c_str(), comma(mo->size).c_str());
+        if (keepAddressOrder && prevAddress != 0) { printf(" +%lld", mo->address - prevAddress); }
+        printf("\n");
+        prevAddress = mo->address + mo->size;
     }
 }
 
