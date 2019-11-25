@@ -232,7 +232,7 @@ void MemorySnapshotCrawler::dumpAllClasses()
     }
 }
 
-void MemorySnapshotCrawler::findNObject(string name)
+void MemorySnapshotCrawler::findNObject(string name, bool reverseMatching)
 {
     auto &nativeObjects = snapshot->nativeObjects->items;
     for (auto i = 0; i < snapshot->nativeObjects->size; i++)
@@ -241,13 +241,27 @@ void MemorySnapshotCrawler::findNObject(string name)
         auto &no = nativeObjects[i];
         if (no.name.size() < name.size()) {continue;}
         auto &nt = snapshot->nativeTypes->items[no.nativeTypeArrayIndex];
-        auto np = name.begin();
-        auto tp = no.name.begin();
-        while (np != name.end())
+        if (reverseMatching)
         {
-            if (*np != *tp) { completed = false; break; }
-            ++np;
-            ++tp;
+            auto np = name.rbegin();
+            auto tp = no.name.rbegin();
+            while (np != name.rend())
+            {
+                if (*np != *tp) { completed = false; break; }
+                ++np;
+                ++tp;
+            }
+        }
+        else
+        {
+            auto np = name.begin();
+            auto tp = no.name.begin();
+            while (np != name.end())
+            {
+                if (*np != *tp) { completed = false; break; }
+                ++np;
+                ++tp;
+            }
         }
         
         if (completed)
