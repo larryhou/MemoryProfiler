@@ -3539,9 +3539,9 @@ void MemorySnapshotCrawler::inspectComponent(address_t address)
 void MemorySnapshotCrawler::inspectGameObject(address_t address)
 {
     auto index = findNObjectAtAddress(address);
-    if (index >= 0)
+    auto &collection = snapshot->nativeAppendingCollection;
+    if (index >= 0 && collection.appendings.size() > 0)
     {
-        auto &collection = snapshot->nativeAppendingCollection;
         auto &appending = collection.appendings[index];
         if (appending.gameObject != -1)
         {
