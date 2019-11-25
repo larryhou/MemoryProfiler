@@ -1560,7 +1560,8 @@ void MemorySnapshotCrawler::dumpMRefChain(address_t address, bool includeCircula
             {
                 auto &appending = snapshot->nativeAppendingCollection.appendings[joint.linkArrayIndex];
                 auto &no = snapshot->nativeObjects->items[appending.link.nativeArrayIndex];
-                printf("<LINK>::%s 0x%08llx <=> %s 0x%08llx\n", no.name.c_str(), appending.link.nativeAddress, type.name.c_str(), node.address);
+                auto &nt = snapshot->nativeTypes->items[no.nativeTypeArrayIndex];
+                printf("<LINK>::0x%08llx '%s' %s <=> %s 0x%08llx\n", appending.link.nativeAddress, no.name.c_str(), nt.name.c_str(), type.name.c_str(), node.address);
             }
             else
             {
