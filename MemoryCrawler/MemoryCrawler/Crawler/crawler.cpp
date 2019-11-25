@@ -3559,8 +3559,19 @@ void MemorySnapshotCrawler::inspectGameObject(address_t address)
                 {
                     printf(" enabled=%s isActiveAndEnabled=%s", component.enabled? "true":"false", component.isActiveAndEnabled? "true":"false");
                 }
+                
+                int32_t typeIndex = -1;
                 auto &item = collection.appendings[component.nativeArrayIndex];
-                auto typeIndex = findTypeOfAddress(item.link.managedAddress);
+                auto mindex = findMObjectAtAddress(item.link.managedAddress);
+                if (mindex == -1)
+                {
+                    typeIndex = findTypeOfAddress(item.link.managedAddress);
+                }
+                else
+                {
+                    typeIndex = managedObjects[mindex].typeIndex;
+                }
+                
                 if (typeIndex == -1)
                 {
                     typeIndex = findTypeAtTypeAddress(item.link.managedTypeAddress);
