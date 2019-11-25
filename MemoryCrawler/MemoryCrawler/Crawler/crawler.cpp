@@ -586,7 +586,7 @@ void MemorySnapshotCrawler::trackNTypeObjects(MemoryState state, int32_t typeInd
                 if (sprite.textureNativeArrayIndex >= 0)
                 {
                     auto &texture = snapshot->nativeObjects->items[sprite.textureNativeArrayIndex];
-                    printf(" Texture2D[0x%llx \e[32m'%s'\e[36m]", texture.nativeObjectAddress, texture.name.c_str());
+                    printf(" Texture2D[0x%llx \e[33m'%s'\e[36m]", texture.nativeObjectAddress, texture.name.c_str());
                 }
             }
             else if (typeIndex == snapshot->nativeTypeIndex.Texture2D)
@@ -595,16 +595,13 @@ void MemorySnapshotCrawler::trackNTypeObjects(MemoryState state, int32_t typeInd
                 printf(" pot=%s format=%d %dx%d", tex.pot? "true" : "false", tex.format, tex.width, tex.height);
             }
         }
-        if (typeIndex == snapshot->nativeTypeIndex.MonoBehaviour)
+        auto mAddress = findMObjectOfNObject(no.nativeObjectAddress);
+        if (mAddress != 0)
         {
-            auto mAddress = findMObjectOfNObject(no.nativeObjectAddress);
-            if (mAddress != 0)
-            {
-                auto mindex = findMObjectAtAddress(mAddress);
-                auto &mo = managedObjects[mindex];
-                auto &mt = snapshot->typeDescriptions->items[mo.typeIndex];
-                printf(" \e[32m*{0x%llx %s}", mo.address, mt.name.c_str());
-            }
+            auto mindex = findMObjectAtAddress(mAddress);
+            auto &mo = managedObjects[mindex];
+            auto &mt = snapshot->typeDescriptions->items[mo.typeIndex];
+            printf(" \e[32m*{0x%llx %s}", mo.address, mt.name.c_str());
         }
         printf("\n");
     }
