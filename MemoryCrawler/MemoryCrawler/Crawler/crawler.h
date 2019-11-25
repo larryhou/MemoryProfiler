@@ -217,7 +217,7 @@ public:
     
     void dumpAllClasses();
     void findClass(string name);
-    void findNObject(string name);
+    void findNObject(string name, bool reverseMatching = false);
     
     void listAllStatics();
     void dumpStatic(int32_t typeIndex, bool verbose = false);
