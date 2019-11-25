@@ -574,7 +574,7 @@ void MemorySnapshotCrawler::trackNTypeObjects(MemoryState state, int32_t typeInd
         
         auto &no = snapshot->nativeObjects->items[*i];
         auto &type = snapshot->nativeTypes->items[no.nativeTypeArrayIndex];
-        printf("0x%08llx %s %s \e[33m'%s'\e[36m", no.nativeObjectAddress, comma(no.size, digitCount).c_str(), type.name.c_str(), no.name.c_str());
+        printf("\e[36m0x%08llx %s %s \e[33m'%s'\e[36m", no.nativeObjectAddress, comma(no.size, digitCount).c_str(), type.name.c_str(), no.name.c_str());
         if (collection.appendings.size() > 0)
         {
             auto &appending = collection.appendings[no.nativeObjectArrayIndex];
@@ -593,6 +593,17 @@ void MemorySnapshotCrawler::trackNTypeObjects(MemoryState state, int32_t typeInd
             {
                 auto &tex = collection.textures[appending.texture];
                 printf(" pot=%s format=%d %dx%d", tex.pot? "true" : "false", tex.format, tex.width, tex.height);
+            }
+        }
+        if (typeIndex == snapshot->nativeTypeIndex.MonoBehaviour)
+        {
+            auto mAddress = findMObjectOfNObject(no.nativeObjectAddress);
+            if (mAddress != 0)
+            {
+                auto mindex = findMObjectAtAddress(mAddress);
+                auto &mo = managedObjects[mindex];
+                auto &mt = snapshot->typeDescriptions->items[mo.typeIndex];
+                printf(" \e[32m*{0x%llx %s}", mo.address, mt.name.c_str());
             }
         }
         printf("\n");
