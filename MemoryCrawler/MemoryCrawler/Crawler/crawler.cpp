@@ -252,7 +252,7 @@ void MemorySnapshotCrawler::findNObject(string name)
         
         if (completed)
         {
-            printf("\e[36m0x%llx \e[32m%s \e[37m'%s'\n", no.nativeObjectAddress, nt.name.c_str(), no.name.c_str());
+            printf("\e[36m0x%llx \e[32m'%s' \e[33m%s\n", no.nativeObjectAddress, no.name.c_str(), nt.name.c_str());
         }
     }
 }
