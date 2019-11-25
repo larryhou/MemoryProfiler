@@ -216,7 +216,7 @@ public:
     address_t findNObjectOfMObject(address_t address);
     
     void dumpAllClasses();
-    void findClass(string name);
+    void findClass(string name, bool reverseMatching = true);
     void findNObject(string name, bool reverseMatching = false);
     
     void listAllStatics();
@@ -273,6 +273,8 @@ private:
     
     string getNestIndent(const char *__indent, size_t __preindent_size, bool closed);
     void dumpTransform(NativeTransform &transform);
+    
+    bool search(std::string &keyword, std::string &content, bool reverseSearching);
     
     void summarize();
 };

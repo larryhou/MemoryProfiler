@@ -232,63 +232,55 @@ void MemorySnapshotCrawler::dumpAllClasses()
     }
 }
 
+bool MemorySnapshotCrawler::search(std::string &keyword, std::string &content, bool reverseSearching)
+{
+    if (content.size() < keyword.size()) {return false;}
+    if (reverseSearching)
+    {
+        auto k = keyword.rbegin();
+        auto c = content.rbegin();
+        while (k != keyword.rend())
+        {
+            if (*k != *c) { return false; }
+            ++k;
+            ++c;
+        }
+    }
+    else
+    {
+        auto k = keyword.begin();
+        auto c = content.begin();
+        while (k != keyword.end())
+        {
+            if (*k != *c) { return false; }
+            ++k;
+            ++c;
+        }
+    }
+    return true;
+}
+
 void MemorySnapshotCrawler::findNObject(string name, bool reverseMatching)
 {
     auto &nativeObjects = snapshot->nativeObjects->items;
     for (auto i = 0; i < snapshot->nativeObjects->size; i++)
     {
-        bool completed = true;
         auto &no = nativeObjects[i];
-        if (no.name.size() < name.size()) {continue;}
         auto &nt = snapshot->nativeTypes->items[no.nativeTypeArrayIndex];
-        if (reverseMatching)
-        {
-            auto np = name.rbegin();
-            auto tp = no.name.rbegin();
-            while (np != name.rend())
-            {
-                if (*np != *tp) { completed = false; break; }
-                ++np;
-                ++tp;
-            }
-        }
-        else
-        {
-            auto np = name.begin();
-            auto tp = no.name.begin();
-            while (np != name.end())
-            {
-                if (*np != *tp) { completed = false; break; }
-                ++np;
-                ++tp;
-            }
-        }
-        
-        if (completed)
+        if (search(name, no.name, reverseMatching))
         {
             printf("\e[36m0x%llx \e[32m'%s' \e[33m%s\n", no.nativeObjectAddress, no.name.c_str(), nt.name.c_str());
         }
     }
 }
 
-void MemorySnapshotCrawler::findClass(string name)
+void MemorySnapshotCrawler::findClass(string name, bool reverseMatching)
 {
     auto &typeDescriptions = snapshot->typeDescriptions->items;
     for (auto i = 0; i < snapshot->typeDescriptions->size; i++)
     {
-        bool completed = true;
         auto &type = typeDescriptions[i];
-        if (type.name.size() < name.size()) {continue;}
-        auto np = name.rbegin();
-        auto tp = type.name.rbegin();
-        while (np != name.rend())
-        {
-            if (*np != *tp) { completed = false; break; }
-            ++np;
-            ++tp;
-        }
-        
-        if (completed)
+        if (search(name, type.name, reverseMatching))
         {
             printf("\e[36m%d \e[32m%s \e[37m%s\n", type.typeIndex, type.name.c_str(), type.assembly.c_str());
         }

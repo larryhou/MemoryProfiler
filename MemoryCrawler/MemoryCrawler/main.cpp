@@ -651,11 +651,7 @@ void processMemorySnapshot(const char * filepath)
                                    }
                                    else
                                    {
-                                       // find class by name
-                                       for (auto i = 1; i < options.size(); i++)
-                                       {
-                                           mainCrawler.findClass(options[i]);
-                                       }
+                                       mainCrawler.findClass(options[1], options.size() > 2? strcmp(options[2], "true") != 0 : true);
                                    }
                                });
         }
