@@ -406,6 +406,7 @@ void MemorySnapshotDeserializer::prepareSnapshot()
     __sampler.end();
     
     __sampler.begin("SetNativeTypeIndex");
+    string sMonoBehaviour("MonoBehaviour");
     string sFont("Font");
     string sGameObject("GameObject");
     string sTexture2D("Texture2D");
@@ -423,6 +424,7 @@ void MemorySnapshotDeserializer::prepareSnapshot()
         else if (strcmp(nt.name.c_str(), sSprite.c_str()) == 0) { __snapshot->nativeTypeIndex.Sprite = i; }
         else if (strcmp(nt.name.c_str(), sTransform.c_str()) == 0) { __snapshot->nativeTypeIndex.Transform = i; }
         else if (strcmp(nt.name.c_str(), sRectTransform.c_str()) == 0) { __snapshot->nativeTypeIndex.RectTransform = i; }
+        else if (strcmp(nt.name.c_str(), sMonoBehaviour.c_str()) == 0) { __snapshot->nativeTypeIndex.MonoBehaviour = i; }
     }
     __sampler.end();
     
