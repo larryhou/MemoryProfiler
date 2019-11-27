@@ -2381,17 +2381,18 @@ int32_t MemorySnapshotCrawler::sizeOf(address_t address, std::set<address_t> &an
         if (mt.isArray)
         {
             auto &et = snapshot->typeDescriptions->items[mt.baseOrElementTypeIndex];
-            if (et.isValueType) { return mo.size; }
-            
-            auto elementCount = __memoryReader->readArrayLength(address, et);
-            if (elementCount >= 1E+8) { return 0; }
-            
-            for (auto i = 0; i < elementCount; i++)
+            if (!et.isValueType)
             {
-                auto ptrAddress = address + __vm->arrayHeaderSize + i * __vm->pointerSize;
-                auto elementAddress = __memoryReader->readPointer(ptrAddress);
-                if (elementAddress == 0) {continue;}
-                total += sizeOf(elementAddress, antiCircular, false);
+                auto elementCount = __memoryReader->readArrayLength(address, et);
+                if (elementCount >= 1E+8) { return 0; }
+                
+                for (auto i = 0; i < elementCount; i++)
+                {
+                    auto ptrAddress = address + __vm->arrayHeaderSize + i * __vm->pointerSize;
+                    auto elementAddress = __memoryReader->readPointer(ptrAddress);
+                    if (elementAddress == 0) {continue;}
+                    total += sizeOf(elementAddress, antiCircular, false);
+                }
             }
         }
         else
