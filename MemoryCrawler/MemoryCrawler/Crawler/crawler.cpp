@@ -2397,26 +2397,30 @@ int32_t MemorySnapshotCrawler::sizeOf(address_t address, std::set<address_t> &an
         }
         else
         {
-            auto type = &mt;
-            while (type != nullptr)
+            auto needCrawling = mt.typeIndex != snapshot->managedTypeIndex.system_String;
+            if (needCrawling)
             {
-                for (auto i = 0; i < type->fields->size; i++)
+                auto type = &mt;
+                while (type != nullptr)
                 {
-                    auto &field = type->fields->items[i];
-                    
-                    if (field.isStatic) {continue;}
-                    auto &ft = snapshot->typeDescriptions->items[field.typeIndex];
-                    if (!ft.isValueType)
+                    for (auto i = 0; i < type->fields->size; i++)
                     {
-                        auto ptrAddress = address + field.offset;
-                        auto fieldAddress = __memoryReader->readPointer(ptrAddress);
-                        if (fieldAddress == 0) {continue;}
-                        total += sizeOf(fieldAddress, antiCircular, false);
+                        auto &field = type->fields->items[i];
+                        
+                        if (field.isStatic) {continue;}
+                        auto &ft = snapshot->typeDescriptions->items[field.typeIndex];
+                        if (!ft.isValueType)
+                        {
+                            auto ptrAddress = address + field.offset;
+                            auto fieldAddress = __memoryReader->readPointer(ptrAddress);
+                            if (fieldAddress == 0) {continue;}
+                            total += sizeOf(fieldAddress, antiCircular, false);
+                        }
                     }
+                    
+                    if (type->baseOrElementTypeIndex < 0) { type = nullptr ;}
+                    else { type = &snapshot->typeDescriptions->items[type->baseOrElementTypeIndex]; }
                 }
-                
-                if (type->baseOrElementTypeIndex < 0) { type = nullptr ;}
-                else { type = &snapshot->typeDescriptions->items[type->baseOrElementTypeIndex]; }
             }
         }
         
