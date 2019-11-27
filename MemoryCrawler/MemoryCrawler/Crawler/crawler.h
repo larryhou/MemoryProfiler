@@ -223,6 +223,7 @@ public:
     void dumpStatic(int32_t typeIndex, bool verbose = false);
     
     void dumpGCHandles();
+    int32_t sizeOf(address_t address, std::set<address_t> &antiCircular, bool verbose = false);
     
     void statSubclasses();
     void dumpSubclassesOf(int32_t typeIndex);

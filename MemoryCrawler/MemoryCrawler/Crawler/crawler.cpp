@@ -2365,6 +2365,70 @@ bool MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
     return successCount != 0;
 }
 
+int32_t MemorySnapshotCrawler::sizeOf(address_t address, std::set<address_t> &antiCircular, bool verbose)
+{
+    auto index = findMObjectAtAddress(address);
+    if (index >= 0)
+    {
+        auto &mo = managedObjects[index];
+        if (mo.isValueType) { return mo.size; }
+        
+        if (antiCircular.find(address) != antiCircular.end()) { return 0; }
+        antiCircular.insert(address);
+        
+        auto total = mo.size;
+        auto &mt = snapshot->typeDescriptions->items[mo.typeIndex];
+        if (mt.isArray)
+        {
+            auto &et = snapshot->typeDescriptions->items[mt.baseOrElementTypeIndex];
+            if (et.isValueType) { return mo.size; }
+            
+            auto elementCount = __memoryReader->readArrayLength(address, et);
+            if (elementCount >= 1E+8) { return 0; }
+            
+            for (auto i = 0; i < elementCount; i++)
+            {
+                auto ptrAddress = address + __vm->arrayHeaderSize + i * __vm->pointerSize;
+                auto elementAddress = __memoryReader->readPointer(ptrAddress);
+                if (elementAddress == 0) {continue;}
+                total += sizeOf(elementAddress, antiCircular, false);
+            }
+        }
+        else
+        {
+            auto type = &mt;
+            while (type != nullptr)
+            {
+                for (auto i = 0; i < type->fields->size; i++)
+                {
+                    auto &field = type->fields->items[i];
+                    
+                    if (field.isStatic) {continue;}
+                    auto &ft = snapshot->typeDescriptions->items[field.typeIndex];
+                    if (!ft.isValueType)
+                    {
+                        auto ptrAddress = address + field.offset;
+                        auto fieldAddress = __memoryReader->readPointer(ptrAddress);
+                        if (fieldAddress == 0) {continue;}
+                        total += sizeOf(fieldAddress, antiCircular, false);
+                    }
+                }
+                
+                if (type->baseOrElementTypeIndex < 0) { type = nullptr ;}
+                else { type = &snapshot->typeDescriptions->items[type->baseOrElementTypeIndex]; }
+            }
+        }
+        
+        if (verbose)
+        {
+            printf("0x%llx %s type='%s'%d\n", address, comma(total).c_str(), mt.name.c_str(), mt.typeIndex);
+        }
+        
+        return total;
+    }
+    return 0;
+}
+
 void MemorySnapshotCrawler::dumpGCHandles()
 {
     vector<int32_t> handleTargets;
@@ -2462,16 +2526,18 @@ void MemorySnapshotCrawler::inspectMType(int32_t typeIndex)
         printf(" N[%s #%d]", comma(nt.instanceMemory).c_str(), nt.instanceCount);
     }
     printf("\n");
-    
-    for (auto i = 0; i < type.fields->size; i++)
+    if (!type.isArray)
     {
-        auto &field = type.fields->items[i];
-        printf("    isStatic=%s name='%s' offset=%d typeIndex=%d\n", field.isStatic ? "true" : "false", field.name.c_str(), field.offset, field.typeIndex);
-    }
-    
-    if (type.baseOrElementTypeIndex >= 0)
-    {
-        inspectMType(type.baseOrElementTypeIndex);
+        for (auto i = 0; i < type.fields->size; i++)
+        {
+            auto &field = type.fields->items[i];
+            printf("    isStatic=%s name='%s' offset=%d typeIndex=%d\n", field.isStatic ? "true" : "false", field.name.c_str(), field.offset, field.typeIndex);
+        }
+        
+        if (type.baseOrElementTypeIndex >= 0)
+        {
+            inspectMType(type.baseOrElementTypeIndex);
+        }
     }
 }
 

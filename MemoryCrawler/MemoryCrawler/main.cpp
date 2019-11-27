@@ -491,6 +491,18 @@ void processMemorySnapshot(const char * filepath)
                                    }
                                });
         }
+        else if (strbeg(command, "size"))
+        {
+            readCommandOptions(command, [&](std::vector<const char *> options)
+                               {
+                                   for (auto i = 1; i < options.size(); i++)
+                                   {
+                                       auto address = castAddress(options[i]);
+                                       std::set<address_t> antiCircular;
+                                       mainCrawler.sizeOf(address, antiCircular, true);
+                                   }
+                               });
+        }
         else if (strbeg(command, "ufind"))
         {
             readCommandOptions(command, [&](std::vector<const char *> options)
@@ -770,6 +782,7 @@ void processMemorySnapshot(const char * filepath)
             help("ushow", "[ADDRESS]* [DEPTH]", "查看引擎对象内部的引用关系", __indent);
             help("find", "[ADDRESS]*", "查找托管对象", __indent);
             help("ufind", "[ADDRESS]*", "查找引擎对象", __indent);
+            help("size", "[ADDRESS]*", "计算托管对象引用的内存大小", __indent);
             help("type", "[TYPE_INDEX]*", "查看托管类型信息", __indent);
             help("utype", "[TYPE_INDEX]*", "查看引擎类型信息", __indent);
             help("dup", "[TYPE_INDEX]", "按指定类型统计相同对象的信息", __indent);
