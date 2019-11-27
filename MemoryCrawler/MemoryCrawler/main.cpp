@@ -499,7 +499,7 @@ void processMemorySnapshot(const char * filepath)
                                    {
                                        auto address = castAddress(options[i]);
                                        std::set<address_t> antiCircular;
-                                       mainCrawler.sizeOf(address, antiCircular, true);
+                                       mainCrawler.getReferencedMemorySizeOf(address, antiCircular, true);
                                    }
                                });
         }

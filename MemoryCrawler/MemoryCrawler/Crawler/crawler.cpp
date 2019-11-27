@@ -2365,7 +2365,7 @@ bool MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
     return successCount != 0;
 }
 
-int32_t MemorySnapshotCrawler::sizeOf(address_t address, std::set<address_t> &antiCircular, bool verbose)
+int32_t MemorySnapshotCrawler::getReferencedMemorySizeOf(address_t address, std::set<address_t> &antiCircular, bool verbose)
 {
     auto index = findMObjectAtAddress(address);
     if (index >= 0)
@@ -2391,7 +2391,7 @@ int32_t MemorySnapshotCrawler::sizeOf(address_t address, std::set<address_t> &an
                     auto ptrAddress = address + __vm->arrayHeaderSize + i * __vm->pointerSize;
                     auto elementAddress = __memoryReader->readPointer(ptrAddress);
                     if (elementAddress == 0) {continue;}
-                    total += sizeOf(elementAddress, antiCircular, false);
+                    total += getReferencedMemorySizeOf(elementAddress, antiCircular, false);
                 }
             }
         }
@@ -2414,7 +2414,7 @@ int32_t MemorySnapshotCrawler::sizeOf(address_t address, std::set<address_t> &an
                             auto ptrAddress = address + field.offset;
                             auto fieldAddress = __memoryReader->readPointer(ptrAddress);
                             if (fieldAddress == 0) {continue;}
-                            total += sizeOf(fieldAddress, antiCircular, false);
+                            total += getReferencedMemorySizeOf(fieldAddress, antiCircular, false);
                         }
                     }
                     
