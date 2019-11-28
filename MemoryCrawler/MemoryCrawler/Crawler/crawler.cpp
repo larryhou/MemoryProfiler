@@ -2365,68 +2365,108 @@ bool MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
     return successCount != 0;
 }
 
-int32_t MemorySnapshotCrawler::getReferencedMemorySizeOf(address_t address, std::set<address_t> &antiCircular, bool verbose)
+int32_t MemorySnapshotCrawler::getReferencedMemoryOf(address_t address, TypeDescription *type, std::set<address_t> &antiCircular, bool verbose)
 {
-    auto index = findMObjectAtAddress(address);
-    if (index >= 0)
+    TypeDescription *mt = nullptr;
+    ManagedObject *mo = nullptr;
+    if (type == nullptr)
     {
-        auto &mo = managedObjects[index];
-        if (mo.isValueType) { return mo.size; }
-        
-        if (antiCircular.find(address) != antiCircular.end()) { return 0; }
-        antiCircular.insert(address);
-        
-        auto total = mo.size;
-        auto &mt = snapshot->typeDescriptions->items[mo.typeIndex];
-        if (mt.isArray)
+        auto index = findMObjectAtAddress(address);
+        if (index >= 0)
         {
-            auto &et = snapshot->typeDescriptions->items[mt.baseOrElementTypeIndex];
-            if (!et.isValueType)
+            mo = &managedObjects[index];
+            mt = &snapshot->typeDescriptions->items[mo->typeIndex];
+        }
+    }
+    else
+    {
+        mt = type;
+        if (!type->isValueType)
+        {
+            auto index = findMObjectAtAddress(address);
+            if (index >= 0)
             {
-                auto elementCount = __memoryReader->readArrayLength(address, et);
-                if (elementCount >= 1E+8) { return 0; }
-                
+                mo = &managedObjects[index];
+                mt = &snapshot->typeDescriptions->items[mo->typeIndex];
+            }
+        }
+    }
+    
+    if (mt != nullptr)
+    {
+        if (!mt->isValueType)
+        {
+            assert(mo != nullptr);
+            if (antiCircular.find(address) != antiCircular.end()) { return 0; }
+            antiCircular.insert(address);
+        }
+        
+        auto total = mt->isValueType? 0 : mo->size;
+        if (mt->isArray)
+        {
+            auto &et = snapshot->typeDescriptions->items[mt->baseOrElementTypeIndex];
+            auto elementCount = __memoryReader->readArrayLength(address, et);
+            if (elementCount >= 1E+8) { return 0; }
+            
+            if (et.isValueType)
+            {
+                for (auto i = 0; i < elementCount; i++)
+                {
+                    auto valueAddress = address + __vm->arrayHeaderSize + i * et.size - __vm->objectHeaderSize;
+                    total += getReferencedMemoryOf(valueAddress, &et, antiCircular, false);
+                }
+            }
+            else
+            {
                 for (auto i = 0; i < elementCount; i++)
                 {
                     auto ptrAddress = address + __vm->arrayHeaderSize + i * __vm->pointerSize;
                     auto elementAddress = __memoryReader->readPointer(ptrAddress);
                     if (elementAddress == 0) {continue;}
-                    total += getReferencedMemorySizeOf(elementAddress, antiCircular, false);
+                    total += getReferencedMemoryOf(elementAddress, &et, antiCircular, false);
                 }
             }
         }
         else
         {
-            auto needCrawling = mt.typeIndex != snapshot->managedTypeIndex.system_String;
+            auto needCrawling = mt->typeIndex != snapshot->managedTypeIndex.system_String;
             if (needCrawling)
             {
-                auto type = &mt;
-                while (type != nullptr)
+                auto itype = mt;
+                while (itype != nullptr)
                 {
-                    for (auto i = 0; i < type->fields->size; i++)
+                    for (auto i = 0; i < itype->fields->size; i++)
                     {
-                        auto &field = type->fields->items[i];
+                        auto &field = itype->fields->items[i];
                         
                         if (field.isStatic) {continue;}
                         auto &ft = snapshot->typeDescriptions->items[field.typeIndex];
-                        if (!ft.isValueType)
+                        if (ft.isValueType)
                         {
-                            auto ptrAddress = address + field.offset;
-                            auto fieldAddress = __memoryReader->readPointer(ptrAddress);
+                            auto slotAddress = address + field.offset - __vm->objectHeaderSize;
+                            if (!isPremitiveType(ft.typeIndex))
+                            {
+                                total += getReferencedMemoryOf(slotAddress, &ft, antiCircular, false);
+                            }
+                        }
+                        else
+                        {
+                            auto slotAddress = address + field.offset;
+                            auto fieldAddress = __memoryReader->readPointer(slotAddress);
                             if (fieldAddress == 0) {continue;}
-                            total += getReferencedMemorySizeOf(fieldAddress, antiCircular, false);
+                            total += getReferencedMemoryOf(fieldAddress, &ft, antiCircular, false);
                         }
                     }
                     
-                    if (type->baseOrElementTypeIndex < 0) { type = nullptr ;}
-                    else { type = &snapshot->typeDescriptions->items[type->baseOrElementTypeIndex]; }
+                    if (itype->baseOrElementTypeIndex < 0 || itype->isValueType) { itype = nullptr ;}
+                    else { itype = &snapshot->typeDescriptions->items[itype->baseOrElementTypeIndex]; }
                 }
             }
         }
         
         if (verbose)
         {
-            printf("0x%llx %s type='%s'%d\n", address, comma(total).c_str(), mt.name.c_str(), mt.typeIndex);
+            printf("0x%llx %s type='%s'%d\n", address, comma(total).c_str(), mt->name.c_str(), mt->typeIndex);
         }
         
         return total;
