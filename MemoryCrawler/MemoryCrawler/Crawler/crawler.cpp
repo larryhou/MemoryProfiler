@@ -2410,10 +2410,13 @@ int32_t MemorySnapshotCrawler::getReferencedMemoryOf(address_t address, TypeDesc
             
             if (et.isValueType)
             {
-                for (auto i = 0; i < elementCount; i++)
+                if (!isPremitiveType(et.typeIndex))
                 {
-                    auto valueAddress = address + __vm->arrayHeaderSize + i * et.size - __vm->objectHeaderSize;
-                    total += getReferencedMemoryOf(valueAddress, &et, antiCircular, false);
+                    for (auto i = 0; i < elementCount; i++)
+                    {
+                        auto valueAddress = address + __vm->arrayHeaderSize + i * et.size - __vm->objectHeaderSize;
+                        total += getReferencedMemoryOf(valueAddress, &et, antiCircular, false);
+                    }
                 }
             }
             else
