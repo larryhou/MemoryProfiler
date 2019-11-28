@@ -1455,6 +1455,7 @@ bool MemorySnapshotCrawler::isPremitiveType(int32_t typeIndex)
     if (typeIndex == mtypes.system_Double) {return true;}
     
     if (typeIndex == mtypes.system_Boolean) {return true;}
+    if (typeIndex == mtypes.system_Enum) {return true;}
     return false;
 }
 
@@ -2444,13 +2445,11 @@ int32_t MemorySnapshotCrawler::getReferencedMemoryOf(address_t address, TypeDesc
                         
                         if (field.isStatic) {continue;}
                         auto &ft = snapshot->typeDescriptions->items[field.typeIndex];
+                        if (isPremitiveType(ft.typeIndex)) {continue;}
                         if (ft.isValueType)
                         {
                             auto slotAddress = address + field.offset - __vm->objectHeaderSize;
-                            if (!isPremitiveType(ft.typeIndex))
-                            {
-                                total += getReferencedMemoryOf(slotAddress, &ft, antiCircular, false);
-                            }
+                            total += getReferencedMemoryOf(slotAddress, &ft, antiCircular, false);
                         }
                         else
                         {

@@ -347,6 +347,7 @@ void MemorySnapshotDeserializer::prepareSnapshot()
     string sSystemBoolean("System.Boolean");
     string sSystemDelegate("System.Delegate");
     string sSystemMulticastDelegate("System.MulticastDelegate");
+    string sSystemEnum("System.Enum");
     
     // Unity object types
     string sUnityEngineObject("UnityEngine.Object");
@@ -384,6 +385,7 @@ void MemorySnapshotDeserializer::prepareSnapshot()
         else if (readTypeIndex(managedTypeIndex.system_Boolean, type, &sSystemBoolean)) {}
         else if (readTypeIndex(managedTypeIndex.system_Delegate, type, &sSystemDelegate)) {}
         else if (readTypeIndex(managedTypeIndex.system_MulticastDelegate, type, &sSystemMulticastDelegate)) {}
+        else if (readTypeIndex(managedTypeIndex.system_Enum, type, &sSystemEnum)) {}
         
         if (type.fields != nullptr)
         {
