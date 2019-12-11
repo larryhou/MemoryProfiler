@@ -428,9 +428,10 @@
 		6B0AC7472252FC5D00B58C69 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				DEPLOYMENT_LOCATION = YES;
-				DEVELOPMENT_TEAM = PRLP6W5S32;
+				DEVELOPMENT_TEAM = "";
 				DSTROOT = /;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
@@ -438,21 +439,24 @@
 					"PERF_DEBUG=1",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 			};
 			name = Debug;
 		};
 		6B0AC7482252FC5D00B58C69 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				DEPLOYMENT_LOCATION = YES;
-				DEVELOPMENT_TEAM = PRLP6W5S32;
+				DEVELOPMENT_TEAM = "";
 				DSTROOT = /;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"PERF_DEBUG=1",
 					"STRIP_NATIVE_CONNECTIONS=1",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 			};
 			name = Release;
 		};
