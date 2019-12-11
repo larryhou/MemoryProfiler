@@ -1210,7 +1210,6 @@ void MemorySnapshotCrawler::inspectHeap(const char *filename)
                 shift = (int64_t)(item.startAddress - (base.startAddress + base.size));
             }
             sprintf(indexb, indexf, index);
-            assert(item.size % 1024 == 0);
             printf(" %s 0x%llx %s %sK |", indexb, item.startAddress, comma(shift, shiftw).c_str(), comma(item.size/1024, sizew).c_str());
         }
         printf("\n");
