@@ -90,6 +90,7 @@ uint32_t HeapMemoryReader::readArrayLength(address_t address, TypeDescription &t
         length *= readPointer(cursor);
         cursor += __vm->pointerSize;
     }
+    if (length >= 1E+8) { length = 0; }
     return (uint32_t)length;
 }
 

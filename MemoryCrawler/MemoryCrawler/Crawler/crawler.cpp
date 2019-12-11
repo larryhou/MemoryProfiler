@@ -2160,7 +2160,7 @@ bool MemorySnapshotCrawler::crawlManagedArrayAddress(address_t address, TypeDesc
     auto elementCount = memoryReader.readArrayLength(address, type);
     if (elementCount >= 1E+8) // 100 million
     {
-        printf("Abort for huge array[size=%u] at *0x%08llx\n", elementCount, address);
+        printf("\e[31m[E] huge array[size=%u] at *0x%08llx\n\e[0m", elementCount, address);
         abort();
     }
     for (auto i = 0; i < elementCount; i++)
@@ -2176,7 +2176,7 @@ bool MemorySnapshotCrawler::crawlManagedArrayAddress(address_t address, TypeDesc
             if (elementAddress == 0) {continue;}
             
             auto typeIndex = findTypeOfAddress(elementAddress);
-            if (typeIndex >= 0)
+            if (typeIndex >= 0 && deriveFromMType(*elementType, typeIndex))
             {
                 elementType = &snapshot->typeDescriptions->items[typeIndex];
             }
