@@ -1855,13 +1855,13 @@ void MemorySnapshotCrawler::tryAcceptConnection(Connection &nc)
 
 void MemorySnapshotCrawler::tryAcceptConnection(EntityConnection &ec)
 {
-    if (ec.fromKind != CK_none && ec.from >= 0)
+    if (ec.fromKind == CK_managed && ec.from >= 0)
     {
         auto &mo = managedObjects[ec.from];
         mo.toConnections.push_back(ec.connectionArrayIndex);
     }
     
-    if (ec.toKind != CK_none && ec.to >= 0)
+    if (ec.toKind == CK_managed && ec.to >= 0)
     {
         auto &mo = managedObjects[ec.to];
         mo.fromConnections.push_back(ec.connectionArrayIndex);
