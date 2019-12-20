@@ -265,6 +265,8 @@ namespace Moobyte.MemoryProfiler
                 stream.Write(frameFPS);
                 if (frameIndex == stopFrameIndex) // encode memory info
                 {
+                    stream.Write((ushort) 0);
+                    /**
                     stream.Write((ushort) (8 * 6));
                     stream.Write(Profiler.usedHeapSizeLong); // 1
                     stream.Write(Profiler.GetMonoUsedSizeLong()); // 2
@@ -272,6 +274,7 @@ namespace Moobyte.MemoryProfiler
                     stream.Write(Profiler.GetTotalAllocatedMemoryLong()); // 4
                     stream.Write(Profiler.GetTotalReservedMemoryLong()); // 5
                     stream.Write(Profiler.GetTotalUnusedReservedMemoryLong()); // 6
+                    */
                 }
                 else
                 {
