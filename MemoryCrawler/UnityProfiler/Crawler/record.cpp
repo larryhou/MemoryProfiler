@@ -51,6 +51,7 @@ void RecordCrawler::crawl()
         auto extra = __fs.readUInt16();
         if (extra > 0)
         {
+            frame.hasMemoryInfo = true;
             auto pos = __fs.tell();
             frame.usedHeap = __fs.readUInt64();
             frame.usedMonoHeap = __fs.readUInt64();
@@ -60,6 +61,7 @@ void RecordCrawler::crawl()
             frame.totalUnusedReservedMemory = __fs.readUInt64();
             assert(__fs.tell() - pos == extra);
         }
+        else { frame.hasMemoryInfo = false; }
         
         for (auto iter = __metadatas.begin(); iter != __metadatas.end(); iter++)
         {
@@ -551,22 +553,25 @@ void RecordCrawler::inspectFrame(int32_t frameIndex, int32_t depth)
     __fs.seek(frame.offset + 12, seekdir_t::beg);
     __fs.ignore(__fs.readUInt16() + __statsize);
     readFrameSamples([&](auto &samples, auto &relations)
-              {
-                  int32_t alloc = 0;
-                  for (auto i = samples.begin(); i != samples.end(); i++)
-                  {
-                      StackSample &s = *i;
-                      if (s.gcAllocBytes > 0 && s.totalTime == s.selfTime)
-                      {
-                          alloc += s.gcAllocBytes;
-                      }
-                  }
-                  printf("[FRAME] index=%d time=%.3fms fps=%.1f alloc=%d usedHeap=%llu monoHeap=%llu usedMono=%llu totalAllocated=%llu totalReserved=%llu totalUnused=%llu\n",
-                         frame.index, frame.time, frame.fps, alloc,
-                         frame.usedHeap, frame.reservedMonoHeap, frame.usedMonoHeap,
-                         frame.totalAllocatedMemory, frame.totalReservedMemory, frame.totalUnusedReservedMemory);
-                  dumpFrameStacks(-1, samples, relations, frame.time, depth);
-              });
+                     {
+                         int32_t alloc = 0;
+                         for (auto i = samples.begin(); i != samples.end(); i++)
+                         {
+                             StackSample &s = *i;
+                             if (s.gcAllocBytes > 0 && s.totalTime == s.selfTime)
+                             {
+                                 alloc += s.gcAllocBytes;
+                             }
+                         }
+                         printf("[FRAME] index=%d time=%.3fms fps=%.1f alloc=%d", frame.index, frame.time, frame.fps, alloc);
+                         if (frame.hasMemoryInfo)
+                         {
+                             printf("usedHeap=%llu monoHeap=%llu usedMono=%llu totalAllocated=%llu totalReserved=%llu totalUnused=%llu",
+                                    frame.usedHeap, frame.reservedMonoHeap, frame.usedMonoHeap, frame.totalAllocatedMemory, frame.totalReservedMemory, frame.totalUnusedReservedMemory);
+                         }
+                         printf("\n");
+                         dumpFrameStacks(-1, samples, relations, frame.time, depth);
+                     });
     auto &statistics = frame.statistics.graphs;
     for (auto i = 0; i < statistics.size(); i++)
     {

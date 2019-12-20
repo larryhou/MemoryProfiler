@@ -71,6 +71,7 @@ struct RenderFrame
     uint64_t totalAllocatedMemory;
     uint64_t totalReservedMemory;
     uint64_t totalUnusedReservedMemory;
+    bool hasMemoryInfo;
     
     FrameStatistics statistics;
     
