@@ -566,7 +566,7 @@ void RecordCrawler::inspectFrame(int32_t frameIndex, int32_t depth)
                          printf("[FRAME] index=%d time=%.3fms fps=%.1f alloc=%d", frame.index, frame.time, frame.fps, alloc);
                          if (frame.hasMemoryInfo)
                          {
-                             printf("usedHeap=%llu monoHeap=%llu usedMono=%llu totalAllocated=%llu totalReserved=%llu totalUnused=%llu",
+                             printf(" usedHeap=%llu monoHeap=%llu usedMono=%llu totalAllocated=%llu totalReserved=%llu totalUnused=%llu",
                                     frame.usedHeap, frame.reservedMonoHeap, frame.usedMonoHeap, frame.totalAllocatedMemory, frame.totalReservedMemory, frame.totalUnusedReservedMemory);
                          }
                          printf("\n");
