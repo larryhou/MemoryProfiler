@@ -669,7 +669,7 @@ void MemorySnapshotCrawler::topMObjects(int32_t rank, address_t address, bool ke
         if (i >= objects.size()) {break;}
         
         auto &type = snapshot->typeDescriptions->items[mo->typeIndex];
-        printf("0x%llx %s %s", mo->address, type.name.c_str(), comma(mo->size).c_str());
+        printf("\e[36m0x%llx \e[32m%s \e[36m%s", mo->address, type.name.c_str(), comma(mo->size).c_str());
         if (keepAddressOrder && prevAddress != 0) { printf(" +%lld", mo->address - prevAddress); }
         printf("\n");
         prevAddress = mo->address + mo->size;
@@ -699,7 +699,7 @@ void MemorySnapshotCrawler::topNObjects(int32_t rank)
         if (i >= objects.size()) {break;}
         
         auto &type = snapshot->nativeTypes->items[no->nativeTypeArrayIndex];
-        printf("0x%llx %s '%s' %s\n", no->nativeObjectAddress, type.name.c_str(), no->name.c_str(), comma(no->size).c_str());
+        printf("\e[36m0x%llx \e[32m%s \e[33m'%s' \e[36m%s\n", no->nativeObjectAddress, type.name.c_str(), no->name.c_str(), comma(no->size).c_str());
     }
 }
 
