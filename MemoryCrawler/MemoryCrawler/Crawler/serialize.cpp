@@ -331,6 +331,7 @@ void MemorySnapshotDeserializer::prepareSnapshot()
     __sampler.begin("CreateTypeStrings");
     
     // Premitive C# types
+    string sSystemObject("System.Object");
     string sSystemString("System.String");
     string sSystemInt64("System.Int64");
     string sSystemInt32("System.Int32");
@@ -370,6 +371,7 @@ void MemorySnapshotDeserializer::prepareSnapshot()
         }
         else if (readTypeIndex(managedTypeIndex.unityengine_TextGenerator, type, &sSystemTextGenerator)) {}
         else if (readTypeIndex(managedTypeIndex.system_String, type, &sSystemString)) {}
+        else if (readTypeIndex(managedTypeIndex.system_Object, type, &sSystemObject)) {}
         else if (readTypeIndex(managedTypeIndex.system_Int64, type, &sSystemInt64)) {}
         else if (readTypeIndex(managedTypeIndex.system_Int32, type, &sSystemInt32)) {}
         else if (readTypeIndex(managedTypeIndex.system_Int16, type, &sSystemInt16)) {}

@@ -2404,6 +2404,11 @@ int32_t MemorySnapshotCrawler::getReferencedMemoryOf(address_t address, TypeDesc
     {
         if (!mt->isValueType)
         {
+            if (mt->typeIndex == snapshot->managedTypeIndex.system_Object)
+            {
+                return mt->size;
+            }
+            
             assert(mo != nullptr);
             if (antiCircular.find(address) != antiCircular.end()) { return 0; }
             antiCircular.insert(address);
