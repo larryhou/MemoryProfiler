@@ -1840,13 +1840,13 @@ vector<vector<int32_t>> MemorySnapshotCrawler::iterateNRefChain(PackedNativeUnit
 
 void MemorySnapshotCrawler::tryAcceptConnection(Connection &nc)
 {
-    if (nc.from >= 0)
+    if (nc.from >= 0 && nc.fromKind == CK_native)
     {
         auto &no = snapshot->nativeObjects->items[nc.from];
         no.toConnections.push_back(nc.connectionArrayIndex);
     }
     
-    if (nc.to >= 0)
+    if (nc.to >= 0 && nc.toKind == CK_native)
     {
         auto &no = snapshot->nativeObjects->items[nc.to];
         no.fromConnections.push_back(nc.connectionArrayIndex);
