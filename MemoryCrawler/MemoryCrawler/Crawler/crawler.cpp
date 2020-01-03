@@ -2677,7 +2677,7 @@ void MemorySnapshotCrawler::printByteArray(const char *data, int32_t size)
         std::cout << hex[b >> 4 & 0xF] << hex[b & 0xF];
         iter++;
     }
-    std::cout << '\n' << std::flush;
+    std::cout << std::flush;
 }
 
 void MemorySnapshotCrawler::dumpNObjectHierarchy(PackedNativeUnityEngineObject *no, set<int64_t> antiCircular, int32_t limit, const char *indent, int32_t __iter_depth, int32_t __iter_capacity)
