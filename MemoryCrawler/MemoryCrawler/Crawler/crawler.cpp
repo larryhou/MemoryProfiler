@@ -2670,17 +2670,14 @@ void MemorySnapshotCrawler::findNObject(address_t address)
 void MemorySnapshotCrawler::printByteArray(const char *data, int32_t size)
 {
     auto iter = data;
-    char str[size * 2 + 1];
-    memset(str, 0, sizeof(str));
     char hex[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
     for (auto i = 0; i < size; i++)
     {
         auto b = *iter;
-        str[i * 2] = hex[b >> 4 & 0xF];
-        str[i * 2 + 1] = hex[b & 0xF];
+        std::cout << hex[b >> 4 & 0xF] << hex[b & 0xF];
         iter++;
     }
-    printf("%s", str);
+    std::cout << '\n' << std::flush;
 }
 
 void MemorySnapshotCrawler::dumpNObjectHierarchy(PackedNativeUnityEngineObject *no, set<int64_t> antiCircular, int32_t limit, const char *indent, int32_t __iter_depth, int32_t __iter_capacity)
