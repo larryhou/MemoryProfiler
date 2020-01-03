@@ -2175,10 +2175,10 @@ bool MemorySnapshotCrawler::crawlManagedArrayAddress(address_t address, TypeDesc
             if (elementAddress == 0) {continue;}
             
             auto typeIndex = findTypeOfAddress(elementAddress);
-            if (typeIndex >= 0 && deriveFromMType(*elementType, typeIndex))
+            if (typeIndex >= 0)
             {
                 auto derivedType = &snapshot->typeDescriptions->items[typeIndex];
-                if (deriveFromMType(*derivedType, elementType->typeIndex)) // sometimes get wrong type from object type pointer
+                if (elementType->baseOrElementTypeIndex == -1 || deriveFromMType(*derivedType, elementType->typeIndex)) // sometimes get wrong type from object type pointer
                 {
                     elementType = derivedType;
                 }
@@ -2329,7 +2329,7 @@ bool MemorySnapshotCrawler::crawlManagedEntryAddress(address_t address, TypeDesc
                 if (fieldTypeIndex != -1)
                 {
                     auto derivedType = &snapshot->typeDescriptions->items[fieldTypeIndex];
-                    if (deriveFromMType(*derivedType, fieldType->typeIndex)) // sometimes get wrong type from object type pointer
+                    if (fieldType->baseOrElementTypeIndex == -1 || deriveFromMType(*derivedType, fieldType->typeIndex)) // sometimes get wrong type from object type pointer
                     {
                         fieldType = derivedType;
                     }
