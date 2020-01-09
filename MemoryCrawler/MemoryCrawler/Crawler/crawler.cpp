@@ -2164,6 +2164,7 @@ bool MemorySnapshotCrawler::crawlManagedArrayAddress(address_t address, TypeDesc
     }
     for (auto i = 0; i < elementCount; i++)
     {
+        elementType = &snapshot->typeDescriptions->items[type.baseOrElementTypeIndex];
         if (elementType->isValueType)
         {
             elementAddress = address + __vm->arrayHeaderSize + i *elementType->size - __vm->objectHeaderSize;
