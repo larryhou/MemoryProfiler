@@ -18,7 +18,7 @@
 class MemorySnapshotDeserializer
 {
 protected:
-    const char *__filepath;
+    string __filepath;
     FileStream __fs;
     TimeSampler<std::nano> __sampler;
     PackedMemorySnapshot *__snapshot;
@@ -30,14 +30,11 @@ public:
 public:
     MemorySnapshotDeserializer(const char *filepath)
     {
-        auto buffer = new char[strlen(filepath)];
-        std::strcpy(buffer, filepath);
-        __filepath = buffer;
+        __filepath = filepath;
     }
     
     virtual ~MemorySnapshotDeserializer()
     {
-        delete [] __filepath;
         __fs.close();
     }
     

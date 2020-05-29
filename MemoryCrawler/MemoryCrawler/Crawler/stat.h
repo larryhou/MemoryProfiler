@@ -9,9 +9,9 @@
 #ifndef stat_h
 #define stat_h
 
+#include "types.h"
 #include <vector>
 #include <map>
-
 #include <stdio.h>
 #include <math.h>
 

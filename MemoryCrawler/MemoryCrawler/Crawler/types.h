@@ -8,8 +8,10 @@
 #pragma once
 #ifndef types_h
 #define types_h
+
 #include <ios>
 #include <string>
+#include "AutoCharVector.h"
 
 using byte_t = unsigned char;
 using address_t = uint64_t;
@@ -17,7 +19,67 @@ using seekdir_t = std::ios_base::seekdir;
 using unicode_t = std::u16string;
 using std::string;
 
+// windows 平台支持
+#ifdef _MSC_VER
+
+#include <cmath>
+#include <functional>
+#include <algorithm>
+#include <cassert>
+#include <direct.h>
+#include <locale>
+
+typedef uint64_t CC_LONG;
+#define crawler_mkdir(name) _mkdir(name)
+#define crawler_sleep(time) 
+
+#else
+
+#include <memory>
+#include <unistd.h>
 #include <CommonCrypto/CommonDigest.h>
+#define crawler_mkdir(name) mkdir(name, 0777)
+#define crawler_sleep(time) usleep(time)
+
+#endif
+
+#ifndef MESizeDefine
+#define MESizeDefine
+
+#if _MSC_VER
+
+#define EM30 ""
+#define EM31 ""
+#define EM32 ""
+#define EM33 ""
+#define EM34 ""
+#define EM35 ""
+#define EM36 ""
+#define EM37 ""
+#define EM38 ""
+#define EM39 ""
+#define EM40 ""
+#define EM41 ""
+#define EM42 ""
+
+#else
+
+#define EM30 "\e[30m"
+#define EM31 "\e[31m"
+#define EM32 "\e[32m"
+#define EM33 "\e[33m"
+#define EM34 "\e[34m"
+#define EM35 "\e[35m"
+#define EM36 "\e[36m"
+#define EM37 "\e[37m"
+#define EM38 "\e[38m"
+#define EM39 "\e[39m"
+#define EM40 "\e[40m"
+#define EM41 "\e[41m"
+#define EM42 "\e[42m"
+
+#endif
+#endif
 
 class HashCaculator
 {

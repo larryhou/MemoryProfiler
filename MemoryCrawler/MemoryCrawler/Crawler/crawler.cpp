@@ -3,12 +3,32 @@
 //  MemoryCrawler
 //
 //  Created by larryhou on 2019/4/5.
-//  Copyright Â© 2019 larryhou. All rights reserved.
+//  Copyright ? 2019 larryhou. All rights reserved.
 //
 
 #include "crawler.h"
+#include <set>
 
 std::string comma(uint64_t v, uint32_t width = 0);
+
+#if _MSC_VER >= 1900
+
+std::string utf16_to_utf8(std::u16string utf16_string)
+{
+	std::wstring_convert<std::codecvt_utf8_utf16<int16_t>, int16_t> convert;
+	auto p = reinterpret_cast<const int16_t *>(utf16_string.data());
+	return convert.to_bytes(p, p + utf16_string.size());
+}
+
+#else
+
+std::string utf16_to_utf8(std::u16string utf16_string)
+{
+	std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
+	return convert.to_bytes(utf16_string);
+}
+
+#endif
 
 MemorySnapshotCrawler::MemorySnapshotCrawler()
 {
@@ -228,7 +248,7 @@ void MemorySnapshotCrawler::dumpAllClasses()
     for (auto i = 0; i < snapshot->typeDescriptions->size; i++)
     {
         auto &type = typeDescriptions[i];
-        printf("\e[36m%d \e[32m%s \e[37m%s\n", type.typeIndex, type.name.c_str(), type.assembly.c_str());
+        printf(EM36 "%d " EM32 "%s " EM37 "%s\n", type.typeIndex, type.name.c_str(), type.assembly.c_str());
     }
 }
 
@@ -269,7 +289,7 @@ void MemorySnapshotCrawler::findNObject(string name, bool reverseMatching)
         auto &nt = snapshot->nativeTypes->items[no.nativeTypeArrayIndex];
         if (search(name, no.name, reverseMatching))
         {
-            printf("\e[36m0x%llx \e[32m'%s' \e[33m%s\n", no.nativeObjectAddress, no.name.c_str(), nt.name.c_str());
+            printf(EM36 "0x%llx " EM32 "'%s' " EM33 "%s\n", no.nativeObjectAddress, no.name.c_str(), nt.name.c_str());
         }
     }
 }
@@ -282,7 +302,7 @@ void MemorySnapshotCrawler::findClass(string name, bool reverseMatching)
         auto &type = typeDescriptions[i];
         if (search(name, type.name, reverseMatching))
         {
-            printf("\e[36m%d \e[32m%s \e[37m%s\n", type.typeIndex, type.name.c_str(), type.assembly.c_str());
+            printf(EM36 "%d " EM32 "%s " EM37 "%s\n", type.typeIndex, type.name.c_str(), type.assembly.c_str());
         }
     }
 }
@@ -305,14 +325,14 @@ void MemorySnapshotCrawler::trackMStatistics(MemoryState state, int32_t depth)
     char *iter = sep;
     for (auto i = 0; i < SEP_DASH_COUNT; i++)
     {
-        memcpy(iter, "â”€", 3);
+        memcpy(iter, "©¤", 3);
         iter += 3;
     }
     
     int32_t total = 0;
     int32_t count = 0;
     objects.summarize();
-    printf("â”Œ%s\n", sep);
+    printf("©°%s\n", sep);
     objects.foreach([&](int32_t itemIndex, int32_t typeIndex, int32_t size, uint64_t detail)
                     {
                         auto &type = snapshot->typeDescriptions->items[typeIndex];
@@ -320,17 +340,17 @@ void MemorySnapshotCrawler::trackMStatistics(MemoryState state, int32_t depth)
                         {
                             case -1:
                             {
-                                printf("â”‚ [%s] memory=%d type_index=%d\n", type.name.c_str(), (int32_t)size, type.typeIndex);
+                                printf("©¦ [%s] memory=%d type_index=%d\n", type.name.c_str(), (int32_t)size, type.typeIndex);
                                 break;
                             }
                             case -2:
                             {
                                 auto skipCount = detail >> 32;
                                 auto typeCount = detail & 0xFFFFFFFF;
-                                if (skipCount > 0){printf("â”‚ [~] %d/%d=%d\n", (uint32_t)skipCount, (uint32_t)typeCount, size);}
+                                if (skipCount > 0){printf("©¦ [~] %d/%d=%d\n", (uint32_t)skipCount, (uint32_t)typeCount, size);}
                                 total += size;
                                 count += skipCount;
-                                printf("â”œ%s\n", sep);
+                                printf("©À%s\n", sep);
                                 break;
                             }
                             default:
@@ -338,13 +358,13 @@ void MemorySnapshotCrawler::trackMStatistics(MemoryState state, int32_t depth)
                                 total += size;
                                 count ++;
                                 auto &mo = managedObjects[itemIndex];
-                                printf("â”‚ 0x%08llx %6d %s\n", mo.address, mo.size, type.name.c_str());
+                                printf("©¦ 0x%08llx %6d %s\n", mo.address, mo.size, type.name.c_str());
                                 break;
                             }
                         }
                     }, depth);
-    printf("\e[37mâ”‚ [SUMMARY] count=%d memory=%d\n", count, total);
-    printf("â””%s\n", sep);
+    printf(EM37 "©¦ [SUMMARY] count=%d memory=%d\n", count, total);
+    printf("©¸%s\n", sep);
 }
 
 void MemorySnapshotCrawler::trackNStatistics(MemoryState state, int32_t depth)
@@ -367,19 +387,19 @@ void MemorySnapshotCrawler::trackNStatistics(MemoryState state, int32_t depth)
     char *iter = sep;
     for (auto i = 0; i < SEP_DASH_COUNT; i++)
     {
-        memcpy(iter, "â”€", 3);
+        memcpy(iter, "©¤", 3);
         iter += 3;
     }
     
     auto digits = (int32_t)std::ceil(std::log10(size));
     
     char format[32];
-    sprintf(format, "â”‚ 0x%%08llx %%%dd '%%s'\n", digits);
+    sprintf(format, "©¦ 0x%%08llx %%%dd '%%s'\n", digits);
     objects.summarize();
     
     int32_t total = 0;
     int32_t count = 0;
-    printf("â”Œ%s\n", sep);
+    printf("©°%s\n", sep);
     objects.foreach([&](int32_t itemIndex, int32_t typeIndex, int32_t size, uint64_t detail)
                     {
                         auto &type = snapshot->nativeTypes->items[typeIndex];
@@ -387,17 +407,17 @@ void MemorySnapshotCrawler::trackNStatistics(MemoryState state, int32_t depth)
                         {
                             case -1:
                             {
-                                printf("â”‚ [%s] memory=%d type_index=%d\n", type.name.c_str(), (int32_t)size, type.typeIndex);
+                                printf("©¦ [%s] memory=%d type_index=%d\n", type.name.c_str(), (int32_t)size, type.typeIndex);
                                 break;
                             }
                             case -2:
                             {
                                 auto skipCount = detail >> 32;
                                 auto typeCount = detail & 0xFFFFFFFF;
-                                if (skipCount > 0){printf("â”‚ [~] %d/%d=%d\n", (uint32_t)skipCount, (uint32_t)typeCount, size);}
+                                if (skipCount > 0){printf("©¦ [~] %d/%d=%d\n", (uint32_t)skipCount, (uint32_t)typeCount, size);}
                                 total += size;
                                 count += skipCount;
-                                printf("â”œ%s\n", sep);
+                                printf("©À%s\n", sep);
                                 break;
                             }
                             default:
@@ -410,8 +430,8 @@ void MemorySnapshotCrawler::trackNStatistics(MemoryState state, int32_t depth)
                             }
                         }
                     }, depth);
-    printf("\e[37mâ”‚ [SUMMARY] count=%d memory=%d\n", count, total);
-    printf("â””%s\n", sep);
+    printf(EM37 "©¦ [SUMMARY] count=%d memory=%d\n", count, total);
+    printf("©¸%s\n", sep);
 }
 
 void MemorySnapshotCrawler::trackMTypeObjects(MemoryState state, int32_t typeIndex, int32_t rank, int32_t depth)
@@ -432,7 +452,7 @@ void MemorySnapshotCrawler::trackMTypeObjects(MemoryState state, int32_t typeInd
     
     auto &type = snapshot->typeDescriptions->items[typeIndex];
     if (type.typeIndex != typeIndex) {return;}
-    printf("\e[32m%s \e[37m%s \e[36m*%d\n", type.name.c_str(), type.assembly.c_str(), type.typeIndex);
+    printf("" EM32 "%s " EM37 "%s " EM36 "*%d\n", type.name.c_str(), type.assembly.c_str(), type.typeIndex);
     
     vector<int32_t> indice;
     
@@ -458,7 +478,7 @@ void MemorySnapshotCrawler::trackMTypeObjects(MemoryState state, int32_t typeInd
         
         auto &mo = managedObjects[*i];
         auto relation = getMRefNode(&mo, depth);
-        printf("\e[36m0x%08llx %s â¤½[", mo.address, comma(mo.size, digitCount).c_str());
+        printf("" EM36 "0x%08llx %s ?[", mo.address, comma(mo.size, digitCount).c_str());
         if (relation != nullptr)
         {
             ManagedObject *node = nullptr;
@@ -527,13 +547,13 @@ void MemorySnapshotCrawler::trackMTypeObjects(MemoryState state, int32_t typeInd
                 
                 auto &no = snapshot->nativeObjects->items[index];
                 auto &nt = snapshot->nativeTypes->items[no.nativeTypeArrayIndex];
-                printf(" \e[32m*{0x%llx %s \e[33m'%s'\e[32m %s}", no.nativeObjectAddress, nt.name.c_str(), no.name.c_str(), comma(no.size).c_str());
+                printf(" " EM32 "*{0x%llx %s " EM33 "'%s'" EM32 " %s}", no.nativeObjectAddress, nt.name.c_str(), no.name.c_str(), comma(no.size).c_str());
             }
         }
         printf("\n");
     }
     
-    printf("\e[37m[SUMMARY] total_count=%d memory=%d\n", count, total);
+    printf("" EM37 "[SUMMARY] total_count=%d memory=%d\n", count, total);
 }
 
 void MemorySnapshotCrawler::trackNTypeObjects(MemoryState state, int32_t typeIndex, int32_t rank)
@@ -574,7 +594,7 @@ void MemorySnapshotCrawler::trackNTypeObjects(MemoryState state, int32_t typeInd
         
         auto &no = snapshot->nativeObjects->items[*i];
         auto &type = snapshot->nativeTypes->items[no.nativeTypeArrayIndex];
-        printf("\e[36m0x%08llx %s %s \e[33m'%s'\e[36m", no.nativeObjectAddress, comma(no.size, digitCount).c_str(), type.name.c_str(), no.name.c_str());
+        printf("" EM36 "0x%08llx %s %s " EM33 "'%s'" EM36 "", no.nativeObjectAddress, comma(no.size, digitCount).c_str(), type.name.c_str(), no.name.c_str());
         if (collection.appendings.size() > 0)
         {
             auto &appending = collection.appendings[no.nativeObjectArrayIndex];
@@ -586,7 +606,7 @@ void MemorySnapshotCrawler::trackNTypeObjects(MemoryState state, int32_t typeInd
                 if (sprite.textureNativeArrayIndex >= 0)
                 {
                     auto &texture = snapshot->nativeObjects->items[sprite.textureNativeArrayIndex];
-                    printf(" Texture2D[0x%llx \e[33m'%s'\e[36m]", texture.nativeObjectAddress, texture.name.c_str());
+                    printf(" Texture2D[0x%llx " EM33 "'%s'" EM36 "]", texture.nativeObjectAddress, texture.name.c_str());
                 }
             }
             else if (typeIndex == snapshot->nativeTypeIndex.Texture2D)
@@ -601,11 +621,11 @@ void MemorySnapshotCrawler::trackNTypeObjects(MemoryState state, int32_t typeInd
             auto mindex = findMObjectAtAddress(mAddress);
             auto &mo = managedObjects[mindex];
             auto &mt = snapshot->typeDescriptions->items[mo.typeIndex];
-            printf(" \e[32m*{0x%llx %s}", mo.address, mt.name.c_str());
+            printf(" " EM32 "*{0x%llx %s}", mo.address, mt.name.c_str());
         }
         printf("\n");
     }
-    printf("\e[37m[SUMMARY] total_count=%d memory=%d\n", count, total);
+    printf("" EM37 "[SUMMARY] total_count=%d memory=%d\n", count, total);
 }
 
 void MemorySnapshotCrawler::topMObjects(int32_t rank, address_t address, bool keepAddressOrder)
@@ -669,7 +689,8 @@ void MemorySnapshotCrawler::topMObjects(int32_t rank, address_t address, bool ke
         if (i >= objects.size()) {break;}
         
         auto &type = snapshot->typeDescriptions->items[mo->typeIndex];
-        printf("\e[36m0x%llx \e[32m%s \e[36m%s", mo->address, type.name.c_str(), comma(mo->size).c_str());
+        //printf("" EM36 "0x%llx " EM32 "%s " EM36 "%s", mo->address, type.name.c_str(), comma(mo->size).c_str());
+		printf("" "0x%llx " EM32 "%s " EM36 "%s", mo->address, type.name.c_str(), comma(mo->size).c_str());
         if (keepAddressOrder && prevAddress != 0) { printf(" +%lld", mo->address - prevAddress); }
         printf("\n");
         prevAddress = mo->address + mo->size;
@@ -699,7 +720,7 @@ void MemorySnapshotCrawler::topNObjects(int32_t rank)
         if (i >= objects.size()) {break;}
         
         auto &type = snapshot->nativeTypes->items[no->nativeTypeArrayIndex];
-        printf("\e[36m0x%llx \e[32m%s \e[33m'%s' \e[36m%s\n", no->nativeObjectAddress, type.name.c_str(), no->name.c_str(), comma(no->size).c_str());
+        printf("" EM36 "0x%llx " EM32 "%s " EM33 "'%s' " EM36 "%s\n", no->nativeObjectAddress, type.name.c_str(), no->name.c_str(), comma(no->size).c_str());
     }
 }
 
@@ -757,7 +778,7 @@ void MemorySnapshotCrawler::barMMemory(MemoryState state, int32_t rank)
     }
     
     char progress[300+1];
-    char fence[] = "â–ˆ";
+    char* fence = "¨€";
     auto &managedTypes = *snapshot->typeDescriptions;
     for (auto i = 0; i < stats.size(); i++)
     {
@@ -830,7 +851,7 @@ void MemorySnapshotCrawler::barNMemory(MemoryState state, int32_t rank)
     }
     
     char progress[300+1];
-    char fence[] = "â–ˆ";
+    char fence[] = "¨€";
     auto &nativeTypes = *snapshot->nativeTypes;
     for (auto i = 0; i < stats.size(); i++)
     {
@@ -969,7 +990,7 @@ void MemorySnapshotCrawler::drawUsedHeapGraph(const char *filename, bool sort)
     char str[512];
     auto ptr = str;
     
-    mkdir("__graph", 0777);
+	crawler_mkdir("__graph");
     sprintf(ptr, "__graph/%s_draw+%lldK.svg", filename, length >> 10);
     
     FileStream fs;
@@ -1125,7 +1146,7 @@ void MemorySnapshotCrawler::drawHeapGraph(const char *filename, bool comparisonE
     char str[512];
     auto ptr = str;
     
-    mkdir("__graph", 0777);
+	crawler_mkdir("__graph");
     sprintf(ptr, "__graph/%s.svg", filename);
     
     FileStream fs;
@@ -1191,8 +1212,8 @@ void MemorySnapshotCrawler::inspectHeap(const char *filename)
     
     auto len = 0;
     auto indexw = (int32_t)ceil(log10(fmax(10, heapSections.size())));
-    char indexf[indexw+4];
-    char indexb[indexw+1];
+    AutoCharVector indexf(indexw+4);
+	AutoCharVector indexb(indexw+1);
     len = sprintf(indexf, "%%%dd", indexw);
     memset(indexf+len, 0, 1);
     
@@ -1210,7 +1231,7 @@ void MemorySnapshotCrawler::inspectHeap(const char *filename)
                 shift = (int64_t)(item.startAddress - (base.startAddress + base.size));
             }
             sprintf(indexb, indexf, index);
-            printf(" %s 0x%llx %s %sK |", indexb, item.startAddress, comma(shift, shiftw).c_str(), comma(item.size/1024, sizew).c_str());
+            printf(" %s 0x%llx %s %sK |", indexb.p(), item.startAddress, comma(shift, shiftw).c_str(), comma(item.size/1024, sizew).c_str());
         }
         printf("\n");
     }
@@ -1221,7 +1242,7 @@ void MemorySnapshotCrawler::inspectHeap(const char *filename)
         auto ptr = basepath;
         ptr += sprintf(ptr, "%s", "__heap");
         ptr += sprintf(ptr, "+%s", filename);
-        mkdir(basepath, 0766);
+		crawler_mkdir(basepath);
         
         std::fstream fs;
         char filepath[sizeof(basepath) + 32];
@@ -1286,7 +1307,7 @@ void MemorySnapshotCrawler::statHeap(int32_t rank)
     }
     
     char percentage[600+1];
-    char fence[] = "â–ˆ";
+    char fence[] = "¨€";
     printf("### blocks=%d memory=%s\n", (int32_t)sortedHeapSections.size(), comma(totalMemory).c_str());
     for (auto i = 0; i < stats.size(); i++)
     {
@@ -1317,14 +1338,14 @@ const string MemorySnapshotCrawler::getUTFString(address_t address, int32_t &siz
     auto *data = getString(address, size);
     if (data != nullptr)
     {
-        auto utf = __convertor.to_bytes(data);
+        auto utf = utf16_to_utf8(data);
         if (compactMode)
         {
             for (auto iter = utf.begin(); iter != utf.end(); iter++)
             {
                 if (*iter == '\n' || *iter == '\r')
                 {
-                    *iter = '\\'; // ç¦æ­¢æ¢è¡Œ
+                    *iter = '\\'; // ½ûÖ¹»»ÐÐ
                 }
             }
         }
@@ -1344,7 +1365,7 @@ void MemorySnapshotCrawler::dumpSubclassesOf(int32_t typeIndex)
         auto &type = typeDescriptions[i];
         if (subclassOf(type, typeIndex))
         {
-            printf("\e[32m%s \e[33m%s \e[37m*%d\n", type.name.c_str(), type.assembly.c_str(), type.typeIndex);
+            printf("" EM32 "%s " EM33 "%s " EM37 "*%d\n", type.name.c_str(), type.assembly.c_str(), type.typeIndex);
         }
     }
 }
@@ -1385,7 +1406,7 @@ void MemorySnapshotCrawler::statSubclasses()
     for (auto i = indice.begin(); i != indice.end(); ++i)
     {
         auto &type = snapshot->typeDescriptions->items[*i];
-        printf("\e[36m#%d \e[32m%s \e[33m%s \e[37m*%d\n", stats[*i], type.name.c_str(), type.assembly.c_str(), type.typeIndex);
+        printf("" EM36 "#%d " EM32 "%s " EM33 "%s " EM37 "*%d\n", stats[*i], type.name.c_str(), type.assembly.c_str(), type.typeIndex);
     }
 }
 
@@ -1556,10 +1577,18 @@ void MemorySnapshotCrawler::dumpMRefChain(address_t address, bool includeCircula
     
     auto *mo = &managedObjects[objectIndex];
     auto fullChains = iterateMRefChain(mo, route, depth, vector<int32_t>(), set<int64_t>());
+    
+    std::set<std::string> outputset;
+    std::set<address_t> outputAddress;
     for (auto c = fullChains.begin(); c != fullChains.end(); c++)
     {
         auto &chain = *c;
         auto number = 0;
+        
+        std::string outString;
+        char buf[1024] = {0};
+        bool ref_static = false;
+        address_t curAddr = 0;
         for (auto n = chain.rbegin(); n != chain.rend(); n++)
         {
             auto index = *n;
@@ -1569,13 +1598,16 @@ void MemorySnapshotCrawler::dumpMRefChain(address_t address, bool includeCircula
                 switch (index)
                 {
                     case -1:
-                        if (!includeCircular) { interupted = true; } else { printf("âˆž"); continue; } // circular
+					{
+						if (!includeCircular) { interupted = true; }
+						else { outString += "¡Þ"; continue; } // circular
+					}
                         break;
                     case -2:
-                        printf("*"); // more and interrupted
+                        outString += "*"; // more and interrupted
                         continue;
                     case -3:
-                        printf("~"); // ignore in tracking mode
+                        outString += "~"; // ignore in tracking mode
                         continue;
                 }
             }
@@ -1589,39 +1621,61 @@ void MemorySnapshotCrawler::dumpMRefChain(address_t address, bool includeCircula
             
             if (ec.fromKind == CK_gcHandle)
             {
-                printf("<GCHandle>::%s 0x%08llx\n", type.name.c_str(), node.address);
+                sprintf(buf, "<GCHandle>::%s 0x%08llx\n", type.name.c_str(), node.address);
+                outString += buf;
+                ref_static = true;
+                curAddr =node.address;
             }
             else if (ec.fromKind == CK_link)
             {
                 auto &appending = snapshot->nativeAppendingCollection.appendings[joint.linkArrayIndex];
                 auto &no = snapshot->nativeObjects->items[appending.link.nativeArrayIndex];
                 auto &nt = snapshot->nativeTypes->items[no.nativeTypeArrayIndex];
-                printf("<LINK>::0x%08llx '%s' %s <=> %s 0x%08llx\n", appending.link.nativeAddress, no.name.c_str(), nt.name.c_str(), type.name.c_str(), node.address);
+                sprintf(buf, "<LINK>::0x%08llx '%s' %s <=> %s 0x%08llx\n", appending.link.nativeAddress, no.name.c_str(), nt.name.c_str(), type.name.c_str(), node.address);
+                ref_static = true;
+                curAddr =node.address;
+                outString += buf;
             }
             else
             {
                 auto &hookType = snapshot->typeDescriptions->items[joint.hookTypeIndex];
-                if (number > 0) {printf("    .");}
+                if (number > 0) { outString += ("    .");}
                 if (joint.fieldSlotIndex >= 0)
                 {
                     auto &field = hookType.fields->items[joint.fieldSlotIndex];
                     if (ec.fromKind == CK_static)
                     {
                         auto &hookType = snapshot->typeDescriptions->items[joint.hookTypeIndex];
-                        printf("<Static>::%s::", hookType.name.c_str());
+                        sprintf(buf, "<Static>::%s::", hookType.name.c_str());
+                        outString += buf;
+                        ref_static = true;
+                        curAddr =node.address;
                     }
                     
-                    printf("{%s:%s} 0x%08llx\n", field.name.c_str(), type.name.c_str(), node.address);
+                    sprintf(buf, "{%s:%s} 0x%08llx\n", field.name.c_str(), type.name.c_str(), node.address);
+                    outString += buf;
                 }
                 else
                 {
                     assert(joint.elementArrayIndex >= 0);
                     auto &elementType = snapshot->typeDescriptions->items[joint.fieldTypeIndex];
-                    printf("{[%d]:%s} 0x%08llx\n", joint.elementArrayIndex, elementType.name.c_str(), node.address);
+                    sprintf(buf, "{[%d]:%s} 0x%08llx\n", joint.elementArrayIndex, elementType.name.c_str(), node.address);
+                    outString += buf;
                 }
             }
             
             ++number;
+        }
+        
+        if (ref_static)
+        {
+            if (outputset.find(outString) == outputset.end() && outputAddress.find(curAddr) == outputAddress.end())
+            {
+                printf("\n-----------------\n");
+                printf(outString.c_str());
+                outputset.insert(outString);
+                outputAddress.insert(curAddr);
+            }
         }
     }
 }
@@ -1716,7 +1770,7 @@ void MemorySnapshotCrawler::dumpNRefChain(address_t address, bool includeCircula
                 switch (index)
                 {
                     case -1:
-                        if (!includeCircular) { interupted = true; } else { printf("âˆž"); continue; } // circular
+                        if (!includeCircular) { interupted = true; } else { printf("¡Þ"); continue; } // circular
                         break;
                     case -2:
                         printf("*"); // more and interrupted
@@ -1966,15 +2020,15 @@ void MemorySnapshotCrawler::dumpRepeatedObjects(int32_t typeIndex, int32_t condi
     {
         auto hash = *iter;
         auto &children = stats.at(hash);
-        printf("\e[36m%s #%-2d", comma(memory.at(hash)).c_str(), (int32_t)children.size());
+        printf("" EM36 "%s #%-2d", comma(memory.at(hash)).c_str(), (int32_t)children.size());
         
         bool extraComplate = false;
         for (auto n= children.begin(); n != children.end(); n++)
         {
             auto &mo = managedObjects[*n];
             auto size = 0;
-            if (!extraComplate && isString) {printf(" \e[32m'%s'", getUTFString(mo.address, size, true).c_str());}
-            printf(" \e[33m0x%08llx", mo.address);
+            if (!extraComplate && isString) {printf(" " EM32 "'%s'", getUTFString(mo.address, size, true).c_str());}
+            printf(" " EM33 "0x%08llx", mo.address);
             extraComplate = true;
         }
         printf("\n");
@@ -2573,7 +2627,7 @@ void MemorySnapshotCrawler::inspectMType(int32_t typeIndex)
     if (typeIndex < 0 || typeIndex >= snapshot->typeDescriptions->size) {return;}
     
     auto &type = snapshot->typeDescriptions->items[typeIndex];
-    printf("\e[1m%s\e[0m\e[36m typeIndex=%d size=%d", type.name.c_str(), type.typeIndex, type.size);
+    printf("\e[1m%s\e[0m" EM36 " typeIndex=%d size=%d", type.name.c_str(), type.typeIndex, type.size);
     if (type.baseOrElementTypeIndex >= 0) {printf(" baseOrElementType=%d", type.baseOrElementTypeIndex);}
     if (type.isValueType) {printf(" isValueType=%s", type.isValueType ? "true" : "false");}
     if (type.isArray) {printf(" isArray=%s arrayRank=%d", type.isArray ? "true" : "false", type.arrayRank);}
@@ -2684,11 +2738,11 @@ void MemorySnapshotCrawler::printByteArray(const char *data, int32_t size)
 void MemorySnapshotCrawler::dumpNObjectHierarchy(PackedNativeUnityEngineObject *no, set<int64_t> antiCircular, int32_t limit, const char *indent, int32_t __iter_depth, int32_t __iter_capacity)
 {
     auto __size = strlen(indent);
-    char __indent[__size + 2*3 + 1]; // indent + 2Ã—tabulator + \0
+	AutoCharVector __indent(__size + 2*3 + 1); // indent + 2¡Átabulator + \0
     memset(__indent, 0, sizeof(__indent));
     memcpy(__indent, indent, __size);
     char *tabular = __indent + __size;
-    memcpy(tabular + 3, "â”€", 3);
+    memcpy(tabular + 3, "©¤", 3);
     
     if (__iter_depth == 0)
     {
@@ -2704,8 +2758,8 @@ void MemorySnapshotCrawler::dumpNObjectHierarchy(PackedNativeUnityEngineObject *
         auto &no = snapshot->nativeObjects->items[nc.to];
         auto &nt = snapshot->nativeTypes->items[no.nativeTypeArrayIndex];
         
-        closed ? memcpy(tabular, "â””", 3) : memcpy(tabular, "â”œ", 3);
-        printf("%s'%s':%s 0x%08llx=%d\n", __indent, no.name.c_str(), nt.name.c_str(), no.nativeObjectAddress, no.size);
+        closed ? memcpy(tabular, "©¸", 3) : memcpy(tabular, "©À", 3);
+        printf("%s'%s':%s 0x%08llx=%d\n", __indent.p(), no.name.c_str(), nt.name.c_str(), no.nativeObjectAddress, no.size);
         
         if (antiCircular.find(no.nativeObjectAddress) == antiCircular.end())
         {
@@ -2714,7 +2768,7 @@ void MemorySnapshotCrawler::dumpNObjectHierarchy(PackedNativeUnityEngineObject *
             if (limit > 0 && __iter_depth + 1 >= limit) {continue;}
             if (closed)
             {
-                char __nest_indent[__size + 1 + 2 + 1]; // indent + space + 2Ã—space + \0
+				AutoCharVector __nest_indent(__size + 1 + 2 + 1); // indent + space + 2¡Áspace + \0
                 memcpy(__nest_indent, indent, __size);
                 memset(__nest_indent + __size, '\x20', 3);
                 memset(__nest_indent + __size + 3, 0, 1);
@@ -2722,10 +2776,10 @@ void MemorySnapshotCrawler::dumpNObjectHierarchy(PackedNativeUnityEngineObject *
             }
             else
             {
-                char __nest_indent[__size + 3 + 2 + 1]; // indent + tabulator + 2Ã—space + \0
+				AutoCharVector __nest_indent(__size + 3 + 2 + 1); // indent + tabulator + 2¡Áspace + \0
                 char *iter = __nest_indent + __size;
                 memcpy(__nest_indent, indent, __size);
-                memcpy(iter, "â”‚", 3);
+                memcpy(iter, "|", 3);
                 memset(iter + 3, '\x20', 2);
                 memset(iter + 5, 0, 1);
                 dumpNObjectHierarchy(&no, __antiCircular, limit, __nest_indent, __iter_depth + 1, __iter_capacity * toCount);
@@ -2737,11 +2791,11 @@ void MemorySnapshotCrawler::dumpNObjectHierarchy(PackedNativeUnityEngineObject *
 void MemorySnapshotCrawler::dumpVObjectHierarchy(address_t address, TypeDescription &type, const char *indent, int32_t __iter_depth)
 {
     auto __size = strlen(indent);
-    char __indent[__size + 2*3 + 1]; // indent + 2Ã—tabulator + \0
+	AutoCharVector __indent(__size + 2*3 + 1); // indent + 2¡Átabulator + \0
     memset(__indent, 0, sizeof(__indent));
     memcpy(__indent, indent, __size);
     char *tabular = __indent + __size;
-    memcpy(tabular + 3, "â”€", 3);
+    memcpy(tabular + 3, "©¤", 3);
     if (__iter_depth == 0)
     {
         printf("0x%08llx type='%s'%d\n", address, type.name.c_str(), type.typeIndex);
@@ -2792,26 +2846,26 @@ void MemorySnapshotCrawler::dumpVObjectHierarchy(address_t address, TypeDescript
             }
         }
         
-        closed ? memcpy(tabular, "â””", 3) : memcpy(tabular, "â”œ", 3);
+        closed ? memcpy(tabular, "©¸", 3) : memcpy(tabular, "©À", 3);
         const char *fieldTypeName = fieldType->name.c_str();
         const char *fieldName = field.name.c_str();
         switch (code)
         {
             case 1: // null
-                printf("%s%s:%s = NULL", __indent, fieldName, fieldTypeName);
+                printf("%s%s:%s = NULL", __indent.p(), fieldName, fieldTypeName);
                 break;
             case 2: // string
             {
                 auto size = 0;
-                printf("%s%s:%s 0x%08llx = '%s'", __indent, fieldName, fieldTypeName, fieldAddress , getUTFString(fieldAddress, size, true).c_str());
+                printf("%s%s:%s 0x%08llx = '%s'", __indent.p(), fieldName, fieldTypeName, fieldAddress , getUTFString(fieldAddress, size, true).c_str());
                 break;
             }
             case 3: // premitive
-                printf("%s%s:%s = ", __indent, fieldName, fieldTypeName);
+                printf("%s%s:%s = ", __indent.p(), fieldName, fieldTypeName);
                 printPremitiveValue(fieldAddress, fieldType->typeIndex);
                 break;
             default:
-                printf("%s%s:%s", __indent, fieldName, fieldTypeName);
+                printf("%s%s:%s", __indent.p(), fieldName, fieldTypeName);
                 if (!fieldType->isValueType)
                 {
                     printf(" 0x%08llx", fieldAddress);
@@ -2824,7 +2878,7 @@ void MemorySnapshotCrawler::dumpVObjectHierarchy(address_t address, TypeDescript
         {
             if (closed)
             {
-                char __nest_indent[__size + 1 + 2 + 1]; // indent + space + 2Ã—space + \0
+				AutoCharVector __nest_indent(__size + 1 + 2 + 1); // indent + space + 2¡Áspace + \0
                 memcpy(__nest_indent, __indent, __size);
                 memset(__nest_indent + __size, '\x20', 3);
                 memset(__nest_indent + __size + 3, 0, 1);
@@ -2832,10 +2886,10 @@ void MemorySnapshotCrawler::dumpVObjectHierarchy(address_t address, TypeDescript
             }
             else
             {
-                char __nest_indent[__size + 3 + 2 + 1]; // indent + tabulator + 2Ã—space + \0
+				AutoCharVector __nest_indent(__size + 3 + 2 + 1); // indent + tabulator + 2¡Áspace + \0
                 char *iter = __nest_indent + __size;
                 memcpy(__nest_indent, __indent, __size);
-                memcpy(iter, "â”‚", 3);
+                memcpy(iter, "|", 3);
                 memset(iter + 3, '\x20', 2);
                 memset(iter + 5, 0, 1);
                 dumpVObjectHierarchy(fieldAddress, *fieldType, __nest_indent, __iter_depth + 1);
@@ -2881,15 +2935,15 @@ void MemorySnapshotCrawler::listAllStatics()
         }
         
         if (staticCount == 0) {continue;}
-        printf("\e[36m%5d #%-3d \e[32m%s \e[33m%s \e[37m*%d\n", type.staticFieldBytes->size, staticCount, type.name.c_str(), type.assembly.c_str(), type.typeIndex);
+        printf("" EM36 "%5d #%-3d " EM32 "%s " EM33 "%s " EM37 "*%d\n", type.staticFieldBytes->size, staticCount, type.name.c_str(), type.assembly.c_str(), type.typeIndex);
     }
 }
 
 void MemorySnapshotCrawler::dumpStatic(int32_t typeIndex, bool verbose)
 {
-    char indent[2*3 + 1]; // indent + 2Ã—tabulator + \0
+    char indent[2*3 + 1]; // indent + 2¡Átabulator + \0
     memset(indent, 0, sizeof(indent));
-    memcpy(indent + 3, "â”€", 3);
+    memcpy(indent + 3, "©¤", 3);
     
     auto &type = snapshot->typeDescriptions->items[typeIndex];
     if (type.typeIndex != typeIndex) {return;}
@@ -2921,7 +2975,7 @@ void MemorySnapshotCrawler::dumpStatic(int32_t typeIndex, bool verbose)
     {
         auto &field = type.fields->items[indice[i]];
         auto closed = i + 1 == fieldCount;
-        closed ? memcpy(indent, "â””", 3) : memcpy(indent, "â”œ", 3);
+        closed ? memcpy(indent, "©¸", 3) : memcpy(indent, "©À", 3);
         
         const char *fieldName = field.name.c_str();
         auto fieldType = &snapshot->typeDescriptions->items[field.typeIndex];
@@ -2978,32 +3032,32 @@ string MemorySnapshotCrawler::getNestIndent(const char *__indent, size_t __prein
 {
     if (closed)
     {
-        char __nest_indent[__preindent_size + 1 + 2 + 1]; // indent + space + 2Ã—space + \0
+		AutoCharVector __nest_indent(__preindent_size + 1 + 2 + 1); // indent + space + 2¡Áspace + \0
         if (__preindent_size > 0) {memcpy(__nest_indent, __indent, __preindent_size);}
         memset(__nest_indent + __preindent_size, '\x20', 3);
         memset(__nest_indent + __preindent_size + 3, 0, 1);
-        return __nest_indent;
+        return __nest_indent.p();
     }
     else
     {
-        char __nest_indent[__preindent_size + 3 + 2 + 1]; // indent + tabulator + 2Ã—space + \0
+		AutoCharVector __nest_indent(__preindent_size + 3 + 2 + 1); // indent + tabulator + 2¡Áspace + \0
         char *iter = __nest_indent + __preindent_size;
         if (__preindent_size) {memcpy(__nest_indent, __indent, __preindent_size);}
-        memcpy(iter, "â”‚", 3);
+        memcpy(iter, "|", 3);
         memset(iter + 3, '\x20', 2);
         memset(iter + 5, 0, 1);
-        return __nest_indent;
+        return __nest_indent.p();
     }
 }
 
 void MemorySnapshotCrawler::dumpSObjectHierarchy(address_t address, TypeDescription &type, StaticMemoryReader &memoryReader, const char *indent)
 {
     auto __size = strlen(indent);
-    char __indent[__size + 2*3 + 1]; // indent + 2Ã—tabulator + \0
+	AutoCharVector __indent(__size + 2*3 + 1); // indent + 2¡Átabulator + \0
     memset(__indent, 0, sizeof(__indent));
     memcpy(__indent, indent, __size);
     char *tabular = __indent + __size;
-    memcpy(tabular + 3, "â”€", 3);
+    memcpy(tabular + 3, "©¤", 3);
     
     vector<int32_t> indice;
     for (auto i = 0; i < type.fields->size; i++)
@@ -3021,19 +3075,19 @@ void MemorySnapshotCrawler::dumpSObjectHierarchy(address_t address, TypeDescript
         
         auto fieldType = &snapshot->typeDescriptions->items[field.typeIndex];
         
-        closed ? memcpy(tabular, "â””", 3) : memcpy(tabular, "â”œ", 3);
+        closed ? memcpy(tabular, "©¸", 3) : memcpy(tabular, "©À", 3);
         const char *fieldName = field.name.c_str();
         if (fieldType->isValueType)
         {
             if (__is_premitive)
             {
-                printf("%s%s:%s = ", __indent, fieldName, fieldType->name.c_str());
+                printf("%s%s:%s = ", __indent.p(), fieldName, fieldType->name.c_str());
                 printPremitiveValue(address + field.offset - __vm->objectHeaderSize, fieldType->typeIndex, &memoryReader);
                 printf("\n");
             }
             else
             {
-                printf("%s%s:%s\n", __indent, fieldName, fieldType->name.c_str());
+                printf("%s%s:%s\n", __indent.p(), fieldName, fieldType->name.c_str());
                 dumpSObjectHierarchy(address + field.offset - __vm->objectHeaderSize, *fieldType, memoryReader, getNestIndent(__indent, __size, closed).c_str());
             }
         }
@@ -3042,7 +3096,7 @@ void MemorySnapshotCrawler::dumpSObjectHierarchy(address_t address, TypeDescript
             address_t fieldAddress = memoryReader.readPointer(address + field.offset);
             if (fieldAddress == 0)
             {
-                printf("%s%s:%s = NULL\n", __indent, fieldName, fieldType->name.c_str());
+                printf("%s%s:%s = NULL\n", __indent.p(), fieldName, fieldType->name.c_str());
             }
             else
             {
@@ -3055,11 +3109,11 @@ void MemorySnapshotCrawler::dumpSObjectHierarchy(address_t address, TypeDescript
                 if (typeIndex == snapshot->managedTypeIndex.system_String)
                 {
                     auto size = 0;
-                    printf("%s%s:%s 0x%08llx = '%s'\n", __indent, fieldName, fieldType->name.c_str(), fieldAddress, getUTFString(fieldAddress, size, true).c_str());
+                    printf("%s%s:%s 0x%08llx = '%s'\n", __indent.p(), fieldName, fieldType->name.c_str(), fieldAddress, getUTFString(fieldAddress, size, true).c_str());
                 }
                 else
                 {
-                    printf("%s%s:%s = 0x%08llx\n", __indent, fieldName, fieldType->name.c_str(), fieldAddress);
+                    printf("%s%s:%s = 0x%08llx\n", __indent.p(), fieldName, fieldType->name.c_str(), fieldAddress);
                 }
             }
         }
@@ -3070,11 +3124,11 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
                                                  set<int64_t> antiCircular, bool isActualType, int32_t limit, const char *indent, int32_t __iter_depth)
 {
     auto __size = strlen(indent);
-    char __indent[__size + 2*3 + 1]; // indent + 2Ã—tabulator + \0
+    AutoCharVector __indent(__size + 2*3 + 1); // indent + 2¡Átabulator + \0
     memset(__indent, 0, sizeof(__indent));
     memcpy(__indent, indent, __size);
     char *tabular = __indent + __size;
-    memcpy(tabular + 3, "â”€", 3);
+    memcpy(tabular + 3, "©¤", 3);
     
     if (type == nullptr || (!type->isValueType && !isActualType))
     {
@@ -3102,7 +3156,7 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
         auto elementCount = memoryReader.readArrayLength(address, entryType);
         if (elementType->typeIndex == snapshot->managedTypeIndex.system_Byte)
         {
-            printf("%sâ””<%d>", __indent, elementCount);
+            printf("%s©¸<%d>", __indent.p(), elementCount);
             auto ptr = memoryReader.readMemory(address + __vm->arrayHeaderSize);
             printByteArray(ptr, elementCount);
             printf("\n");
@@ -3135,8 +3189,8 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
                 __antiCircular.insert(elementAddress);
             }
             
-            closed ? memcpy(tabular, "â””", 3) : memcpy(tabular, "â”œ", 3);
-            printf("%s[%d]:%s", __indent, i, elementType->name.c_str());
+            closed ? memcpy(tabular, "©¸", 3) : memcpy(tabular, "©À", 3);
+            printf("%s[%d]:%s", __indent.p(), i, elementType->name.c_str());
             if (__is_premitive)
             {
                 printf(" = ");
@@ -3163,7 +3217,7 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
             if (limit > 0 && __iter_depth + 1 >= limit) {continue;}
             if (closed)
             {
-                char __nest_indent[__size + 1 + 2 + 1]; // indent + space + 2Ã—space + \0
+				AutoCharVector __nest_indent(__size + 1 + 2 + 1); // indent + space + 2¡Áspace + \0
                 memcpy(__nest_indent, indent, __size);
                 memset(__nest_indent + __size, '\x20', 3);
                 memset(__nest_indent + __size + 3, 0, 1);
@@ -3171,10 +3225,10 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
             }
             else
             {
-                char __nest_indent[__size + 3 + 2 + 1]; // indent + tabulator + 2Ã—space + \0
+				AutoCharVector __nest_indent(__size + 3 + 2 + 1); // indent + tabulator + 2¡Áspace + \0
                 char *iter = __nest_indent + __size;
                 memcpy(__nest_indent, indent, __size);
-                memcpy(iter, "â”‚", 3);
+                memcpy(iter, "|", 3);
                 memset(iter + 3, '\x20', 2);
                 memset(iter + 5, 0, 1);
                 dumpMObjectHierarchy(elementAddress, elementType, __antiCircular, true, limit, __nest_indent, __iter_depth + 1);
@@ -3242,26 +3296,26 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
             }
         }
         
-        closed ? memcpy(tabular, "â””", 3) : memcpy(tabular, "â”œ", 3);
+        closed ? memcpy(tabular, "©¸", 3) : memcpy(tabular, "©À", 3);
         const char *fieldTypeName = fieldType->name.c_str();
         const char *fieldName = field.name.c_str();
         switch (code)
         {
             case 1: // null
-                printf("%s%s:%s = NULL", __indent, fieldName, fieldTypeName);
+                printf("%s%s:%s = NULL", __indent.p(), fieldName, fieldTypeName);
                 break;
             case 2: // string
             {
                 auto size = 0;
-                printf("%s%s:%s 0x%08llx = '%s'", __indent, fieldName, fieldTypeName, fieldAddress , getUTFString(fieldAddress, size, true).c_str());
+                printf("%s%s:%s 0x%08llx = '%s'", __indent.p(), fieldName, fieldTypeName, fieldAddress , getUTFString(fieldAddress, size, true).c_str());
                 break;
             }
             case 3: // premitive
-                printf("%s%s:%s = ", __indent, fieldName, fieldTypeName);
+                printf("%s%s:%s = ", __indent.p(), fieldName, fieldTypeName);
                 printPremitiveValue(fieldAddress, fieldType->typeIndex);
                 break;
             default:
-                printf("%s%s:%s", __indent, fieldName, fieldTypeName);
+                printf("%s%s:%s", __indent.p(), fieldName, fieldTypeName);
                 if (!fieldType->isValueType)
                 {
                     printf(" 0x%08llx", fieldAddress);
@@ -3277,7 +3331,7 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
             if (limit > 0 && __iter_depth + 1 >= limit) {continue;}
             if (closed)
             {
-                char __nest_indent[__size + 1 + 2 + 1]; // indent + space + 2Ã—space + \0
+                AutoCharVector __nest_indent(__size + 1 + 2 + 1); // indent + space + 2¡Áspace + \0
                 memcpy(__nest_indent, __indent, __size);
                 memset(__nest_indent + __size, '\x20', 3);
                 memset(__nest_indent + __size + 3, 0, 1);
@@ -3285,10 +3339,10 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
             }
             else
             {
-                char __nest_indent[__size + 3 + 2 + 1]; // indent + tabulator + 2Ã—space + \0
+				AutoCharVector __nest_indent(__size + 3 + 2 + 1); // indent + tabulator + 2¡Áspace + \0
                 char *iter = __nest_indent + __size;
                 memcpy(__nest_indent, __indent, __size);
-                memcpy(iter, "â”‚", 3);
+                memcpy(iter, "|", 3);
                 memset(iter + 3, '\x20', 2);
                 memset(iter + 5, 0, 1);
                 dumpMObjectHierarchy(fieldAddress, fieldType, __antiCircular, true, limit, __nest_indent, __iter_depth + 1);
@@ -3358,7 +3412,7 @@ void MemorySnapshotCrawler::listMulticastDelegates()
     {
         auto &mo = managedObjects[*i];
         auto &type = snapshot->typeDescriptions->items[mo.typeIndex];
-        printf("\e[36m%3d 0x%08llx \e[32m%s \e[33m%s \e[37m*%d\n", counts.at(*i), mo.address, type.name.c_str(), type.assembly.c_str(), type.typeIndex);
+        printf("" EM36 "%3d 0x%08llx " EM32 "%s " EM33 "%s " EM37 "*%d\n", counts.at(*i), mo.address, type.name.c_str(), type.assembly.c_str(), type.typeIndex);
     }
 }
 
@@ -3439,7 +3493,7 @@ void MemorySnapshotCrawler::retrieveMulticastDelegate(address_t address)
     auto selected = position == address;
     if (selected) {printf("\e[1m");}
     printf("%s 0x%08llx", sourceType.name.c_str(), position);
-    if (selected) {printf("\e[0m\e[36m");}
+    if (selected) {printf("\e[0m" EM36 "");}
     printf("\n");
     dumpMulticastDelegateHierarchy(position, address, fields, "");
 }
@@ -3447,17 +3501,17 @@ void MemorySnapshotCrawler::retrieveMulticastDelegate(address_t address)
 void MemorySnapshotCrawler::dumpMulticastDelegateHierarchy(address_t address, address_t highlight, vector<FieldDescription *> &fields, const char *indent)
 {
     auto __size = strlen(indent);
-    char __indent[__size + 2*3 + 1]; // indent + 2Ã—tabulator + \0
+	AutoCharVector __indent(__size + 2*3 + 1); // indent + 2¡Átabulator + \0
     memset(__indent, 0, sizeof(__indent));
     memcpy(__indent, indent, __size);
     char *tabular = __indent + __size;
-    memcpy(tabular + 3, "â”€", 3);
+    memcpy(tabular + 3, "©¤", 3);
     
     auto fieldCount = fields.size();
     for (auto i = 0; i < fieldCount; i++)
     {
         auto closed = i + 1 == fieldCount;
-        closed ? memcpy(tabular, "â””", 3) : memcpy(tabular, "â”œ", 3);
+        closed ? memcpy(tabular, "©¸", 3) : memcpy(tabular, "©À", 3);
         auto &field = *fields[i];
         auto *fieldType = &snapshot->typeDescriptions->items[field.typeIndex];
         auto fieldAddress = address + field.offset;
@@ -3485,13 +3539,13 @@ void MemorySnapshotCrawler::dumpMulticastDelegateHierarchy(address_t address, ad
         
         auto selected = fieldAddress == highlight;
         auto isMulticastDelegate = fieldType->baseOrElementTypeIndex == snapshot->managedTypeIndex.system_MulticastDelegate;
-        printf("%s%s:", __indent, field.name.c_str());
+        printf("%s%s:", __indent.p(), field.name.c_str());
         if (selected) {printf("\e[1m");}
         printf("%s", fieldType->name.c_str());
         if (isNull) {printf(" = NULL");}
         else if (!isMulticastDelegate) {printf(" = 0x%08llx", fieldAddress);}
         else {printf(" 0x%08llx", fieldAddress);}
-        if (selected) {printf("\e[0m\e[36m");}
+        if (selected) {printf("\e[0m" EM36 "");}
         printf("\n");
         
         if (isMulticastDelegate && !isNull)
@@ -3569,7 +3623,7 @@ void MemorySnapshotCrawler::dumpUnbalancedEvents(MemoryState state)
         
         auto &type = snapshot->typeDescriptions->items[get<1>(data)];
         
-        printf("\e[36m0x%08llx type='%s'%d \e[32mtarget=[0x%08llx type='%s'%d size=%d]\n", get<0>(data), type.name.c_str(), type.typeIndex, get<2>(data), targetType.name.c_str(), targetType.typeIndex, get<4>(data));
+        printf("" EM36 "0x%08llx type='%s'%d " EM32 "target=[0x%08llx type='%s'%d size=%d]\n", get<0>(data), type.name.c_str(), type.typeIndex, get<2>(data), targetType.name.c_str(), targetType.typeIndex, get<4>(data));
     }
     
     std::sort(indice.begin(), indice.end(), [&](int32_t a, int32_t b)
@@ -3581,7 +3635,7 @@ void MemorySnapshotCrawler::dumpUnbalancedEvents(MemoryState state)
     
     char format[32];
     memset(format, 0, sizeof(format));
-    sprintf(format, "\e[36m[%%0%dd/%d]", digit, (int32_t)indice.size());
+    sprintf(format, "" EM36 "[%%0%dd/%d]", digit, (int32_t)indice.size());
     
     auto counter = 0;
     for (auto i = indice.begin(); i != indice.end(); i++)
@@ -3591,12 +3645,12 @@ void MemorySnapshotCrawler::dumpUnbalancedEvents(MemoryState state)
         auto &targetType = snapshot->typeDescriptions->items[target.typeIndex];
         auto &parents = iter->second;
         printf(format, ++counter);
-        printf(" \e[32m0x%08llx type='%s'%d size=%d count=%d\n", target.address, targetType.name.c_str(), targetType.typeIndex, target.size, (int32_t)parents.size());
+        printf(" " EM32 "0x%08llx type='%s'%d size=%d count=%d\n", target.address, targetType.name.c_str(), targetType.typeIndex, target.size, (int32_t)parents.size());
         for (auto p = parents.begin(); p != parents.end(); p++)
         {
             auto &parentObject = managedObjects[*p];
             auto &parentType = snapshot->typeDescriptions->items[parentObject.typeIndex];
-            printf("  \e[33m+ 0x%08llx type='%s'%d\n", parentObject.address, parentType.name.c_str(), parentType.typeIndex);
+            printf("  " EM33 "+ 0x%08llx type='%s'%d\n", parentObject.address, parentType.name.c_str(), parentType.typeIndex);
         }
     }
 }

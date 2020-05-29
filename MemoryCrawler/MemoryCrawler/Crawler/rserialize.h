@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <cassert>
 #include "serialize.h"
+#include "types.h"
 
 class RawMemorySnapshotReader: public MemorySnapshotDeserializer
 {
