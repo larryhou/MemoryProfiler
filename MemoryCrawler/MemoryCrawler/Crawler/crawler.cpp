@@ -1890,6 +1890,8 @@ int32_t MemorySnapshotCrawler::findTypeOfAddress(address_t address)
     auto typeIndex = findTypeAtTypeAddress(address); // il2cpp
     if (typeIndex != -1) {return typeIndex;}
     // MonoObject->vtable->kclass
+    // MonoObject @see https://github.com/mono/mono/blob/977ab697fae184565d97bcf8ec754525614b36b1/mono/metadata/object.h#L35
+    // MonoVTable @see https://github.com/mono/mono/blob/977ab697fae184565d97bcf8ec754525614b36b1/mono/metadata/class-internals.h#L355
     auto vtable = __memoryReader->readPointer(address);
     if (vtable == 0) {return -1;}
     auto klass = __memoryReader->readPointer(vtable);
