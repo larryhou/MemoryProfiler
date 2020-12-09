@@ -82,7 +82,7 @@ uint32_t HeapMemoryReader::readArrayLength(address_t address, TypeDescription &t
     {
         return (uint32_t)readPointer(address + __vm->arraySizeOffsetInHeader);
     }
-    
+    // Il2CppArrayBounds* Il2CppArray::bounds = kIl2CppSizeOfArray + length * element_size
     auto length = (uint64_t)1;
     auto cursor = bounds;
     for (auto i = 0; i < type.arrayRank; i++)
