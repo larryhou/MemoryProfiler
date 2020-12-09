@@ -78,7 +78,7 @@ uint32_t HeapMemoryReader::readArrayLength(address_t address, TypeDescription &t
     if (offset == -1) {return 0;}
     
     auto bounds = readPointer(address + __vm->arrayBoundsOffsetInHeader);
-    if (bounds == 0)
+    if (bounds == 0) // one-dimension array
     {
         return (uint32_t)readPointer(address + __vm->arraySizeOffsetInHeader);
     }
@@ -87,7 +87,7 @@ uint32_t HeapMemoryReader::readArrayLength(address_t address, TypeDescription &t
     auto cursor = bounds;
     for (auto i = 0; i < type.arrayRank; i++)
     {
-        length *= readPointer(cursor);
+        length *= readInt32(cursor); // int32_t struct Il2CppArrayBounds::length
         cursor += __vm->pointerSize;
     }
     if (length >= 1E+8) { length = 0; }
