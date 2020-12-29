@@ -64,6 +64,15 @@ struct RenderFrame
     float time;
     float fps;
     
+    uint64_t usedHeap;
+    uint64_t reservedMonoHeap;
+    uint64_t usedMonoHeap;
+    
+    uint64_t totalAllocatedMemory;
+    uint64_t totalReservedMemory;
+    uint64_t totalUnusedReservedMemory;
+    bool hasMemoryInfo;
+    
     FrameStatistics statistics;
     
     int32_t offset;
@@ -87,6 +96,8 @@ private:
     int32_t __statsize;
     
     int32_t __cursor;
+    int32_t __cdepth;
+    
     InstanceManager<RenderFrame> __frames;
     int32_t __lowerFrameIndex;
     int32_t __upperFrameIndex;
@@ -98,21 +109,23 @@ public:
     void load(const char *filepath);
     
     void inspectFrame(int32_t frameIndex, int32_t depth);
-    void inspectFrame(int32_t depth);
+    void inspectFrame(int32_t frameIndex);
     
     void list(int32_t frameOffset = -1, int32_t frameCount = 10, int32_t sorting = 0);
     
     void iterateSamples(std::function<void(int32_t, StackSample &)> callback, bool clearProgress = true);
     void statByFunction(int32_t rank = 0);
     
-    void next(int32_t step = 1);
-    void prev(int32_t step = 1);
+    void next(int32_t step = 1, int32_t depth = -1);
+    void prev(int32_t step = 1, int32_t depth = -1);
     
     void lock(int32_t frameIndex = -1, int32_t frameCount = -1);
     
     void findFramesWithFPS(float fps, std::function<bool(float a, float b)> predicate);
     void findFramesWithAlloc(int32_t frameOffset = -1, int32_t frameCount = -1);
     void findFramesWithFunction(int32_t functionNameRef);
+    
+    void inspectFunction(int32_t functionNameRef);
     
     void findFramesMatchValue(ProfilerArea area, int32_t property, float value, std::function<bool(float a, float b)> predicate);
     void statValues(ProfilerArea area, int32_t property);

@@ -26,7 +26,7 @@ public:
     SnapshotCrawlerCache();
     void open(const char *filepath);
     void save(MemorySnapshotCrawler &crawler);
-    MemorySnapshotCrawler *read(const char *uuid);
+    void read(const char *uuid, MemorySnapshotCrawler *crawler);
     ~SnapshotCrawlerCache();
     
 private:
@@ -57,7 +57,7 @@ private:
     void select(const char * sql, int32_t size, InstanceManager<T> &manager, std::function<void(T &item, sqlite3_stmt *stmt)> eachcall);
     
     template <typename T>
-    void insert(const char * sql, Array<T> &array, std::function<void(T &item, sqlite3_stmt *stmt)> eachcall);
+    void insert(const char * sql, Array<T> &array, std::function<bool(T &item, sqlite3_stmt *stmt)> eachcall);
     
     template <typename T>
     void select(const char * sql, Array<T> &array, std::function<void(T &item, sqlite3_stmt *stmt)> eachcall);
@@ -71,7 +71,7 @@ private:
 };
 
 template <typename T>
-void SnapshotCrawlerCache::insert(const char * sql, Array<T> &array, std::function<void(T &item, sqlite3_stmt *stmt)> eachcall)
+void SnapshotCrawlerCache::insert(const char * sql, Array<T> &array, std::function<bool(T &item, sqlite3_stmt *stmt)> eachcall)
 {
     char *errmsg;
     sqlite3_stmt *stmt;
@@ -81,10 +81,11 @@ void SnapshotCrawlerCache::insert(const char * sql, Array<T> &array, std::functi
     
     for (auto i = 0; i < array.size; i++)
     {
-        eachcall(array[i], stmt);
-        
-        if (sqlite3_step(stmt) != SQLITE_DONE) {}
-        sqlite3_reset(stmt);
+        if (eachcall(array[i], stmt))
+        {
+            if (sqlite3_step(stmt) != SQLITE_DONE) {}
+            sqlite3_reset(stmt);
+        }
     }
     
     sqlite3_exec(__database, "COMMIT TRANSACTION", nullptr, nullptr, &errmsg);

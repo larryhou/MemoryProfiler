@@ -32,6 +32,8 @@ public:
     T reasonableMinimum;
     T reasonableMaximum;
     
+    T sum;
+    
     double mean;
     double standardDeviation;
     
@@ -61,7 +63,7 @@ void Statistics<T>::collect(T sample)
 template <class T>
 void Statistics<T>::summarize()
 {
-    T sum = 0;
+    sum = 0;
     
     minimum = __samples[0];
     maximum = 0;
@@ -122,7 +124,7 @@ void Statistics<T>::iterateUnusualMinimums(std::function<void (int32_t/*index*/,
 template <class T>
 int32_t Statistics<T>::size()
 {
-    return __samples.size();
+    return (int32_t)__samples.size();
 }
 
 template <class T>

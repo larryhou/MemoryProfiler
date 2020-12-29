@@ -41,8 +41,7 @@ void processRecord(const char *filepath)
 #endif
 
     memset(cmdpath, 0, sizeof(cmdpath));
-    sprintf(cmdpath, "__commands/%s.plog", filename);
-    delete [] filename;
+    sprintf(cmdpath, "__commands/%s.plog", filename.c_str());
     
     std::ofstream plog;
     plog.open(cmdpath, std::ofstream::app);
@@ -54,6 +53,8 @@ void processRecord(const char *filepath)
         auto recordable = true;
         
         std::cout << "\e[93m/> ";
+        
+        READ_LINE:
         std::string input;
         while (!getline(*stream, input))
         {
@@ -65,6 +66,11 @@ void processRecord(const char *filepath)
             }
             stream->clear();
             replaying ? std::this_thread::sleep_for(std::chrono::microseconds(500000)) : std::this_thread::sleep_for(std::chrono::microseconds(100000));
+        }
+        
+        if (input.size() == 0 || input[0] == '#')
+        {
+            goto READ_LINE;
         }
         
         if (replaying)
@@ -87,7 +93,7 @@ void processRecord(const char *filepath)
                                {
                                    if (options.size() == 1)
                                    {
-                                       crawler.inspectFrame(0);
+                                       crawler.inspectFrame(-1);
                                    }
                                    else
                                    {
@@ -110,7 +116,7 @@ void processRecord(const char *filepath)
                                    }
                                    else
                                    {
-                                       crawler.next(atoi(options[1]));
+                                       crawler.next(atoi(options[1]), options.size() >= 3 ? atoi(options[2]) : -1);
                                    }
                                });
         }
@@ -124,7 +130,7 @@ void processRecord(const char *filepath)
                                    }
                                    else
                                    {
-                                       crawler.prev(atoi(options[1]));
+                                       crawler.prev(atoi(options[1]), options.size() >= 3 ? atoi(options[2]) : -1);
                                    }
                                });
         }
@@ -166,6 +172,16 @@ void processRecord(const char *filepath)
                                    else
                                    {
                                        crawler.statByFunction(atoi(options[1]));
+                                   }
+                               });
+        }
+        else if (strbeg(command, "sumf"))
+        {
+            readCommandOptions(command, [&](std::vector<const char *> &options)
+                               {
+                                   for (auto i = 1; i < options.size(); i++)
+                                   {
+                                       crawler.inspectFunction(atoi(options[i]));
                                    }
                                });
         }
@@ -284,7 +300,6 @@ void processRecord(const char *filepath)
                                        crawler.statValues((ProfilerArea)area, property);
                                    }
                                });
-            
         }
         else if (strbeg(command, "seek"))
         {
@@ -357,6 +372,7 @@ void processRecord(const char *filepath)
             help("alloc", "[FRAME_OFFSET] [FRAME_COUNT]", "搜索申请动态内存的帧", __indent);
             help("frame","[FRAME_INDEX]", "查看帧时间消耗详情", __indent);
             help("func", NULL, "按照方法名统计时间消耗", __indent);
+            help("sumf", "[FUNCTION_NAME_REF]*", "在当前帧区间统计函数时间开销", __indent);
             help("find", "[FUNCTION_NAME_REF]*", "按照方法名索引查找调用帧", __indent);
             help("list", "[FRAME_OFFSET] [±FRAME_COUNT] [+|-]", "列举帧简报 支持排序(+按fps升序 -按fps降序)输出 默认不排序", __indent);
             help("next", "[STEP]", "查看后STEP[=1]帧时间消耗详情", __indent);

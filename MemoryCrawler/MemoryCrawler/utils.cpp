@@ -11,7 +11,35 @@
 
 char __help_padding[64];
 
-const char *basename(const char *filepath)
+std::string comma(uint64_t v, uint32_t width)
+{
+    const int32_t SEGMENT_SIZE = 3;
+    auto size = (int32_t)ceil(log10(fmax(10, v)));
+    if (width < size) { width = size; }
+    
+    auto fsize = width + width / SEGMENT_SIZE;
+    if (width != 0 && width % SEGMENT_SIZE == 0) { --fsize; }
+    
+    char buf[fsize+1];
+    auto ptr = buf + sizeof(buf) - 1;
+    memset(ptr--, 0, 1);
+    if (v == 0) { *ptr-- = '0'; }
+    else
+    {
+        auto num = 0;
+        while (v > 0)
+        {
+            *ptr-- = '0' + (v % 10);
+            if (++num % SEGMENT_SIZE == 0) { *ptr-- = v < 10 ? ' ' : ','; }
+            v /= 10;
+        }
+    }
+    
+    if (ptr >= buf) { memset(buf, ' ', ptr - buf + 1); }
+    return buf;
+}
+
+std::string basename(const char *filepath)
 {
     auto offset = filepath + strlen(filepath);
     const char *upper = nullptr;
@@ -27,13 +55,7 @@ const char *basename(const char *filepath)
         --offset;
     }
     
-    auto name = &*offset;
-    auto size = upper - offset;
-    
-    char *filename = new char[size + 1];
-    memset(filename, 0, size + 1);
-    memcpy(filename, name, size);
-    return filename;
+    return std::string(offset, upper - offset);
 }
 
 
@@ -99,3 +121,48 @@ void readCommandOptions(const char *command, std::function<void(std::vector<cons
     
     for (auto i = 0; i < options.size(); i++) { delete [] options[i]; }
 }
+
+bool CommandHistory::detect(std::string &command)
+{
+    if (command.size() <= 3) {return false;}
+    
+    if (command[0] == '\x1b' && command[1] == '\x5b')
+    {
+        switch (command[2])
+        {
+            case '\x41': // backward
+                command = backward();
+                return true;
+                
+            case '\x42': // forward
+                command = forward();
+                return true;
+        }
+    }
+    
+    return false;
+}
+
+void CommandHistory::accept(std::string command)
+{
+    __commands.emplace_back(command);
+    __cursor = (int32_t)__commands.size() - 1;
+}
+
+std::string CommandHistory::forward()
+{
+    if (__cursor + 1 >= __commands.size()) {return "";}
+    return __commands[++__cursor];
+}
+
+std::string CommandHistory::backward()
+{
+    if (__cursor - 1 < 0) {return __commands.front();}
+    return __commands[--__cursor];
+}
+
+std::string CommandHistory::get()
+{
+    return __commands[__cursor];
+}
+

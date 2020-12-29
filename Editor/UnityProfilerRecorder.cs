@@ -9,6 +9,35 @@ using UnityEditorInternal.Profiling;
 using UnityEngine;
 using UnityEngine.Profiling;
 
+#if UNITY_2019_1_OR_NEWER
+public static class ProfilerColumn
+{
+    public static int DontSort = -1;
+    public static int FunctionName = 0;
+    public static int TotalPercent = 1;
+    public static int SelfPercent = 2;
+    public static int Calls = 3;
+    public static int GCMemory = 4;
+    public static int TotalTime = 5;
+    public static int SelfTime = 6;
+    public static int DrawCalls = 7;
+    public static int TotalGPUTime = 8;
+    public static int SelfGPUTime = 9;
+    public static int TotalGPUPercent = 10; // 0x0000000A
+    public static int SelfGPUPercent = 11; // 0x0000000B
+    public static int WarningCount = 12; // 0x0000000C
+    public static int ObjectName = 13; // 0x0000000D
+}
+
+public static class ProfilerViewType
+{
+    public static int Hierarchy = 0;
+    public static int Timeline = 1;
+    public static int RawHierarchy = 2;
+}
+
+#endif
+
 namespace Moobyte.MemoryProfiler
 {
     internal struct StackSample
@@ -36,6 +65,7 @@ namespace Moobyte.MemoryProfiler
         }
 
         private static Dictionary<int, List<int>> metadatas;
+        private static byte profilerAreaCount = 0;
         
         public static void StartRecording(bool includeUnityFormat = false)
         {
@@ -68,19 +98,33 @@ namespace Moobyte.MemoryProfiler
             
             var offset = stream.Position;
             metadatas = new Dictionary<int, List<int>>();
-            stream.Write((byte)ProfilerArea.AreaCount); // area count
-            for (var area = ProfilerArea.CPU; area  < ProfilerArea.AreaCount; area++)
+            var paType = typeof(ProfilerArea);
+            var areaNames = Enum.GetNames(paType);
+            
+            profilerAreaCount = (byte)areaNames.Length;
+            if (areaNames[areaNames.Length - 1].Equals("AreaCount"))
             {
+                --profilerAreaCount;
+            }
+            
+            stream.Write(profilerAreaCount); // area count
+            for (var area = 0; area  < profilerAreaCount; area++)
+            {
+                var areaValue = (ProfilerArea) area;
                 stream.Write((byte)area);
-                stream.Write(area.ToString());
+                stream.Write(areaValue.ToString());
                 List<int> children;
                 metadatas.Add((int)area, children = new List<int>());
-                var properties = ProfilerDriver.GetGraphStatisticsPropertiesForArea(area);
+                var properties = ProfilerDriver.GetGraphStatisticsPropertiesForArea(areaValue);
                 stream.Write((byte)properties.Length);
                 for (var i = 0; i < properties.Length; i++)
                 {
                     var name = properties[i];
+#if UNITY_2018_1_OR_NEWER
+                    var identifier = ProfilerDriver.GetStatisticsIdentifierForArea(areaValue, name);
+#else
                     var identifier = ProfilerDriver.GetStatisticsIdentifier(name);
+#endif
                     stream.Write(name);
                     
                     children.Add(identifier);
@@ -109,7 +153,6 @@ namespace Moobyte.MemoryProfiler
         [MenuItem("性能/停止采样", false, 55)]
         public static void StopRecording()
         {
-            Profiler.enabled = false;
             Profiler.logFile = null;
             EditorApplication.update -= Update;
             
@@ -166,8 +209,6 @@ namespace Moobyte.MemoryProfiler
         static void Update()
         {
             var stopFrameIndex = ProfilerDriver.lastFrameIndex;
-            
-            
             var frameIndex = Math.Max(frameCursor + 1, ProfilerDriver.firstFrameIndex);
             while (frameIndex <= stopFrameIndex)
             {
@@ -187,8 +228,8 @@ namespace Moobyte.MemoryProfiler
                     {
                         cursor.Pop();
                     }
-
-                    var drawCalls = root.GetColumnAsSingle(ProfilerColumn.DrawCalls);
+                    
+#if UNITY_2017_1_OR_NEWER
                     samples.Add(sequence, new StackSample
                     {
                         id = sequence,
@@ -198,11 +239,16 @@ namespace Moobyte.MemoryProfiler
                         totalTime = root.GetColumnAsSingle(ProfilerColumn.TotalTime),
                         selfTime = root.GetColumnAsSingle(ProfilerColumn.SelfTime),
                     });
-
-                    if (cursor.Count != 0)
-                    {
-                        relations[sequence] = cursor.Peek();
-                    }
+#else
+                    var ss = new StackSample {id = sequence, name = root.propertyName};
+                    int.TryParse(root.GetColumn(ProfilerColumn.Calls), out ss.callsCount);
+                    int.TryParse(root.GetColumn(ProfilerColumn.GCMemory), out ss.gcAllocBytes);
+                    float.TryParse(root.GetColumn(ProfilerColumn.TotalTime), out ss.totalTime);
+                    float.TryParse(root.GetColumn(ProfilerColumn.SelfTime), out ss.selfTime);
+                    samples.Add(sequence, ss);
+#endif
+                    
+                    relations[sequence] = cursor.Count != 0 ? cursor.Peek() : -1;
 
                     if (root.HasChildren)
                     {
@@ -217,9 +263,26 @@ namespace Moobyte.MemoryProfiler
                 stream.Write(frameIndex);
                 stream.Write(string.IsNullOrEmpty(root.frameTime) ? (1000f / frameFPS) : float.Parse(root.frameTime));
                 stream.Write(frameFPS);
-                
+                if (frameIndex == stopFrameIndex) // encode memory info
+                {
+                    stream.Write((ushort) 0);
+                    /**
+                    stream.Write((ushort) (8 * 6));
+                    stream.Write(Profiler.usedHeapSizeLong); // 1
+                    stream.Write(Profiler.GetMonoUsedSizeLong()); // 2
+                    stream.Write(Profiler.GetMonoHeapSizeLong()); // 3
+                    stream.Write(Profiler.GetTotalAllocatedMemoryLong()); // 4
+                    stream.Write(Profiler.GetTotalReservedMemoryLong()); // 5
+                    stream.Write(Profiler.GetTotalUnusedReservedMemoryLong()); // 6
+                    */
+                }
+                else
+                {
+                    stream.Write((ushort) 0);
+                }
+
                 //encode statistics
-                for (ProfilerArea area = 0; area < ProfilerArea.AreaCount; area++)
+                for (var area = 0; area < profilerAreaCount; area++)
                 {
                     var statistics = metadatas[(int)area];
                     stream.Write((byte)area);

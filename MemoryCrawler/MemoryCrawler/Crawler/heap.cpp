@@ -78,18 +78,19 @@ uint32_t HeapMemoryReader::readArrayLength(address_t address, TypeDescription &t
     if (offset == -1) {return 0;}
     
     auto bounds = readPointer(address + __vm->arrayBoundsOffsetInHeader);
-    if (bounds == 0)
+    if (bounds == 0) // one-dimension array
     {
         return (uint32_t)readPointer(address + __vm->arraySizeOffsetInHeader);
     }
-    
+    // Il2CppArrayBounds* Il2CppArray::bounds = kIl2CppSizeOfArray + length * element_size
     auto length = (uint64_t)1;
     auto cursor = bounds;
     for (auto i = 0; i < type.arrayRank; i++)
     {
-        length *= readPointer(cursor);
+        length *= readInt32(cursor); // int32_t struct Il2CppArrayBounds::length
         cursor += __vm->pointerSize;
     }
+    if (length >= 1E+8) { length = 0; }
     return (uint32_t)length;
 }
 
@@ -100,24 +101,24 @@ uint32_t HeapMemoryReader::readObjectSize(address_t address, TypeDescription &ty
     if (offset == -1) {return 0;}
     if (type.isArray)
     {
-        if (type.baseOrElementTypeIndex < 0 || type.baseOrElementTypeIndex >= __snapshot.typeDescriptions->size)
+        if (type.baseOrElementTypeIndex < 0 || type.baseOrElementTypeIndex >= __snapshot->typeDescriptions->size)
         {
             return 0;
         }
         auto elementCount = readArrayLength(address, type);
-        auto &elementType = __snapshot.typeDescriptions->items[type.baseOrElementTypeIndex];
+        auto &elementType = __snapshot->typeDescriptions->items[type.baseOrElementTypeIndex];
         auto elementSize = elementType.isValueType ? elementType.size : __vm->pointerSize;
         return __vm->arrayHeaderSize + elementSize * elementCount;
     }
     
-    if ((type.typeIndex >= 0 && type.typeIndex == __snapshot.managedTypeIndex.system_String)
-        || sSystemString == *type.name)
+    if ((type.typeIndex >= 0 && type.typeIndex == __snapshot->managedTypeIndex.system_String)
+        || sSystemString == type.name)
     {
         auto size = __vm->objectHeaderSize;
         size += 4; // string length
         size += readStringLength(address + __vm->objectHeaderSize) * 2; // char16_t
         size += 2; // \x00\x00
-        return size;
+        return size < 0 ? 0 : size;
     }
     
     return type.size;
@@ -150,7 +151,7 @@ int32_t HeapMemoryReader::findHeapOfAddress(address_t address)
         {
             max = mid - 1;
         }
-        else if (heap.startAddress + heap.bytes->size < address)
+        else if (heap.startAddress + heap.bytes->size <= address)
         {
             min = mid + 1;
         }

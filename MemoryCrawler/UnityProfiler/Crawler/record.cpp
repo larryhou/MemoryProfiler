@@ -1,4 +1,4 @@
-﻿//
+//
 //  record.cpp
 //  UnityProfiler
 //
@@ -28,13 +28,9 @@ void RecordCrawler::load(const char *filepath)
     __dataOffset = __fs.tell();
     
     readStrings();
-
-#if defined _MSC_VER
-    __fs.seek(__dataOffset, std::ios::beg);
-#else
+    
     __fs.seek(__dataOffset, seekdir_t::beg);
-#endif
-
+    
     crawl();
     
     __sampler.end();
@@ -51,6 +47,21 @@ void RecordCrawler::crawl()
         frame.index = __fs.readUInt32();
         frame.time = __fs.readFloat();
         frame.fps = __fs.readFloat();
+        
+        auto extra = __fs.readUInt16();
+        if (extra > 0)
+        {
+            frame.hasMemoryInfo = true;
+            auto pos = __fs.tell();
+            frame.usedHeap = __fs.readUInt64();
+            frame.usedMonoHeap = __fs.readUInt64();
+            frame.reservedMonoHeap = __fs.readUInt64();
+            frame.totalAllocatedMemory = __fs.readUInt64();
+            frame.totalReservedMemory = __fs.readUInt64();
+            frame.totalUnusedReservedMemory = __fs.readUInt64();
+            assert(__fs.tell() - pos == extra);
+        }
+        else { frame.hasMemoryInfo = false; }
         
         for (auto iter = __metadatas.begin(); iter != __metadatas.end(); iter++)
         {
@@ -162,12 +173,7 @@ void RecordCrawler::findFramesWithFPS(float fps, std::function<bool (float, floa
 void RecordCrawler::iterateSamples(std::function<void (int32_t, StackSample &)> callback, bool clearProgress)
 {
     auto &frame = __frames[__lowerFrameIndex - std::get<0>(__range)];
-    
-#if defined _MSC_VER
-    __fs.seek(frame.offset, std::ios::beg);
-#else
     __fs.seek(frame.offset, seekdir_t::beg);
-#endif
     
     auto frameCount = __upperFrameIndex - __lowerFrameIndex;
     
@@ -182,7 +188,7 @@ void RecordCrawler::iterateSamples(std::function<void (int32_t, StackSample &)> 
         __fs.readFloat(); // time
         __fs.readFloat(); // fps
         
-        __fs.ignore(__statsize);
+        __fs.ignore(__fs.readUInt16() + __statsize);
         
         readFrameSamples([&](auto &samples, auto &relations)
                     {
@@ -291,6 +297,36 @@ void RecordCrawler::findFramesWithFunction(int32_t functionNameRef)
     }
 }
 
+void RecordCrawler::inspectFunction(int32_t functionNameRef)
+{
+    std::vector<StackSample> samples;
+    std::vector<int32_t> frames;
+    
+    Statistics<float> stats;
+    iterateSamples([&](int32_t index, StackSample &sample)
+                   {
+                       if (sample.nameRef == functionNameRef)
+                       {
+                           samples.emplace_back(sample);
+                           frames.push_back(index);
+                           
+                           stats.collect(sample.totalTime);
+                       }
+                   }, true);
+    stats.summarize();
+    
+    auto &name = __strings[functionNameRef];
+    printf("[%s] count=%d total=%.3f mean=%.3f±%.3f \n", name.c_str(), stats.size(), stats.sum, stats.mean, stats.standardDeviation);
+    
+    auto baseIndex = std::get<0>(__range);
+    stats.iterateUnusualMaximums([&](int32_t index, float value)
+                                 {
+                                     auto frameIndex = frames[index];
+                                     auto &frame = __frames[frameIndex - baseIndex];
+                                     printf("%7.3f [FRAME] index=%d time=%.3fms fps=%.1f offset=%d\n", value ,frame.index, frame.time, frame.fps, frame.offset);
+                                 });
+}
+
 void RecordCrawler::findFramesMatchValue(ProfilerArea area, int32_t property, float value, std::function<bool (float, float)> predicate)
 {
     auto &check = __frames[0].statistics.graphs;
@@ -351,12 +387,7 @@ void RecordCrawler::findFramesWithAlloc(int32_t frameOffset, int32_t frameCount)
     
     auto baseIndex = std::get<0>(__range);
     auto frameIndex = __lowerFrameIndex + frameOffset;
-
-#if defined _MSC_VER
-    __fs.seek(__frames[frameIndex - baseIndex].offset, std::ios::beg);
-#else
     __fs.seek(__frames[frameIndex - baseIndex].offset, seekdir_t::beg);
-#endif
     
     int32_t iterCount = 0;
     
@@ -374,7 +405,7 @@ void RecordCrawler::findFramesWithAlloc(int32_t frameOffset, int32_t frameCount)
         auto time = __fs.readFloat();
         auto fps = __fs.readFloat();
         
-        __fs.ignore(__statsize);
+        __fs.ignore(__fs.readUInt16() + __statsize);
         
         auto alloc = 0;
         readFrameSamples([&](auto &samples, auto &relations)
@@ -417,13 +448,7 @@ void RecordCrawler::readStrings()
 {
     __sampler.begin("RecordCrawler::loadStrings");
     __sampler.begin("seek");
-
-#if defined _MSC_VER
-    __fs.seek(__strOffset, std::ios::beg);
-#else
     __fs.seek(__strOffset, seekdir_t::beg);
-#endif
-    
     __sampler.end();
     __sampler.begin("read");
     auto count = __fs.readUInt32();
@@ -499,7 +524,11 @@ void RecordCrawler::readFrameSamples(std::function<void (std::vector<StackSample
     
     assert(__fs.readUInt32() == 0x12345678);
     
-    relations.insert(std::pair<int32_t, std::vector<int32_t>>(-1, std::vector<int32_t>()));
+    if (relations.find(-1) == relations.end())
+    {
+       relations.insert(std::pair<int32_t, std::vector<int32_t>>(-1, std::vector<int32_t>()));
+    }
+    
     auto &root = relations.at(-1);
     for (auto iter = relations.begin(); iter != relations.end(); iter++)
     {
@@ -517,29 +546,32 @@ void RecordCrawler::inspectFrame(int32_t frameIndex, int32_t depth)
     if (frameIndex <  std::get<0>(__range)) {return;}
     if (frameIndex >= std::get<1>(__range)) {return;}
     __cursor = frameIndex;
+    __cdepth = depth;
     
     auto &frame = __frames[__cursor - std::get<0>(__range)];
     
-#if defined _MSC_VER
-    __fs.seek(frame.offset + 12 + __statsize, std::ios::beg);
-#else
-    __fs.seek(frame.offset + 12 + __statsize, seekdir_t::beg);
-#endif
-
+    __fs.seek(frame.offset + 12, seekdir_t::beg);
+    __fs.ignore(__fs.readUInt16() + __statsize);
     readFrameSamples([&](auto &samples, auto &relations)
-              {
-                  int32_t alloc = 0;
-                  for (auto i = samples.begin(); i != samples.end(); i++)
-                  {
-                      StackSample &s = *i;
-                      if (s.gcAllocBytes > 0 && s.totalTime == s.selfTime)
-                      {
-                          alloc += s.gcAllocBytes;
-                      }
-                  }
-                  printf("[FRAME] index=%d time=%.3fms fps=%.1f alloc=%d offset=%d\n", frame.index, frame.time, frame.fps, alloc, frame.offset);
-                  dumpFrameStacks(-1, samples, relations, frame.time, depth);
-              });
+                     {
+                         int32_t alloc = 0;
+                         for (auto i = samples.begin(); i != samples.end(); i++)
+                         {
+                             StackSample &s = *i;
+                             if (s.gcAllocBytes > 0 && s.totalTime == s.selfTime)
+                             {
+                                 alloc += s.gcAllocBytes;
+                             }
+                         }
+                         printf("[FRAME] index=%d time=%.3fms fps=%.1f alloc=%d", frame.index, frame.time, frame.fps, alloc);
+                         if (frame.hasMemoryInfo)
+                         {
+                             printf(" usedHeap=%llu monoHeap=%llu usedMono=%llu totalAllocated=%llu totalReserved=%llu totalUnused=%llu",
+                                    frame.usedHeap, frame.reservedMonoHeap, frame.usedMonoHeap, frame.totalAllocatedMemory, frame.totalReservedMemory, frame.totalUnusedReservedMemory);
+                         }
+                         printf("\n");
+                         dumpFrameStacks(-1, samples, relations, frame.time, depth);
+                     });
     auto &statistics = frame.statistics.graphs;
     for (auto i = 0; i < statistics.size(); i++)
     {
@@ -560,8 +592,8 @@ void RecordCrawler::inspectFrame(int32_t frameIndex, int32_t depth)
 void RecordCrawler::dumpFrameStacks(int32_t entity, std::vector<StackSample> &samples, std::map<int32_t, std::vector<int32_t> > &relations, const float totalTime, const int32_t depth, const char *indent, const int32_t __depth)
 {
     auto __size = strlen(indent);
-    char* __indent = new char[__size + 2*3 + 1]; // indent + 2×tabulator + \0
-    memset(__indent, 0, sizeof(char) * (__size + 2*3 + 1));
+    char __indent[__size + 2*3 + 1]; // indent + 2×tabulator + \0
+    memset(__indent, 0, sizeof(__indent));
     memcpy(__indent, indent, __size);
     char *tabular = __indent + __size;
     memcpy(tabular + 3, "─", 3);
@@ -586,7 +618,7 @@ void RecordCrawler::dumpFrameStacks(int32_t entity, std::vector<StackSample> &sa
             
             if (closed)
             {
-                char* __nest_indent = new char[__size + 1 + 2 + 1]; // indent + space + 2×space + \0
+                char __nest_indent[__size + 1 + 2 + 1]; // indent + space + 2×space + \0
                 memcpy(__nest_indent, indent, __size);
                 memset(__nest_indent + __size, '\x20', 3);
                 memset(__nest_indent + __size + 3, 0, 1);
@@ -594,11 +626,10 @@ void RecordCrawler::dumpFrameStacks(int32_t entity, std::vector<StackSample> &sa
                 {
                     dumpFrameStacks(*i, samples, relations, s.totalTime, depth, __nest_indent, __depth + 1);
                 }
-                delete[] __nest_indent;
             }
             else
             {
-                char* __nest_indent = new char[__size + 3 + 2 + 1]; // indent + tabulator + 2×space + \0
+                char __nest_indent[__size + 3 + 2 + 1]; // indent + tabulator + 2×space + \0
                 char *iter = __nest_indent + __size;
                 memcpy(__nest_indent, indent, __size);
                 memcpy(iter, "│", 3);
@@ -608,12 +639,9 @@ void RecordCrawler::dumpFrameStacks(int32_t entity, std::vector<StackSample> &sa
                 {
                     dumpFrameStacks(*i, samples, relations, s.totalTime, depth, __nest_indent, __depth + 1);
                 }
-                delete[] __nest_indent;
             }
         }
     }
-
-    delete[] __indent;
 }
 
 void RecordCrawler::dumpMetadatas()
@@ -631,24 +659,29 @@ void RecordCrawler::dumpMetadatas()
     }
 }
 
-void RecordCrawler::inspectFrame(int32_t depth)
+void RecordCrawler::inspectFrame(int32_t frameIndex)
 {
-    if (__cursor < __lowerFrameIndex || __cursor >= __upperFrameIndex)
+    if (frameIndex < 0) {frameIndex = __cursor;}
+    if (frameIndex < __lowerFrameIndex)
     {
-        __cursor = __lowerFrameIndex;
+        frameIndex = __lowerFrameIndex;
+    }
+    else if (frameIndex >= __upperFrameIndex)
+    {
+        frameIndex = __upperFrameIndex - 1;
     }
     
-    inspectFrame(__cursor, depth);
+    inspectFrame(frameIndex, 0);
 }
 
-void RecordCrawler::next(int32_t step)
+void RecordCrawler::next(int32_t step, int32_t depth)
 {
-    inspectFrame(__cursor + step);
+    inspectFrame(__cursor + step, depth < 0 ? __cdepth : depth);
 }
 
-void RecordCrawler::prev(int32_t step)
+void RecordCrawler::prev(int32_t step, int32_t depth)
 {
-    inspectFrame(__cursor - step);
+    inspectFrame(__cursor - step, depth < 0 ? __cdepth : depth);
 }
 
 void RecordCrawler::list(int32_t frameOffset, int32_t frameCount, int32_t sorting)
