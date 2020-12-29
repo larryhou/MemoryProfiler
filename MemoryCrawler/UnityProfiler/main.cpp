@@ -6,12 +6,8 @@
 //  Copyright © 2019 larryhou. All rights reserved.
 //
 
-#if defined _MSC_VER
-#include <direct.h>
-#else 
-#include <sys/stat.h>
-#include <unistd.h>
-#endif
+#include "common.h"
+
 #include <iostream>
 #include <fstream>
 #include <chrono>
@@ -34,11 +30,7 @@ void processRecord(const char *filepath)
     
     char cmdpath[256];
 
-#if defined _MSC_VER
-    _mkdir("__commands");
-#else
-    mkdir("__commands", 0777);
-#endif
+    MKDIR("__commands", 0777);
 
     memset(cmdpath, 0, sizeof(cmdpath));
     sprintf(cmdpath, "__commands/%s.plog", filename.c_str());

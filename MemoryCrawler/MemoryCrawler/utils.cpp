@@ -7,7 +7,11 @@
 //
 
 #include "utils.h"
+
+#include <algorithm>
 #include <iostream>
+#include <chrono>
+#include <thread>
 
 char __help_padding[64];
 
@@ -20,7 +24,7 @@ std::string comma(uint64_t v, uint32_t width)
     auto fsize = width + width / SEGMENT_SIZE;
     if (width != 0 && width % SEGMENT_SIZE == 0) { --fsize; }
     
-    char buf[fsize+1];
+    char* buf = new char[fsize+1];
     auto ptr = buf + sizeof(buf) - 1;
     memset(ptr--, 0, 1);
     if (v == 0) { *ptr-- = '0'; }
@@ -165,4 +169,11 @@ std::string CommandHistory::get()
 {
     return __commands[__cursor];
 }
+
+#ifdef MEMORY_CRAWLER_WINDOWS
+void usleep(int ms)
+{
+    std::this_thread::sleep_for(std::chrono::microseconds(ms));
+}
+#endif
 

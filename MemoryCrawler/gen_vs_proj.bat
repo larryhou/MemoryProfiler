@@ -8,4 +8,6 @@ if not exist "build/Win" (
 
 cd build/Win/ && call cmake ../../
 
+cd ../../
+
 PAUSE

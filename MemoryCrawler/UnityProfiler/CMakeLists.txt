@@ -5,11 +5,15 @@ file(GLOB PROJ_HEADERS "*.h")
 source_group("Headers" FILES ${PROJ_HEADERS})
 
 # set output path
-if (CMAKE_BUILD_TYPE MATCHES "Debug")
-    set(EXECUTABLE_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/bin/Debug")
-else(CMAKE_BUILD_TYPE MATCHES "Debug")
-    set(EXECUTABLE_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/bin/Release")
-endif(CMAKE_BUILD_TYPE MATCHES "Debug")
+if(WIN32 OR MSVC)
+    set(EXECUTABLE_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/bin")
+else()
+    if (CMAKE_BUILD_TYPE MATCHES "Debug")
+        set(EXECUTABLE_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/bin/Debug")
+    else(CMAKE_BUILD_TYPE MATCHES "Debug")
+        set(EXECUTABLE_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/bin/Release")
+    endif(CMAKE_BUILD_TYPE MATCHES "Debug")
+endif()
 
 add_executable(
     UnityProfiler

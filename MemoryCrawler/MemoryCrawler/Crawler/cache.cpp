@@ -6,13 +6,9 @@
 //  Copyright © 2019 larryhou. All rights reserved.
 //
 
-#include "cache.h"
-#if defined _MSC_VER
-#include <direct.h>
-#else 
-#include <sys/stat.h>
-#endif
 #include <string>
+#include "common.h"
+#include "cache.h"
 
 SnapshotCrawlerCache::SnapshotCrawlerCache()
 {
@@ -594,11 +590,7 @@ void SnapshotCrawlerCache::save(MemorySnapshotCrawler &crawler)
     
     __sampler.begin("SnapshotCrawlerCache::save");
 
-#if defined _MSC_VER
-    _mkdir(__workspace);
-#else
-    mkdir(__workspace, 0777);
-#endif
+    MKDIR(__workspace, 0777);
     
     char filepath[64];
     sprintf(filepath, "%s/%s.db", __workspace, crawler.snapshot->uuid.c_str());

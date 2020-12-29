@@ -64,6 +64,9 @@ template <class T>
 void Statistics<T>::summarize()
 {
     sum = 0;
+
+    if (__samples.size() == 0)
+        return;
     
     minimum = __samples[0];
     maximum = 0;
