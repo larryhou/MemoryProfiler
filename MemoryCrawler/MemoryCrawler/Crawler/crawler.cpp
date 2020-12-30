@@ -3088,10 +3088,10 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
                                                  set<int64_t> antiCircular, bool isActualType, int32_t limit, const char *indent, int32_t __iter_depth)
 {
     auto __size = strlen(indent);
-    std::shared_ptr<char[]> __indent(new char[__size + 2*3 + 1]); // indent + 2×tabulator + \0
-    memset(__indent.get(), 0, sizeof(__indent));
-    memcpy(__indent.get(), indent, __size);
-    char *tabular = __indent.get() + __size;
+    NEW_CHAR_ARR(__indent, __size + 2 * 3 + 1); // indent + 2×tabulator + \0
+    memset(GET_CHAR_ARR_PTR(__indent), 0, sizeof(__indent));
+    memcpy(GET_CHAR_ARR_PTR(__indent), indent, __size);
+    char *tabular = GET_CHAR_ARR_PTR(__indent) + __size;
     memcpy(tabular + 3, "─", 3);
     
     if (type == nullptr || (!type->isValueType && !isActualType))
@@ -3181,21 +3181,23 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
             if (limit > 0 && __iter_depth + 1 >= limit) {continue;}
             if (closed)
             {
-                std::shared_ptr<char[]> __nest_indent(new char[__size + 1 + 2 + 1]); // indent + space + 2×space + \0
-                memcpy(__nest_indent.get(), indent, __size);
-                memset(__nest_indent.get() + __size, '\x20', 3);
-                memset(__nest_indent.get() + __size + 3, 0, 1);
-                dumpMObjectHierarchy(elementAddress, elementType, __antiCircular, true, limit, __nest_indent.get(), __iter_depth + 1);
+                char* __nest_indent = new char[__size + 1 + 2 + 1]; // indent + space + 2×space + \0
+                memcpy(__nest_indent, indent, __size);
+                memset(__nest_indent + __size, '\x20', 3);
+                memset(__nest_indent + __size + 3, 0, 1);
+                dumpMObjectHierarchy(elementAddress, elementType, __antiCircular, true, limit, __nest_indent, __iter_depth + 1);
+                delete[] __nest_indent;
             }
             else
             {
-                std::shared_ptr<char[]> __nest_indent(new char[__size + 3 + 2 + 1]); // indent + tabulator + 2×space + \0
-                char *iter = __nest_indent.get() + __size;
-                memcpy(__nest_indent.get(), indent, __size);
+                char* __nest_indent = new char[__size + 3 + 2 + 1]; // indent + tabulator + 2×space + \0
+                char *iter = __nest_indent + __size;
+                memcpy(__nest_indent, indent, __size);
                 memcpy(iter, "│", 3);
                 memset(iter + 3, '\x20', 2);
                 memset(iter + 5, 0, 1);
-                dumpMObjectHierarchy(elementAddress, elementType, __antiCircular, true, limit, __nest_indent.get(), __iter_depth + 1);
+                dumpMObjectHierarchy(elementAddress, elementType, __antiCircular, true, limit, __nest_indent, __iter_depth + 1);
+                delete[] __nest_indent;
             }
         }
         
@@ -3295,21 +3297,23 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
             if (limit > 0 && __iter_depth + 1 >= limit) {continue;}
             if (closed)
             {
-                std::shared_ptr<char[]> __nest_indent(new char[__size + 1 + 2 + 1]); // indent + space + 2×space + \0
-                memcpy(__nest_indent.get(), __indent.get(), __size);
-                memset(__nest_indent.get() + __size, '\x20', 3);
-                memset(__nest_indent.get() + __size + 3, 0, 1);
-                dumpMObjectHierarchy(fieldAddress, fieldType, __antiCircular, true, limit, __nest_indent.get(), __iter_depth + 1);
+                char* __nest_indent = new char[__size + 1 + 2 + 1]; // indent + space + 2×space + \0
+                memcpy(__nest_indent, GET_CHAR_ARR_PTR(__indent), __size);
+                memset(__nest_indent + __size, '\x20', 3);
+                memset(__nest_indent + __size + 3, 0, 1);
+                dumpMObjectHierarchy(fieldAddress, fieldType, __antiCircular, true, limit, __nest_indent, __iter_depth + 1);
+                delete[] __nest_indent;
             }
             else
             {
-                std::shared_ptr<char[]> __nest_indent(new char[__size + 3 + 2 + 1]); // indent + tabulator + 2×space + \0
-                char *iter = __nest_indent.get() + __size;
-                memcpy(__nest_indent.get(), __indent.get(), __size);
+                char* __nest_indent = new char[__size + 1 + 2 + 1]; // indent + tabulator + 2×space + \0
+                char *iter = __nest_indent + __size;
+                memcpy(__nest_indent, GET_CHAR_ARR_PTR(__indent), __size);
                 memcpy(iter, "│", 3);
                 memset(iter + 3, '\x20', 2);
                 memset(iter + 5, 0, 1);
-                dumpMObjectHierarchy(fieldAddress, fieldType, __antiCircular, true, limit, __nest_indent.get(), __iter_depth + 1);
+                dumpMObjectHierarchy(fieldAddress, fieldType, __antiCircular, true, limit, __nest_indent, __iter_depth + 1);
+                delete[] __nest_indent;
             }
         }
     }
@@ -3465,10 +3469,10 @@ void MemorySnapshotCrawler::retrieveMulticastDelegate(address_t address)
 void MemorySnapshotCrawler::dumpMulticastDelegateHierarchy(address_t address, address_t highlight, vector<FieldDescription *> &fields, const char *indent)
 {
     auto __size = strlen(indent);
-    std::shared_ptr<char[]> __indent(new char[__size + 2*3 + 1]); // indent + 2×tabulator + \0
-    memset(__indent.get(), 0, sizeof(__indent));
-    memcpy(__indent.get(), indent, __size);
-    char *tabular = __indent.get() + __size;
+    NEW_CHAR_ARR(__indent, __size + 2*3 + 1); // indent + 2×tabulator + \0
+    memset(GET_CHAR_ARR_PTR(__indent), 0, sizeof(__indent));
+    memcpy(GET_CHAR_ARR_PTR(__indent), indent, __size);
+    char *tabular = GET_CHAR_ARR_PTR(__indent) + __size;
     memcpy(tabular + 3, "─", 3);
     
     auto fieldCount = fields.size();
@@ -3514,7 +3518,7 @@ void MemorySnapshotCrawler::dumpMulticastDelegateHierarchy(address_t address, ad
         
         if (isMulticastDelegate && !isNull)
         {
-            dumpMulticastDelegateHierarchy(fieldAddress, highlight, fields, getNestIndent(__indent.get(), __size, closed).c_str());
+            dumpMulticastDelegateHierarchy(fieldAddress, highlight, fields, getNestIndent(GET_CHAR_ARR_PTR(__indent), __size, closed).c_str());
         }
     }
 }

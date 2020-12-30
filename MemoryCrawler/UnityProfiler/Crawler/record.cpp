@@ -598,10 +598,10 @@ void RecordCrawler::inspectFrame(int32_t frameIndex, int32_t depth)
 void RecordCrawler::dumpFrameStacks(int32_t entity, std::vector<StackSample> &samples, std::map<int32_t, std::vector<int32_t> > &relations, const float totalTime, const int32_t depth, const char *indent, const int32_t __depth)
 {
     auto __size = strlen(indent);
-    std::shared_ptr<char[]> __indent(new char[__size + 2*3 + 1]); // indent + 2×tabulator + \0
-    memset(__indent.get(), 0, sizeof(__indent));
-    memcpy(__indent.get(), indent, __size);
-    char *tabular = __indent.get() + __size;
+    NEW_CHAR_ARR(__indent, __size + 2*3 + 1); // indent + 2×tabulator + \0
+    memset(GET_CHAR_ARR_PTR(__indent), 0, sizeof(__indent));
+    memcpy(GET_CHAR_ARR_PTR(__indent), indent, __size);
+    char *tabular = GET_CHAR_ARR_PTR(__indent) + __size;
     memcpy(tabular + 3, "─", 3);
     
     auto match = relations.find(entity);
