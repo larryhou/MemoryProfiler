@@ -15,6 +15,7 @@
 #include <tuple>
 #include <map>
 
+#include "common.h"
 #include "stream.h"
 #include "crawler.h"
 #include "perf.h"

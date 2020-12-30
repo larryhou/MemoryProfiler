@@ -36,7 +36,7 @@
     #define MKDIR(a, b) _mkdir(a)
     
     /* create a shared pointer for char array */
-    #define NEW_CHAR_ARR(varname, count) std::shared_ptr<char[]> varname(new char[_count])
+    #define NEW_CHAR_ARR(varname, count) std::shared_ptr<char[]> varname(new char[count])
     #define GET_CHAR_ARR_PTR(varname) varname.get()
 #else
     #define MKDIR(a, b) mkdir(a, b)
