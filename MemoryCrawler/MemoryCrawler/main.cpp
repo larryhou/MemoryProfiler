@@ -1,4 +1,4 @@
-//
+﻿//
 //  main.cpp
 //  MemoryCrawler
 //
@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <fstream>
+#include "common.h"
 #include "Crawler/crawler.h"
 #include "Crawler/cache.h"
 #include "Crawler/leak.h"
@@ -57,8 +58,8 @@ PackedMemorySnapshot &deserialize(const char *filepath, PackedMemorySnapshot &sn
     return snapshot;
 }
 
-#include <unistd.h>
 #include <memory>
+
 using std::ofstream;
 void processMemorySnapshot(const char * filepath)
 {
@@ -69,7 +70,7 @@ void processMemorySnapshot(const char * filepath)
     auto filename = basename(filepath);
     
     char cmdpath[128];
-    mkdir("__commands", 0777);
+    MKDIR("__commands", 0777);
     memset(cmdpath, 0, sizeof(cmdpath));
     sprintf(cmdpath, "__commands/%s.mlog", filename.c_str());
     
@@ -747,7 +748,7 @@ void processMemorySnapshot(const char * filepath)
         else if (strbeg(command, "export"))
         {
             char exportpath[256];
-            mkdir("__export", 0777);
+            MKDIR("__export", 0777);
             sprintf(exportpath, "__export/%s.heap", filename.c_str());
             HeapExplorerFormat().encode(&snapshot, exportpath);
         }

@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 #include <cmath>
+#include "common.h"
 
 bool strbeg(const char *str, const char *cmp);
 void readCommandOptions(const char *command, std::function<void(std::vector<const char *> &)> callback);
@@ -33,5 +34,9 @@ public:
     std::string forward();
     std::string get();
 };
+
+#ifdef MEMORY_CRAWLER_WINDOWS
+void usleep(int ms);
+#endif
 
 #endif /* utils_h */

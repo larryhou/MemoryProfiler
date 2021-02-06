@@ -1,4 +1,4 @@
-//
+﻿//
 //  crawler.cpp
 //  MemoryCrawler
 //
@@ -757,7 +757,7 @@ void MemorySnapshotCrawler::barMMemory(MemoryState state, int32_t rank)
     }
     
     char progress[300+1];
-    char fence[] = "█";
+    char* fence = "█";
     auto &managedTypes = *snapshot->typeDescriptions;
     for (auto i = 0; i < stats.size(); i++)
     {
@@ -968,8 +968,8 @@ void MemorySnapshotCrawler::drawUsedHeapGraph(const char *filename, bool sort)
     
     char str[512];
     auto ptr = str;
-    
-    mkdir("__graph", 0777);
+
+    MKDIR("__graph", 0777);
     sprintf(ptr, "__graph/%s_draw+%lldK.svg", filename, length >> 10);
     
     FileStream fs;
@@ -1125,7 +1125,7 @@ void MemorySnapshotCrawler::drawHeapGraph(const char *filename, bool comparisonE
     char str[512];
     auto ptr = str;
     
-    mkdir("__graph", 0777);
+    MKDIR("__graph", 0777);
     sprintf(ptr, "__graph/%s.svg", filename);
     
     FileStream fs;
@@ -1191,28 +1191,34 @@ void MemorySnapshotCrawler::inspectHeap(const char *filename)
     
     auto len = 0;
     auto indexw = (int32_t)ceil(log10(fmax(10, heapSections.size())));
-    char indexf[indexw+4];
-    char indexb[indexw+1];
-    len = sprintf(indexf, "%%%dd", indexw);
-    memset(indexf+len, 0, 1);
-    
-    for (auto r = 0; r < ROW_COUNT; r++)
+
     {
-        for (auto c = 0; c < COL_COUNT; c++)
+        char* indexf = new char[indexw+4];
+        char* indexb = new char[indexw+1];
+        len = sprintf(indexf, "%%%dd", indexw);
+        memset(indexf+len, 0, 1);
+    
+        for (auto r = 0; r < ROW_COUNT; r++)
         {
-            auto index = r + c * ROW_COUNT;
-            if (index >= heapSections.size()) {break;}
-            auto &item = *heapSections[index];
-            int64_t shift = 0;
-            if (index > 0)
+            for (auto c = 0; c < COL_COUNT; c++)
             {
-                auto &base = *heapSections[index-1];
-                shift = (int64_t)(item.startAddress - (base.startAddress + base.size));
+                auto index = r + c * ROW_COUNT;
+                if (index >= heapSections.size()) {break;}
+                auto &item = *heapSections[index];
+                int64_t shift = 0;
+                if (index > 0)
+                {
+                    auto &base = *heapSections[index-1];
+                    shift = (int64_t)(item.startAddress - (base.startAddress + base.size));
+                }
+                sprintf(indexb, indexf, index);
+                printf(" %s 0x%llx %s %sK |", indexb, item.startAddress, comma(shift, shiftw).c_str(), comma(item.size/1024, sizew).c_str());
             }
-            sprintf(indexb, indexf, index);
-            printf(" %s 0x%llx %s %sK |", indexb, item.startAddress, comma(shift, shiftw).c_str(), comma(item.size/1024, sizew).c_str());
+            printf("\n");
         }
-        printf("\n");
+
+        delete[] indexf;
+        delete[] indexb;
     }
     
     if (filename != nullptr && strlen(filename) > 0)
@@ -1221,7 +1227,7 @@ void MemorySnapshotCrawler::inspectHeap(const char *filename)
         auto ptr = basepath;
         ptr += sprintf(ptr, "%s", "__heap");
         ptr += sprintf(ptr, "+%s", filename);
-        mkdir(basepath, 0766);
+        MKDIR(basepath, 0766);
         
         std::fstream fs;
         char filepath[sizeof(basepath) + 32];
@@ -2686,7 +2692,7 @@ void MemorySnapshotCrawler::printByteArray(const char *data, int32_t size)
 void MemorySnapshotCrawler::dumpNObjectHierarchy(PackedNativeUnityEngineObject *no, set<int64_t> antiCircular, int32_t limit, const char *indent, int32_t __iter_depth, int32_t __iter_capacity)
 {
     auto __size = strlen(indent);
-    char __indent[__size + 2*3 + 1]; // indent + 2×tabulator + \0
+    char* __indent = new char[__size + 2*3 + 1]; // indent + 2×tabulator + \0
     memset(__indent, 0, sizeof(__indent));
     memcpy(__indent, indent, __size);
     char *tabular = __indent + __size;
@@ -2716,30 +2722,34 @@ void MemorySnapshotCrawler::dumpNObjectHierarchy(PackedNativeUnityEngineObject *
             if (limit > 0 && __iter_depth + 1 >= limit) {continue;}
             if (closed)
             {
-                char __nest_indent[__size + 1 + 2 + 1]; // indent + space + 2×space + \0
+                char* __nest_indent = new char[__size + 1 + 2 + 1]; // indent + space + 2×space + \0
                 memcpy(__nest_indent, indent, __size);
                 memset(__nest_indent + __size, '\x20', 3);
                 memset(__nest_indent + __size + 3, 0, 1);
                 dumpNObjectHierarchy(&no, __antiCircular, limit, __nest_indent, __iter_depth + 1, __iter_capacity * toCount);
+                delete[] __nest_indent;
             }
             else
             {
-                char __nest_indent[__size + 3 + 2 + 1]; // indent + tabulator + 2×space + \0
+                char* __nest_indent = new char[__size + 3 + 2 + 1]; // indent + tabulator + 2×space + \0
                 char *iter = __nest_indent + __size;
                 memcpy(__nest_indent, indent, __size);
                 memcpy(iter, "│", 3);
                 memset(iter + 3, '\x20', 2);
                 memset(iter + 5, 0, 1);
                 dumpNObjectHierarchy(&no, __antiCircular, limit, __nest_indent, __iter_depth + 1, __iter_capacity * toCount);
+                delete[] __nest_indent;
             }
         }
     }
+
+    delete[] __indent;
 }
 
 void MemorySnapshotCrawler::dumpVObjectHierarchy(address_t address, TypeDescription &type, const char *indent, int32_t __iter_depth)
 {
     auto __size = strlen(indent);
-    char __indent[__size + 2*3 + 1]; // indent + 2×tabulator + \0
+    char* __indent = new char[__size + 2*3 + 1]; // indent + 2×tabulator + \0
     memset(__indent, 0, sizeof(__indent));
     memcpy(__indent, indent, __size);
     char *tabular = __indent + __size;
@@ -2826,24 +2836,28 @@ void MemorySnapshotCrawler::dumpVObjectHierarchy(address_t address, TypeDescript
         {
             if (closed)
             {
-                char __nest_indent[__size + 1 + 2 + 1]; // indent + space + 2×space + \0
+                char* __nest_indent = new char[__size + 1 + 2 + 1]; // indent + space + 2×space + \0
                 memcpy(__nest_indent, __indent, __size);
                 memset(__nest_indent + __size, '\x20', 3);
                 memset(__nest_indent + __size + 3, 0, 1);
                 dumpVObjectHierarchy(fieldAddress, *fieldType, __nest_indent, __iter_depth + 1);
+                delete[] __nest_indent;
             }
             else
             {
-                char __nest_indent[__size + 3 + 2 + 1]; // indent + tabulator + 2×space + \0
+                char* __nest_indent = new char[__size + 3 + 2 + 1]; // indent + tabulator + 2×space + \0
                 char *iter = __nest_indent + __size;
                 memcpy(__nest_indent, __indent, __size);
                 memcpy(iter, "│", 3);
                 memset(iter + 3, '\x20', 2);
                 memset(iter + 5, 0, 1);
                 dumpVObjectHierarchy(fieldAddress, *fieldType, __nest_indent, __iter_depth + 1);
+                delete[] __nest_indent;
             }
         }
     }
+
+    delete[] __indent;
 }
 
 void MemorySnapshotCrawler::listAllStatics()
@@ -2980,7 +2994,7 @@ string MemorySnapshotCrawler::getNestIndent(const char *__indent, size_t __prein
 {
     if (closed)
     {
-        char __nest_indent[__preindent_size + 1 + 2 + 1]; // indent + space + 2×space + \0
+        char* __nest_indent = new char[__preindent_size + 1 + 2 + 1]; // indent + space + 2×space + \0
         if (__preindent_size > 0) {memcpy(__nest_indent, __indent, __preindent_size);}
         memset(__nest_indent + __preindent_size, '\x20', 3);
         memset(__nest_indent + __preindent_size + 3, 0, 1);
@@ -2988,7 +3002,7 @@ string MemorySnapshotCrawler::getNestIndent(const char *__indent, size_t __prein
     }
     else
     {
-        char __nest_indent[__preindent_size + 3 + 2 + 1]; // indent + tabulator + 2×space + \0
+        char* __nest_indent = new char[__preindent_size + 3 + 2 + 1]; // indent + tabulator + 2×space + \0
         char *iter = __nest_indent + __preindent_size;
         if (__preindent_size) {memcpy(__nest_indent, __indent, __preindent_size);}
         memcpy(iter, "│", 3);
@@ -3001,7 +3015,7 @@ string MemorySnapshotCrawler::getNestIndent(const char *__indent, size_t __prein
 void MemorySnapshotCrawler::dumpSObjectHierarchy(address_t address, TypeDescription &type, StaticMemoryReader &memoryReader, const char *indent)
 {
     auto __size = strlen(indent);
-    char __indent[__size + 2*3 + 1]; // indent + 2×tabulator + \0
+    char* __indent = new char[__size + 2*3 + 1]; // indent + 2×tabulator + \0
     memset(__indent, 0, sizeof(__indent));
     memcpy(__indent, indent, __size);
     char *tabular = __indent + __size;
@@ -3066,16 +3080,18 @@ void MemorySnapshotCrawler::dumpSObjectHierarchy(address_t address, TypeDescript
             }
         }
     }
+
+    delete[] __indent;
 }
 
 void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescription *type,
                                                  set<int64_t> antiCircular, bool isActualType, int32_t limit, const char *indent, int32_t __iter_depth)
 {
     auto __size = strlen(indent);
-    char __indent[__size + 2*3 + 1]; // indent + 2×tabulator + \0
-    memset(__indent, 0, sizeof(__indent));
-    memcpy(__indent, indent, __size);
-    char *tabular = __indent + __size;
+    NEW_CHAR_ARR(__indent, __size + 2 * 3 + 1); // indent + 2×tabulator + \0
+    memset(GET_CHAR_ARR_PTR(__indent), 0, sizeof(__indent));
+    memcpy(GET_CHAR_ARR_PTR(__indent), indent, __size);
+    char *tabular = GET_CHAR_ARR_PTR(__indent) + __size;
     memcpy(tabular + 3, "─", 3);
     
     if (type == nullptr || (!type->isValueType && !isActualType))
@@ -3165,21 +3181,23 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
             if (limit > 0 && __iter_depth + 1 >= limit) {continue;}
             if (closed)
             {
-                char __nest_indent[__size + 1 + 2 + 1]; // indent + space + 2×space + \0
+                char* __nest_indent = new char[__size + 1 + 2 + 1]; // indent + space + 2×space + \0
                 memcpy(__nest_indent, indent, __size);
                 memset(__nest_indent + __size, '\x20', 3);
                 memset(__nest_indent + __size + 3, 0, 1);
                 dumpMObjectHierarchy(elementAddress, elementType, __antiCircular, true, limit, __nest_indent, __iter_depth + 1);
+                delete[] __nest_indent;
             }
             else
             {
-                char __nest_indent[__size + 3 + 2 + 1]; // indent + tabulator + 2×space + \0
+                char* __nest_indent = new char[__size + 3 + 2 + 1]; // indent + tabulator + 2×space + \0
                 char *iter = __nest_indent + __size;
                 memcpy(__nest_indent, indent, __size);
                 memcpy(iter, "│", 3);
                 memset(iter + 3, '\x20', 2);
                 memset(iter + 5, 0, 1);
                 dumpMObjectHierarchy(elementAddress, elementType, __antiCircular, true, limit, __nest_indent, __iter_depth + 1);
+                delete[] __nest_indent;
             }
         }
         
@@ -3279,21 +3297,23 @@ void MemorySnapshotCrawler::dumpMObjectHierarchy(address_t address, TypeDescript
             if (limit > 0 && __iter_depth + 1 >= limit) {continue;}
             if (closed)
             {
-                char __nest_indent[__size + 1 + 2 + 1]; // indent + space + 2×space + \0
-                memcpy(__nest_indent, __indent, __size);
+                char* __nest_indent = new char[__size + 1 + 2 + 1]; // indent + space + 2×space + \0
+                memcpy(__nest_indent, GET_CHAR_ARR_PTR(__indent), __size);
                 memset(__nest_indent + __size, '\x20', 3);
                 memset(__nest_indent + __size + 3, 0, 1);
                 dumpMObjectHierarchy(fieldAddress, fieldType, __antiCircular, true, limit, __nest_indent, __iter_depth + 1);
+                delete[] __nest_indent;
             }
             else
             {
-                char __nest_indent[__size + 3 + 2 + 1]; // indent + tabulator + 2×space + \0
+                char* __nest_indent = new char[__size + 1 + 2 + 1]; // indent + tabulator + 2×space + \0
                 char *iter = __nest_indent + __size;
-                memcpy(__nest_indent, __indent, __size);
+                memcpy(__nest_indent, GET_CHAR_ARR_PTR(__indent), __size);
                 memcpy(iter, "│", 3);
                 memset(iter + 3, '\x20', 2);
                 memset(iter + 5, 0, 1);
                 dumpMObjectHierarchy(fieldAddress, fieldType, __antiCircular, true, limit, __nest_indent, __iter_depth + 1);
+                delete[] __nest_indent;
             }
         }
     }
@@ -3449,10 +3469,10 @@ void MemorySnapshotCrawler::retrieveMulticastDelegate(address_t address)
 void MemorySnapshotCrawler::dumpMulticastDelegateHierarchy(address_t address, address_t highlight, vector<FieldDescription *> &fields, const char *indent)
 {
     auto __size = strlen(indent);
-    char __indent[__size + 2*3 + 1]; // indent + 2×tabulator + \0
-    memset(__indent, 0, sizeof(__indent));
-    memcpy(__indent, indent, __size);
-    char *tabular = __indent + __size;
+    NEW_CHAR_ARR(__indent, __size + 2*3 + 1); // indent + 2×tabulator + \0
+    memset(GET_CHAR_ARR_PTR(__indent), 0, sizeof(__indent));
+    memcpy(GET_CHAR_ARR_PTR(__indent), indent, __size);
+    char *tabular = GET_CHAR_ARR_PTR(__indent) + __size;
     memcpy(tabular + 3, "─", 3);
     
     auto fieldCount = fields.size();
@@ -3498,7 +3518,7 @@ void MemorySnapshotCrawler::dumpMulticastDelegateHierarchy(address_t address, ad
         
         if (isMulticastDelegate && !isNull)
         {
-            dumpMulticastDelegateHierarchy(fieldAddress, highlight, fields, getNestIndent(__indent, __size, closed).c_str());
+            dumpMulticastDelegateHierarchy(fieldAddress, highlight, fields, getNestIndent(GET_CHAR_ARR_PTR(__indent), __size, closed).c_str());
         }
     }
 }

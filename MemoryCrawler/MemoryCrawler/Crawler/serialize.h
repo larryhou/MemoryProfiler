@@ -10,6 +10,7 @@
 #define serialize_h
 
 #include <stdio.h>
+#include <algorithm>
 #include "types.h"
 #include "stream.h"
 #include "snapshot.h"

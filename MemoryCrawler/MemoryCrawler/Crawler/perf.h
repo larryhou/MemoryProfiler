@@ -14,6 +14,7 @@
 #include <vector>
 #include <chrono>
 #include "types.h"
+#include <cstring>
 
 using std::vector;
 using std::string;
@@ -153,8 +154,8 @@ void TimeSampler<T>::dump(map<int, vector<int>> &connections, int index, const c
 {
     printf("%s[%d] %s=%lld\n", indent, index, __events[index], duration(__records.at(index), __timestamps.at(index)));
     
-    char __indent[strlen(indent) + 4 + 1];
-    memset(__indent, 0, sizeof(__indent));
+    char* __indent = new char[strlen(indent) + 4 + 1];
+    memset(__indent, 0, sizeof(char) * (strlen(indent) + 4 + 1));
     sprintf(__indent, "%s    ", indent);
     
     auto iter = connections.find(index);
@@ -166,6 +167,8 @@ void TimeSampler<T>::dump(map<int, vector<int>> &connections, int index, const c
             dump(connections, children[i], __indent);
         }
     }
+
+    delete[] __indent;
 }
 
 #endif /* perf_h */

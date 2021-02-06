@@ -5,11 +5,13 @@
 //  Created by larryhou on 2019/4/3.
 //  Copyright © 2019 larryhou. All rights reserved.
 //
-#pragma once
 #ifndef types_h
 #define types_h
+
+#include "common.h"
 #include <ios>
 #include <string>
+#include <cassert>
 
 using byte_t = unsigned char;
 using address_t = uint64_t;
@@ -17,7 +19,9 @@ using seekdir_t = std::ios_base::seekdir;
 using unicode_t = std::u16string;
 using std::string;
 
+#ifndef MEMORY_CRAWLER_WINDOWS
 #include <CommonCrypto/CommonDigest.h>
+#endif
 
 class HashCaculator
 {
@@ -27,7 +31,7 @@ private:
     char __hexdigest[33];
     std::hash<std::string> __hash;
 public:
-    size_t get(const char *data, const CC_LONG size);
+    size_t get(const char *data, const int32_t size);
 };
 
 template <typename T>

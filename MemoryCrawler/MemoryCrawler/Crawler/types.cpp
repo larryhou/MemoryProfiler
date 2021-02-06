@@ -7,12 +7,13 @@
 //
 
 #include "types.h"
+#include "md5.h"
 
 const char HashCaculator::__hex_map[] = "0123456789abcdef";
 
-size_t HashCaculator::get(const char *data, const CC_LONG size)
+size_t HashCaculator::get(const char *data, const int32_t size)
 {
-    CC_MD5(data, size, __digest);
+    MD5String(data, size, __digest);
     
     char *ptr = __hexdigest;
     auto *end = __digest + 16;

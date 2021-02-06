@@ -1,4 +1,4 @@
-//
+﻿//
 //  main.cpp
 //  UnityProfiler
 //
@@ -6,10 +6,12 @@
 //  Copyright © 2019 larryhou. All rights reserved.
 //
 
-#include <sys/stat.h>
-#include <unistd.h>
+#include "common.h"
+
 #include <iostream>
 #include <fstream>
+#include <chrono>
+#include <thread>
 
 #include "utils.h"
 #include "Crawler/record.h"
@@ -27,7 +29,9 @@ void processRecord(const char *filepath)
     auto filename = basename(filepath);
     
     char cmdpath[256];
-    mkdir("__commands", 0777);
+
+    MKDIR("__commands", 0777);
+
     memset(cmdpath, 0, sizeof(cmdpath));
     sprintf(cmdpath, "__commands/%s.plog", filename.c_str());
     
@@ -53,7 +57,7 @@ void processRecord(const char *filepath)
                 replaying = false;
             }
             stream->clear();
-            replaying ? usleep(500000) : usleep(100000);
+            replaying ? std::this_thread::sleep_for(std::chrono::microseconds(500000)) : std::this_thread::sleep_for(std::chrono::microseconds(100000));
         }
         
         if (input.size() == 0 || input[0] == '#')
@@ -67,7 +71,7 @@ void processRecord(const char *filepath)
             while (iter != input.end())
             {
                 cout << *iter++ << std::flush;
-                usleep(50000);
+                std::this_thread::sleep_for(std::chrono::microseconds(500000));
             }
             cout << endl;
         }
