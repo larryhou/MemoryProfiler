@@ -9,6 +9,7 @@
 #ifndef leak_h
 #define leak_h
 
+#include "types.h"
 #include <string>
 using std::strcmp;
 

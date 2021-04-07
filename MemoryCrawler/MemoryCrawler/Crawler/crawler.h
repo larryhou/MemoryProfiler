@@ -23,6 +23,7 @@
 #include "serialize.h"
 #include "stat.h"
 #include "fragment.h"
+#include "types.h"
 
 using std::vector;
 using std::set;
@@ -68,6 +69,8 @@ struct ManagedObject
     bool isValueType = false;
     MemoryState state = MS_none;
 };
+
+std::string utf16_to_utf8(std::u16string utf16_string);
 
 #include <memory>
 #include <new>
@@ -116,7 +119,7 @@ private:
     VirtualMachineInformation *__vm;
     std::vector<MemoryConcation> __concations;
     
-    std::wstring_convert<std::codecvt_utf8<char16_t>, char16_t> __convertor;
+    // std::wstring_convert<std::codecvt_utf8<char16_t>, char16_t> __convertor;
     
     TimeSampler<std::nano> __sampler;
     address_t *__mirror = nullptr;

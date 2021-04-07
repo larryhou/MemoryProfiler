@@ -1,0 +1,117 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Source Files\Crawler">
+      <UniqueIdentifier>{b2154b06-cb01-4133-a41f-a3a694f1fb6f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\sqlite3">
+      <UniqueIdentifier>{2dc98847-446f-44de-bbbc-342a9d6b57d5}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\MemoryCrawler\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MemoryCrawler\utils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MemoryCrawler\Crawler\cache.cpp">
+      <Filter>Source Files\Crawler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MemoryCrawler\Crawler\crawler.cpp">
+      <Filter>Source Files\Crawler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MemoryCrawler\Crawler\format.cpp">
+      <Filter>Source Files\Crawler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MemoryCrawler\Crawler\fragment.cpp">
+      <Filter>Source Files\Crawler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MemoryCrawler\Crawler\heap.cpp">
+      <Filter>Source Files\Crawler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MemoryCrawler\Crawler\rserialize.cpp">
+      <Filter>Source Files\Crawler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MemoryCrawler\Crawler\serialize.cpp">
+      <Filter>Source Files\Crawler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MemoryCrawler\Crawler\snapshot.cpp">
+      <Filter>Source Files\Crawler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MemoryCrawler\Crawler\stat.cpp">
+      <Filter>Source Files\Crawler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MemoryCrawler\Crawler\stream.cpp">
+      <Filter>Source Files\Crawler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MemoryCrawler\Crawler\types.cpp">
+      <Filter>Source Files\Crawler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\MemoryCrawler\sqlite3\sqlite3.c">
+      <Filter>Source Files\sqlite3</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\MemoryCrawler\utils.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MemoryCrawler\Crawler\cache.h">
+      <Filter>Source Files\Crawler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MemoryCrawler\Crawler\crawler.h">
+      <Filter>Source Files\Crawler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MemoryCrawler\Crawler\format.h">
+      <Filter>Source Files\Crawler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MemoryCrawler\Crawler\fragment.h">
+      <Filter>Source Files\Crawler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MemoryCrawler\Crawler\heap.h">
+      <Filter>Source Files\Crawler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MemoryCrawler\Crawler\leak.h">
+      <Filter>Source Files\Crawler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MemoryCrawler\Crawler\perf.h">
+      <Filter>Source Files\Crawler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MemoryCrawler\Crawler\rserialize.h">
+      <Filter>Source Files\Crawler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MemoryCrawler\Crawler\serialize.h">
+      <Filter>Source Files\Crawler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MemoryCrawler\Crawler\snapshot.h">
+      <Filter>Source Files\Crawler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MemoryCrawler\Crawler\stat.h">
+      <Filter>Source Files\Crawler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MemoryCrawler\Crawler\stream.h">
+      <Filter>Source Files\Crawler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MemoryCrawler\Crawler\types.h">
+      <Filter>Source Files\Crawler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MemoryCrawler\Crawler\AutoCharVector.h">
+      <Filter>Source Files\Crawler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\MemoryCrawler\sqlite3\sqlite3.h">
+      <Filter>Source Files\sqlite3</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

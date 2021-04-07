@@ -12,7 +12,11 @@ const char HashCaculator::__hex_map[] = "0123456789abcdef";
 
 size_t HashCaculator::get(const char *data, const CC_LONG size)
 {
-    CC_MD5(data, size, __digest);
+#ifdef _MSC_VER
+    
+#else
+	CC_MD5(data, size, __digest);
+#endif
     
     char *ptr = __hexdigest;
     auto *end = __digest + 16;

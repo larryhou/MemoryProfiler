@@ -3,7 +3,7 @@
 //  MemoryCrawler
 //
 //  Created by larryhou on 2019/4/2.
-//  Copyright Â© 2019 larryhou. All rights reserved.
+//  Copyright ? 2019 larryhou. All rights reserved.
 //
 
 #include <string>
@@ -19,12 +19,16 @@
 #include "Crawler/rserialize.h"
 #include "Crawler/format.h"
 #include "utils.h"
+#include "Crawler/types.h"
 
 using std::cout;
 using std::endl;
 using std::vector;
+using std::ofstream;
 
 void readCachedSnapshot(const char *uuid);
+void printHit();
+void printOutputHit();
 
 address_t castAddress(const char *v)
 {
@@ -57,9 +61,35 @@ PackedMemorySnapshot &deserialize(const char *filepath, PackedMemorySnapshot &sn
     return snapshot;
 }
 
-#include <unistd.h>
-#include <memory>
-using std::ofstream;
+
+#if _MSC_VER
+
+void printHit()
+{
+	std::cout << "/> ";
+}
+
+void printOutputHit()
+{
+	std::cout << "";
+}
+
+#else
+
+void printHit()
+{
+	std::cout << "\e[93m/> ";
+}
+
+void printOutputHit()
+{
+	cout << "\e[0m" << "\e[36m";
+}
+
+#endif
+
+
+
 void processMemorySnapshot(const char * filepath)
 {
     PackedMemorySnapshot snapshot;
@@ -69,7 +99,7 @@ void processMemorySnapshot(const char * filepath)
     auto filename = basename(filepath);
     
     char cmdpath[128];
-    mkdir("__commands", 0777);
+	crawler_mkdir("__commands");
     memset(cmdpath, 0, sizeof(cmdpath));
     sprintf(cmdpath, "__commands/%s.mlog", filename.c_str());
     
@@ -86,7 +116,7 @@ void processMemorySnapshot(const char * filepath)
         auto replaying = typeid(*stream) != typeid(std::cin);
         auto recordable = true;
         
-        std::cout << "\e[93m/> ";
+		printHit();
         
         READ_LINE:
         std::string input;
@@ -99,7 +129,14 @@ void processMemorySnapshot(const char * filepath)
                 replaying = false;
             }
             stream->clear();
-            replaying ? usleep(500000) : usleep(100000);
+			if (replaying)
+			{
+				crawler_sleep(500000);
+			}
+			else
+			{
+				crawler_sleep(100000);
+			}
         }
         
         if (input.size() == 0 || input[0] == '#')
@@ -113,12 +150,12 @@ void processMemorySnapshot(const char * filepath)
             while (iter != input.end())
             {
                 cout << *iter++ << std::flush;
-                usleep(50000);
+				crawler_sleep(50000);
             }
             cout << endl;
         }
         
-        cout << "\e[0m" << "\e[36m";
+		printOutputHit();
         
         const char *command = input.c_str();
         if (strbeg(command, "read"))
@@ -715,14 +752,14 @@ void processMemorySnapshot(const char * filepath)
         {
             readCommandOptions(command, [&](std::vector<const char *> options)
                                {
-                                   std::wstring_convert<std::codecvt_utf8<char16_t>, char16_t> convertor;
+                                   //std::wstring_convert<std::codecvt_utf8<char16_t>, char16_t> convertor;
                                    for (auto i = 1; i < options.size(); i++)
                                    {
                                        auto address = castAddress(options[i]);
                                        int32_t size = 0;
                                        auto data = mainCrawler.getString(address, size);
                                        if (data == nullptr) {continue;}
-                                       printf("0x%08llx %d \e[32m'%s'\n", address, size, convertor.to_bytes(data).c_str());
+                                       printf("0x%08llx %d \e[32m'%s'\n", address, size, utf16_to_utf8(data).c_str());
                                    }
                                });
         }
@@ -747,7 +784,7 @@ void processMemorySnapshot(const char * filepath)
         else if (strbeg(command, "export"))
         {
             char exportpath[256];
-            mkdir("__export", 0777);
+			crawler_mkdir("__export");
             sprintf(exportpath, "__export/%s.heap", filename.c_str());
             HeapExplorerFormat().encode(&snapshot, exportpath);
         }
@@ -762,65 +799,65 @@ void processMemorySnapshot(const char * filepath)
         {
             recordable = false;
             const int __indent = 6;
-            help("read", "[UUID]*", "è¯»å–ä»¥sqlite3ä¿å­˜çš„å†…å­˜å¿«ç…§ç¼“å­˜", __indent);
-            help("load", "[PMS_FILE_PATH]*", "åŠ è½½å†…å­˜å¿«ç…§æ–‡ä»¶", __indent);
-            help("track", "[alloc|leak]", "è¿½è¸ªå†…å­˜å¢žé•¿ä»¥åŠæ³„éœ²é—®é¢˜", __indent);
-            help("str", "[ADDRESS]*", "è§£æžåœ°å€å¯¹åº”çš„å­—ç¬¦ä¸²å†…å®¹", __indent);
-            help("ref", "[ADDRESS]*", "åˆ—ä¸¾ä¿æŒæ‰˜ç®¡å¯¹è±¡å†…å­˜æ´»è·ƒçš„å¼•ç”¨å…³ç³»", __indent);
-            help("vref", "[ADDRESS]*", "åˆ—ä¸¾æ‰˜ç®¡å†…å­˜é‡Œé¢æ•°å€¼ç±»åž‹å¯¹è±¡çš„çš„å¼•ç”¨è·¯å¾„", __indent);
-            help("uref", "[ADDRESS]*", "åˆ—ä¸¾ä¿æŒå¼•æ“Žå¯¹è±¡å†…å­˜æ´»è·ƒçš„å¼•ç”¨å…³ç³»", __indent);
-            help("REF", "[ADDRESS]*", "åˆ—ä¸¾ä¿æŒæ‰˜ç®¡å¯¹è±¡å†…å­˜æ´»è·ƒçš„å…¨é‡å¼•ç”¨å…³ç³»", __indent);
-            help("UREF", "[ADDRESS]*", "åˆ—ä¸¾ä¿æŒå¼•æ“Žå¯¹è±¡å†…å­˜æ´»è·ƒçš„å…¨é‡å¼•ç”¨å…³ç³»", __indent);
-            help("kref", "[ADDRESS]*", "åˆ—ä¸¾ä¿æŒæ‰˜ç®¡å¯¹è±¡å†…å­˜æ´»è·ƒçš„å¼•ç”¨å…³ç³»å¹¶å‰”é™¤å¹²æ‰°é¡¹", __indent);
-            help("ukref", "[ADDRESS]*", "åˆ—ä¸¾ä¿æŒå¼•æ“Žå¯¹è±¡å†…å­˜æ´»è·ƒçš„å¼•ç”¨å…³ç³»å¹¶å‰”é™¤å¹²æ‰°é¡¹", __indent);
-            help("KREF", "[ADDRESS]*", "åˆ—ä¸¾ä¿æŒæ‰˜ç®¡å¯¹è±¡å†…å­˜æ´»è·ƒçš„å…¨é‡å¼•ç”¨å…³ç³»å¹¶å‰”é™¤å¹²æ‰°é¡¹", __indent);
-            help("UKREF", "[ADDRESS]*", "åˆ—ä¸¾ä¿æŒå¼•æ“Žå¯¹è±¡å†…å­˜æ´»è·ƒçš„å…¨é‡å¼•ç”¨å…³ç³»å¹¶å‰”é™¤å¹²æ‰°é¡¹", __indent);
-            help("link", "[ADDRESS]*", "æŸ¥çœ‹ä¸Žæ‰˜ç®¡å¯¹è±¡é“¾æŽ¥çš„å¼•æ“Žå¯¹è±¡", __indent);
-            help("ulink", "[ADDRESS]*", "æŸ¥çœ‹ä¸Žå¼•æ“Žå¯¹è±¡é“¾æŽ¥çš„æ‰˜ç®¡å¯¹è±¡", __indent);
-            help("show", "[ADDRESS]* [DEPTH]", "æŸ¥çœ‹æ‰˜ç®¡å¯¹è±¡å†…å­˜æŽ’å¸ƒä»¥åŠå˜é‡å€¼", __indent);
-            help("vshow", "[ADDRESS]*", "æŸ¥çœ‹æ‰˜ç®¡å†…å­˜å¯¹è±¡çš„å†…å­˜æ•°æ®", __indent);
-            help("ushow", "[ADDRESS]* [DEPTH]", "æŸ¥çœ‹å¼•æ“Žå¯¹è±¡å†…éƒ¨çš„å¼•ç”¨å…³ç³»", __indent);
-            help("find", "[ADDRESS]*", "æŸ¥æ‰¾æ‰˜ç®¡å¯¹è±¡", __indent);
-            help("ufind", "[ADDRESS]*", "æŸ¥æ‰¾å¼•æ“Žå¯¹è±¡", __indent);
-            help("size", "[ADDRESS]*", "è®¡ç®—æ‰˜ç®¡å¯¹è±¡å¼•ç”¨çš„å†…å­˜å¤§å°", __indent);
-            help("type", "[TYPE_INDEX]*", "æŸ¥çœ‹æ‰˜ç®¡ç±»åž‹ä¿¡æ¯", __indent);
-            help("utype", "[TYPE_INDEX]*", "æŸ¥çœ‹å¼•æ“Žç±»åž‹ä¿¡æ¯", __indent);
-            help("dup", "[TYPE_INDEX]", "æŒ‰æŒ‡å®šç±»åž‹ç»Ÿè®¡ç›¸åŒå¯¹è±¡çš„ä¿¡æ¯", __indent);
-            help("stat", "[RANK]", "æŒ‰ç±»åž‹è¾“å‡ºæ‰˜ç®¡å¯¹è±¡å†…å­˜å ç”¨å‰RANKåçš„ç®€æŠ¥[æ”¯æŒå†…å­˜è¿½è¸ªè¿‡æ»¤]", __indent);
-            help("ustat", "[RANK]", "æŒ‰ç±»åž‹è¾“å‡ºå¼•æ“Žå¯¹è±¡å†…å­˜å ç”¨å‰RANKåçš„ç®€æŠ¥[æ”¯æŒå†…å­˜è¿½è¸ªè¿‡æ»¤]", __indent);
-            help("bar", "[RANK]", "è¾“å‡ºæ‰˜ç®¡ç±»åž‹å†…å­˜å ç”¨å‰RANKåå›¾å½¢ç®€æŠ¥[æ”¯æŒå†…å­˜è¿½è¸ªè¿‡æ»¤]", __indent);
-            help("ubar", "[RANK]", "è¾“å‡ºå¼•æ“Žç±»åž‹å†…å­˜å ç”¨å‰RANKåå›¾å½¢ç®€æŠ¥[æ”¯æŒå†…å­˜è¿½è¸ªè¿‡æ»¤]", __indent);
-            help("top", "[RANK] [ADDRESS] [KEEP_ADDRESS_ORDER]", "æŒ‰å¤§å°é™åº/åŽŸåºè¾“å‡ºæœ€å¤§çš„å†…å­˜å¯¹è±¡åˆ—è¡¨", __indent);
-            help("utop", "[RANK]", "æŒ‰å¤§å°é™åºè¾“å‡ºè¾“å‡ºNativeå¯¹è±¡åˆ—è¡¨", __indent);
-            help("list", NULL, "åˆ—ä¸¾æ‰˜ç®¡ç±»åž‹æ‰€æœ‰æ´»è·ƒå¯¹è±¡å†…å­˜å ç”¨ç®€æŠ¥[æ”¯æŒå†…å­˜è¿½è¸ªè¿‡æ»¤]", __indent);
-            help("ulist", NULL, "åˆ—ä¸¾å¼•æ“Žç±»åž‹æ‰€æœ‰æ´»è·ƒå¯¹è±¡å†…å­˜å ç”¨ç®€æŠ¥[æ”¯æŒå†…å­˜è¿½è¸ªè¿‡æ»¤]", __indent);
-            help("event", NULL, "æœç´¢æ‰€æœ‰æœªæ¸…ç†çš„delegateå¯¹è±¡");
-            help("delg", "[ADDRESS]*", "æŸ¥çœ‹MulticastDelegateé“¾è¡¨");
-            help("heap", "[RANK]", "è¾“å‡ºåŠ¨æ€å†…å­˜ç®€æŠ¥", __indent);
-            help("iheap", "[save|draw]", "è¾“å‡ºåŠ¨æ€å†…å­˜ç®€æŠ¥", __indent);
-            help("draw", "[SORT_SECTION_BY_SIZE]", "ç”ŸæˆSVGæ–‡ä»¶å¯è§†åŒ–å†…å­˜ä½¿ç”¨æƒ…å†µï¼Œç”¨æ¥å®šä½å†…å­˜ç¢Žç‰‡é—®é¢˜", __indent);
-            help("frag", NULL, "è¾“å‡ºå†…å­˜ç¢Žç‰‡ä¿¡æ¯", __indent);
-            help("go", "[ADDRESS]*", "è¾“å‡ºGameObjectå¯¹è±¡çš„entity-componentsä¿¡æ¯", __indent);
-            help("comp", "[ADDRESS]*", "è¾“å‡ºNativeç»„ä»¶ä¿¡æ¯", __indent);
-            help("tfm", "[ADDRESS]*", "è¾“å‡ºTransform/RectTransformå†…å­˜å€¼ä¿¡æ¯", __indent);
-            help("tex", "[ADDRESS]*", "è¾“å‡ºTexture2Dèµ„æºä¿¡æ¯", __indent);
-            help("sprite", "[ADDRESS]*", "è¾“å‡ºSpriteèµ„æºä¿¡æ¯", __indent);
-            help("base", "[TYPE_INDEX]", "æŸ¥çœ‹å½“å‰ç±»åž‹çš„å­ç±»åž‹", __indent);
-            help("save", NULL, "æŠŠå½“å‰å†…å­˜å¿«ç…§åˆ†æžç»“æžœä»¥sqlite3æ ¼å¼ä¿å­˜åˆ°æœ¬æœº", __indent);
-            help("uuid", NULL, "æŸ¥çœ‹å†…å­˜å¿«ç…§UUID", __indent);
-            help("handle", NULL, "æŸ¥çœ‹GCHandleå¯¹è±¡", __indent);
-            help("static", "[TYPE_INDEX]", "æŸ¥çœ‹ç±»é™æ€å¯¹è±¡æ•°æ®", __indent);
-            help("class", "[CLASS_NAME]", "æŸ¥çœ‹ç±»ä¿¡æ¯", __indent);
-            help("uname", "[UNITY_ASSET_NAME]", "åˆ—ä¸¾åå­—ä»¥æŒ‡å®šå­—ç¬¦å¼€å¤´çš„æ‰€æœ‰Nativeå¯¹è±¡", __indent);
-            help("help", NULL, "å¸®åŠ©", __indent);
-            help("quit", NULL, "é€€å‡º", __indent);
+            help("read", "[UUID]*", "¶ÁÈ¡ÒÔsqlite3±£´æµÄÄÚ´æ¿ìÕÕ»º´æ", __indent);
+            help("load", "[PMS_FILE_PATH]*", "¼ÓÔØÄÚ´æ¿ìÕÕÎÄ¼þ", __indent);
+            help("track", "[alloc|leak]", "×·×ÙÄÚ´æÔö³¤ÒÔ¼°Ð¹Â¶ÎÊÌâ", __indent);
+            help("str", "[ADDRESS]*", "½âÎöµØÖ·¶ÔÓ¦µÄ×Ö·û´®ÄÚÈÝ", __indent);
+            help("ref", "[ADDRESS]*", "ÁÐ¾Ù±£³ÖÍÐ¹Ü¶ÔÏóÄÚ´æ»îÔ¾µÄÒýÓÃ¹ØÏµ", __indent);
+            help("vref", "[ADDRESS]*", "ÁÐ¾ÙÍÐ¹ÜÄÚ´æÀïÃæÊýÖµÀàÐÍ¶ÔÏóµÄµÄÒýÓÃÂ·¾¶", __indent);
+            help("uref", "[ADDRESS]*", "ÁÐ¾Ù±£³ÖÒýÇæ¶ÔÏóÄÚ´æ»îÔ¾µÄÒýÓÃ¹ØÏµ", __indent);
+            help("REF", "[ADDRESS]*", "ÁÐ¾Ù±£³ÖÍÐ¹Ü¶ÔÏóÄÚ´æ»îÔ¾µÄÈ«Á¿ÒýÓÃ¹ØÏµ", __indent);
+            help("UREF", "[ADDRESS]*", "ÁÐ¾Ù±£³ÖÒýÇæ¶ÔÏóÄÚ´æ»îÔ¾µÄÈ«Á¿ÒýÓÃ¹ØÏµ", __indent);
+            help("kref", "[ADDRESS]*", "ÁÐ¾Ù±£³ÖÍÐ¹Ü¶ÔÏóÄÚ´æ»îÔ¾µÄÒýÓÃ¹ØÏµ²¢ÌÞ³ý¸ÉÈÅÏî", __indent);
+            help("ukref", "[ADDRESS]*", "ÁÐ¾Ù±£³ÖÒýÇæ¶ÔÏóÄÚ´æ»îÔ¾µÄÒýÓÃ¹ØÏµ²¢ÌÞ³ý¸ÉÈÅÏî", __indent);
+            help("KREF", "[ADDRESS]*", "ÁÐ¾Ù±£³ÖÍÐ¹Ü¶ÔÏóÄÚ´æ»îÔ¾µÄÈ«Á¿ÒýÓÃ¹ØÏµ²¢ÌÞ³ý¸ÉÈÅÏî", __indent);
+            help("UKREF", "[ADDRESS]*", "ÁÐ¾Ù±£³ÖÒýÇæ¶ÔÏóÄÚ´æ»îÔ¾µÄÈ«Á¿ÒýÓÃ¹ØÏµ²¢ÌÞ³ý¸ÉÈÅÏî", __indent);
+            help("link", "[ADDRESS]*", "²é¿´ÓëÍÐ¹Ü¶ÔÏóÁ´½ÓµÄÒýÇæ¶ÔÏó", __indent);
+            help("ulink", "[ADDRESS]*", "²é¿´ÓëÒýÇæ¶ÔÏóÁ´½ÓµÄÍÐ¹Ü¶ÔÏó", __indent);
+            help("show", "[ADDRESS]* [DEPTH]", "²é¿´ÍÐ¹Ü¶ÔÏóÄÚ´æÅÅ²¼ÒÔ¼°±äÁ¿Öµ", __indent);
+            help("vshow", "[ADDRESS]*", "²é¿´ÍÐ¹ÜÄÚ´æ¶ÔÏóµÄÄÚ´æÊý¾Ý", __indent);
+            help("ushow", "[ADDRESS]* [DEPTH]", "²é¿´ÒýÇæ¶ÔÏóÄÚ²¿µÄÒýÓÃ¹ØÏµ", __indent);
+            help("find", "[ADDRESS]*", "²éÕÒÍÐ¹Ü¶ÔÏó", __indent);
+            help("ufind", "[ADDRESS]*", "²éÕÒÒýÇæ¶ÔÏó", __indent);
+            help("size", "[ADDRESS]*", "¼ÆËãÍÐ¹Ü¶ÔÏóÒýÓÃµÄÄÚ´æ´óÐ¡", __indent);
+            help("type", "[TYPE_INDEX]*", "²é¿´ÍÐ¹ÜÀàÐÍÐÅÏ¢", __indent);
+            help("utype", "[TYPE_INDEX]*", "²é¿´ÒýÇæÀàÐÍÐÅÏ¢", __indent);
+            help("dup", "[TYPE_INDEX]", "°´Ö¸¶¨ÀàÐÍÍ³¼ÆÏàÍ¬¶ÔÏóµÄÐÅÏ¢", __indent);
+            help("stat", "[RANK]", "°´ÀàÐÍÊä³öÍÐ¹Ü¶ÔÏóÄÚ´æÕ¼ÓÃÇ°RANKÃûµÄ¼ò±¨[Ö§³ÖÄÚ´æ×·×Ù¹ýÂË]", __indent);
+            help("ustat", "[RANK]", "°´ÀàÐÍÊä³öÒýÇæ¶ÔÏóÄÚ´æÕ¼ÓÃÇ°RANKÃûµÄ¼ò±¨[Ö§³ÖÄÚ´æ×·×Ù¹ýÂË]", __indent);
+            help("bar", "[RANK]", "Êä³öÍÐ¹ÜÀàÐÍÄÚ´æÕ¼ÓÃÇ°RANKÃûÍ¼ÐÎ¼ò±¨[Ö§³ÖÄÚ´æ×·×Ù¹ýÂË]", __indent);
+            help("ubar", "[RANK]", "Êä³öÒýÇæÀàÐÍÄÚ´æÕ¼ÓÃÇ°RANKÃûÍ¼ÐÎ¼ò±¨[Ö§³ÖÄÚ´æ×·×Ù¹ýÂË]", __indent);
+            help("top", "[RANK] [ADDRESS] [KEEP_ADDRESS_ORDER]", "°´´óÐ¡½µÐò/Ô­ÐòÊä³ö×î´óµÄÄÚ´æ¶ÔÏóÁÐ±í", __indent);
+            help("utop", "[RANK]", "°´´óÐ¡½µÐòÊä³öÊä³öNative¶ÔÏóÁÐ±í", __indent);
+            help("list", NULL, "ÁÐ¾ÙÍÐ¹ÜÀàÐÍËùÓÐ»îÔ¾¶ÔÏóÄÚ´æÕ¼ÓÃ¼ò±¨[Ö§³ÖÄÚ´æ×·×Ù¹ýÂË]", __indent);
+            help("ulist", NULL, "ÁÐ¾ÙÒýÇæÀàÐÍËùÓÐ»îÔ¾¶ÔÏóÄÚ´æÕ¼ÓÃ¼ò±¨[Ö§³ÖÄÚ´æ×·×Ù¹ýÂË]", __indent);
+            help("event", NULL, "ËÑË÷ËùÓÐÎ´ÇåÀíµÄdelegate¶ÔÏó");
+            help("delg", "[ADDRESS]*", "²é¿´MulticastDelegateÁ´±í");
+            help("heap", "[RANK]", "Êä³ö¶¯Ì¬ÄÚ´æ¼ò±¨", __indent);
+            help("iheap", "[save|draw]", "Êä³ö¶¯Ì¬ÄÚ´æ¼ò±¨", __indent);
+            help("draw", "[SORT_SECTION_BY_SIZE]", "Éú³ÉSVGÎÄ¼þ¿ÉÊÓ»¯ÄÚ´æÊ¹ÓÃÇé¿ö£¬ÓÃÀ´¶¨Î»ÄÚ´æËéÆ¬ÎÊÌâ", __indent);
+            help("frag", NULL, "Êä³öÄÚ´æËéÆ¬ÐÅÏ¢", __indent);
+            help("go", "[ADDRESS]*", "Êä³öGameObject¶ÔÏóµÄentity-componentsÐÅÏ¢", __indent);
+            help("comp", "[ADDRESS]*", "Êä³öNative×é¼þÐÅÏ¢", __indent);
+            help("tfm", "[ADDRESS]*", "Êä³öTransform/RectTransformÄÚ´æÖµÐÅÏ¢", __indent);
+            help("tex", "[ADDRESS]*", "Êä³öTexture2D×ÊÔ´ÐÅÏ¢", __indent);
+            help("sprite", "[ADDRESS]*", "Êä³öSprite×ÊÔ´ÐÅÏ¢", __indent);
+            help("base", "[TYPE_INDEX]", "²é¿´µ±Ç°ÀàÐÍµÄ×ÓÀàÐÍ", __indent);
+            help("save", NULL, "°Ñµ±Ç°ÄÚ´æ¿ìÕÕ·ÖÎö½á¹ûÒÔsqlite3¸ñÊ½±£´æµ½±¾»ú", __indent);
+            help("uuid", NULL, "²é¿´ÄÚ´æ¿ìÕÕUUID", __indent);
+            help("handle", NULL, "²é¿´GCHandle¶ÔÏó", __indent);
+            help("static", "[TYPE_INDEX]", "²é¿´Àà¾²Ì¬¶ÔÏóÊý¾Ý", __indent);
+            help("class", "[CLASS_NAME]", "²é¿´ÀàÐÅÏ¢", __indent);
+            help("uname", "[UNITY_ASSET_NAME]", "ÁÐ¾ÙÃû×ÖÒÔÖ¸¶¨×Ö·û¿ªÍ·µÄËùÓÐNative¶ÔÏó", __indent);
+            help("help", NULL, "°ïÖú", __indent);
+            help("quit", NULL, "ÍË³ö", __indent);
             cout << std::flush;
         }
         else if (strbeg(command, "color"))
         {
             for (auto i = 1; i <= 256; i++)
             {
-                printf("\e[%dm\\e[%dmå¾Œæ²ç™½@moobyte\\e[0m\e[0m\n", i, i);
+                printf("\e[%dm\\e[%dmááãå°×@moobyte\\e[0m\e[0m\n", i, i);
             }
         }
         else
