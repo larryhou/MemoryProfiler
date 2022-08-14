@@ -53,7 +53,7 @@ Unity还提供另外一个内存分析工具MemoryProfiler(图\ref{mp})
 把*Editor*目录放到*Unity*工程里面并刷新，之后在*UnityEditor*菜单里面会出现下图所示的菜单。
 ![](docs/figures/editor-menu.png)
 
-2. 按照[官方文档](https://docs.unity3d.com/Manual/ProfilerWindow.html)配置真机调试或在*Editor*环境调试。\
+2. 按照[官方文档](https://docs.unity3d.com/Manual/profiler-profiling-applications.html)配置真机调试或在*Editor*环境调试。\
 
 3. 启动游戏，在需要性能调试的逻辑开始前点击菜单*性能/开始采样*，并在逻辑结束后点击菜单*性能/停止采样*。
 ![](docs/figures/up-start.png)\ ![](docs/figures/up-stop.png)
