@@ -3,7 +3,7 @@
 //  MemoryCrawler
 //
 //  Created by larryhou on 2019/5/5.
-//  Copyright © 2019 larryhou. All rights reserved.
+//  Copyright ? 2019 larryhou. All rights reserved.
 //
 
 #include "utils.h"
@@ -20,23 +20,32 @@ std::string comma(uint64_t v, uint32_t width)
     auto fsize = width + width / SEGMENT_SIZE;
     if (width != 0 && width % SEGMENT_SIZE == 0) { --fsize; }
     
-    char buf[fsize+1];
-    auto ptr = buf + sizeof(buf) - 1;
+
+	AutoCharVector tmp(fsize + 1);
+	char* buf = tmp.p();
+    auto ptr = buf + tmp.size() - 1;
     memset(ptr--, 0, 1);
+
     if (v == 0) { *ptr-- = '0'; }
     else
     {
         auto num = 0;
         while (v > 0)
         {
-            *ptr-- = '0' + (v % 10);
-            if (++num % SEGMENT_SIZE == 0) { *ptr-- = v < 10 ? ' ' : ','; }
+			if (ptr >= buf)
+	            *ptr-- = '0' + (v % 10);
+            if (++num % SEGMENT_SIZE == 0) 
+			{
+				if (ptr >= buf)
+					*ptr-- = v < 10 ? ' ' : ','; 
+			}
             v /= 10;
         }
     }
     
     if (ptr >= buf) { memset(buf, ' ', ptr - buf + 1); }
-    return buf;
+	string ret(buf);
+    return ret;
 }
 
 std::string basename(const char *filepath)
@@ -65,13 +74,13 @@ void help(const char *command, const char *options, const char *description, con
     memset(__help_padding, 0, indent + 1);
     if (indent > 0) {memset(__help_padding, '\x20', indent);}
     
-    std::cout
-    << "\e[36m\e[1m" << __help_padding << command << " \e[0m";
+    std::cout << EM36 << __help_padding << command ;
     if (options)
     {
-        std::cout << "\e[36m" << options << '\x20';
+        std::cout << EM36 << options << '\x20';
     }
-    std::cout << "\e[33m" << description << '\n';
+
+    std::cout << EM33 << " " << description << '\n';
 }
 
 bool strbeg(const char *str, const char *cmp)
@@ -91,6 +100,8 @@ bool strbeg(const char *str, const char *cmp)
 void readCommandOptions(const char *command, std::function<void(std::vector<const char *> &)> callback)
 {
     std::vector<const char *> options;
+	std::vector<string> stringbuf;
+
     auto charCount = strlen(command);
     char *item = new char[256];
     auto iter = 0;
@@ -102,9 +113,14 @@ void readCommandOptions(const char *command, std::function<void(std::vector<cons
             {
                 item[iter] = 0; // end c string
                 auto size = strlen(item);
-                auto option = new char[size];
-                strcpy(option, item);
-                options.push_back(option);
+
+                // auto option = new char[size];
+                // strcpy(option, item);
+				string option = item;
+				stringbuf.push_back(option);
+
+                options.push_back(stringbuf[stringbuf.size()-1].c_str());
+
                 iter = 0;
             }
         }
@@ -118,8 +134,6 @@ void readCommandOptions(const char *command, std::function<void(std::vector<cons
     if (strlen(item) > 0) { options.push_back(item); }
     
     callback(options);
-    
-    for (auto i = 0; i < options.size(); i++) { delete [] options[i]; }
 }
 
 bool CommandHistory::detect(std::string &command)

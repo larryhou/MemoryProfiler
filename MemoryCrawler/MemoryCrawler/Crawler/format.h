@@ -13,6 +13,7 @@
 #include <fstream>
 #include "snapshot.h"
 #include "stream.h"
+#include "types.h"
 
 class HeapExplorerFormat
 {

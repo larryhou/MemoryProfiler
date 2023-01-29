@@ -10,10 +10,11 @@
 #define cache_h
 
 #include <stdio.h>
-#include <sqlite3.h>
+#include "../sqlite3/sqlite3.h"
 #include <new>
 #include "crawler.h"
 #include "perf.h"
+#include "types.h"
 
 class SnapshotCrawlerCache
 {
